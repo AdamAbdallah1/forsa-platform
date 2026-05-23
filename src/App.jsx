@@ -14,7 +14,7 @@ import SeekerRoute from "./components/SeekerRoute";
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/forsa-platform">
       <main className="min-h-screen overflow-x-hidden bg-[#f7f7f5] pb-24 text-[#111111] md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
