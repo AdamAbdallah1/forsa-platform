@@ -1,11 +1,10 @@
 import { Navigate } from "react-router-dom";
+import { getAccount } from "../lib/auth";
 
 export default function ProtectedRoute({ children }) {
-  const account = JSON.parse(localStorage.getItem("forsaAccount")) || null;
+  const account = getAccount();
 
-  if (!account) {
-    return <Navigate to="/auth" replace />;
-  }
+  if (!account) return <Navigate to="/auth" replace />;
 
   return children;
 }

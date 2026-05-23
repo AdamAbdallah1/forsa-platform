@@ -1,29 +1,35 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   FaBell,
-  FaBriefcase,
   FaCompass,
   FaPaperPlane,
   FaPlus,
   FaUser,
 } from "react-icons/fa";
-import BrandLogo from "/BrandLogo";
+import BrandLogo from "./BrandLogo";
+
+function safeJson(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export default function AppHeader() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const account = JSON.parse(localStorage.getItem("forsaAccount")) || null;
-
-  const notifications =
-    JSON.parse(localStorage.getItem("forsaNotifications")) || [];
+  const account = safeJson("forsaAccount", null);
+  const notifications = safeJson("forsaNotifications", []);
+  const isHiring = account?.accountType === "hiring";
 
   const unreadNotifications = notifications.filter(
     (item) =>
-      !item.read &&
-      (!item.targetEmail || item.targetEmail === account?.email)
+      !item.read && (!item.targetEmail || item.targetEmail === account?.email)
   ).length;
 
-  const isHiring = account?.accountType === "hiring";
+  const isAuthPage = location.pathname === "/auth";
 
   const linkClass = ({ isActive }) =>
     `rounded-full px-4 py-2 text-sm font-medium transition ${
@@ -35,12 +41,9 @@ export default function AppHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-neutral-200/80 bg-[#f7f7f5]/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-6">
-        <div
-          onClick={() => navigate("/")}
-          className="cursor-pointer"
-        >
+        <button onClick={() => navigate("/")} className="shrink-0">
           <BrandLogo />
-        </div>
+        </button>
 
         <nav className="hidden items-center gap-2 lg:flex">
           <NavLink to="/explore" className={linkClass}>
@@ -95,9 +98,7 @@ export default function AppHeader() {
 
                 {unreadNotifications > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-                    {unreadNotifications > 9
-                      ? "9+"
-                      : unreadNotifications}
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
                   </span>
                 )}
               </NavLink>
@@ -111,19 +112,23 @@ export default function AppHeader() {
             </>
           ) : (
             <>
-              <button
-                onClick={() => navigate("/explore")}
-                className="hidden rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-neutral-500 sm:block"
-              >
-                Explore
-              </button>
+              {!isAuthPage && (
+                <button
+                  onClick={() => navigate("/auth")}
+                  className="rounded-full bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
+                >
+                  Join Forsa
+                </button>
+              )}
 
-              <button
-                onClick={() => navigate("/auth")}
-                className="rounded-full bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
-              >
-                Join Forsa
-              </button>
+              {isAuthPage && (
+                <button
+                  onClick={() => navigate("/explore")}
+                  className="rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-neutral-500"
+                >
+                  Explore
+                </button>
+              )}
             </>
           )}
         </div>

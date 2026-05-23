@@ -15,6 +15,7 @@ import {
   FaEnvelope,
   FaCheckCircle,
   FaTimesCircle,
+  FaPaperPlane,
 } from "react-icons/fa";
 
 const skillOptions = [
@@ -73,7 +74,17 @@ export default function Profile() {
 
   const [account, setAccount] = useState(savedAccount);
   const [profile, setProfile] = useState(savedProfile);
-  const [posts, setPosts] = useState(safeJson("forsaPosts", []));
+  const [posts, setPosts] = useState(() => {
+    const allPosts = safeJson("forsaPosts", []);
+    if (!savedAccount || savedAccount.accountType !== "hiring") return allPosts;
+
+    return allPosts.filter(
+      (post) =>
+        post.ownerEmail === savedAccount.email ||
+        (!post.ownerEmail && post.ownerName === savedAccount.name) ||
+        (!post.ownerEmail && !post.ownerName)
+    );
+  });
   const [savedJobs, setSavedJobs] = useState(safeJson("forsaSavedJobs", []));
   const [messages, setMessages] = useState(safeJson("forsaMessages", []));
   const [selectedApplicantsPost, setSelectedApplicantsPost] = useState(null);
@@ -88,8 +99,8 @@ export default function Profile() {
         <AppHeader />
 
         <div className="mx-auto max-w-3xl px-5 py-14 pb-28 sm:px-6 sm:py-20">
-          <div className="rounded-[28px] border border-neutral-200 bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-8">
-            <h1 className="text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
+          <div className="rounded-[26px] border border-neutral-200 bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-8">
+            <h1 className="text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
               Create your Forsa profile first.
             </h1>
 
@@ -138,6 +149,39 @@ export default function Profile() {
   };
 
   const completionScore = getProfileCompletion();
+
+  const seekerApplications = messages.filter(
+    (thread) => thread.seeker?.email === account.email
+  );
+
+  const persistOwnPosts = (updatedOwnPosts) => {
+    const allPosts = safeJson("forsaPosts", []);
+    const otherPosts = allPosts.filter(
+      (post) =>
+        !(
+          post.ownerEmail === account.email ||
+          (!post.ownerEmail && post.ownerName === account.name) ||
+          (!post.ownerEmail && !post.ownerName)
+        )
+    );
+
+    const nextPosts = [...updatedOwnPosts, ...otherPosts];
+    setPosts(updatedOwnPosts);
+    localStorage.setItem("forsaPosts", JSON.stringify(nextPosts));
+  };
+
+  const syncUserRecord = (nextAccount) => {
+    const users = safeJson("forsaUsers", []);
+    if (!nextAccount?.email || users.length === 0) return;
+
+    const updatedUsers = users.map((user) =>
+      user.email === savedAccount.email || user.email === nextAccount.email
+        ? { ...user, ...nextAccount }
+        : user
+    );
+
+    localStorage.setItem("forsaUsers", JSON.stringify(updatedUsers));
+  };
 
   const updateApplicantStatus = (threadId, status) => {
     const updatedMessages = messages.map((thread) =>
@@ -217,6 +261,7 @@ export default function Profile() {
   const saveChanges = () => {
     localStorage.setItem("forsaAccount", JSON.stringify(account));
     localStorage.setItem("forsaProfile", JSON.stringify(profile));
+    syncUserRecord(account);
     setIsEditing(false);
   };
 
@@ -237,8 +282,7 @@ export default function Profile() {
     if (!confirmed) return;
 
     const updatedPosts = posts.filter((post) => post.id !== postId);
-    setPosts(updatedPosts);
-    localStorage.setItem("forsaPosts", JSON.stringify(updatedPosts));
+    persistOwnPosts(updatedPosts);
   };
 
   const togglePostStatus = (postId) => {
@@ -248,8 +292,7 @@ export default function Profile() {
         : post
     );
 
-    setPosts(updatedPosts);
-    localStorage.setItem("forsaPosts", JSON.stringify(updatedPosts));
+    persistOwnPosts(updatedPosts);
   };
 
   const startEditPost = (post) => {
@@ -266,8 +309,7 @@ export default function Profile() {
       post.id === editingPostId ? { ...post, ...editingPost } : post
     );
 
-    setPosts(updatedPosts);
-    localStorage.setItem("forsaPosts", JSON.stringify(updatedPosts));
+    persistOwnPosts(updatedPosts);
     setEditingPostId(null);
     setEditingPost(null);
   };
@@ -278,7 +320,9 @@ export default function Profile() {
   };
 
   const logout = () => {
-    navigate("/auth");
+    localStorage.removeItem("forsaAccount");
+    setAccount(null);
+    navigate("/auth", { replace: true });
   };
 
   const resetDemoAccount = () => {
@@ -294,8 +338,10 @@ export default function Profile() {
     localStorage.removeItem("forsaSavedJobs");
     localStorage.removeItem("forsaMessages");
     localStorage.removeItem("forsaNotifications");
+    localStorage.removeItem("forsaUsers");
 
-    navigate("/auth");
+    setAccount(null);
+    navigate("/auth", { replace: true });
   };
 
   return (
@@ -303,16 +349,16 @@ export default function Profile() {
       <AppHeader />
 
       <div className="mx-auto max-w-6xl px-5 pb-28 sm:px-6 lg:pb-20">
-        <div className="mt-5 rounded-[28px] border border-neutral-200 bg-white p-4 shadow-sm sm:mt-8 sm:rounded-[36px] sm:p-6 md:p-8">
+        <div className="mt-5 rounded-[26px] border border-neutral-200 bg-white p-4 shadow-sm sm:mt-8 sm:rounded-[32px] sm:p-5 md:p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="flex min-w-0 items-start gap-4 sm:gap-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-black text-lg font-semibold text-white sm:h-16 sm:w-16 sm:text-xl">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-black text-lg font-semibold text-white sm:h-14 sm:w-14 sm:text-lg">
                 {initial}
               </div>
 
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="max-w-full truncate text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
+                  <h1 className="max-w-full truncate text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
                     {account.name}
                   </h1>
 
@@ -364,12 +410,18 @@ export default function Profile() {
 
             {isHiring ? (
               <TabButton active={tab === "posts"} onClick={() => setTab("posts")} icon={<FaBriefcase />}>
-                My posts
+                Posts
               </TabButton>
             ) : (
-              <TabButton active={tab === "saved"} onClick={() => setTab("saved")} icon={<FaBookmark />}>
-                Saved jobs
-              </TabButton>
+              <>
+                <TabButton active={tab === "saved"} onClick={() => setTab("saved")} icon={<FaBookmark />}>
+                  Saved
+                </TabButton>
+
+                <TabButton active={tab === "applications"} onClick={() => setTab("applications")} icon={<FaPaperPlane />}>
+                  Applications
+                </TabButton>
+              </>
             )}
 
             <TabButton active={tab === "settings"} onClick={() => setTab("settings")} icon={<FaCog />}>
@@ -396,6 +448,7 @@ export default function Profile() {
                   posts={posts}
                   savedJobs={savedJobs}
                   completionScore={completionScore}
+                  seekerApplications={seekerApplications}
                 />
               )}
 
@@ -419,6 +472,10 @@ export default function Profile() {
                 <SavedJobsTab jobs={savedJobs} removeSavedJob={removeSavedJob} />
               )}
 
+              {tab === "applications" && !isHiring && (
+                <ApplicationsTab applications={seekerApplications} />
+              )}
+
               {tab === "settings" && (
                 <SettingsTab logout={logout} resetDemoAccount={resetDemoAccount} />
               )}
@@ -440,7 +497,14 @@ export default function Profile() {
   );
 }
 
-function OverviewTab({ isHiring, profile, posts, savedJobs, completionScore }) {
+function OverviewTab({
+  isHiring,
+  profile,
+  posts,
+  savedJobs,
+  completionScore,
+  seekerApplications = [],
+}) {
   return (
     <div className="mt-6 sm:mt-8">
       <CompletionCard completionScore={completionScore} isHiring={isHiring} />
@@ -450,19 +514,23 @@ function OverviewTab({ isHiring, profile, posts, savedJobs, completionScore }) {
       <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
         <StatCard
           label={isHiring ? "Active posts" : "Saved jobs"}
-          value={isHiring ? posts.length : savedJobs.length}
+          value={isHiring ? posts.filter((post) => post.status !== "closed").length : savedJobs.length}
         />
         <StatCard
-          label={isHiring ? "Account type" : "Skills"}
-          value={isHiring ? "Hiring" : profile.skills.length}
+          label={isHiring ? "Closed posts" : "Applications"}
+          value={
+            isHiring
+              ? posts.filter((post) => post.status === "closed").length
+              : seekerApplications.length
+          }
         />
         <StatCard
-          label={isHiring ? "Visibility" : "Looking for"}
-          value={isHiring ? "Public" : profile.lookingFor.length}
+          label={isHiring ? "Total posts" : "Skills"}
+          value={isHiring ? posts.length : profile.skills.length}
         />
       </div>
 
-      <div className="mt-5 rounded-[24px] bg-[#f7f7f5] p-4 sm:mt-6 sm:rounded-[28px] sm:p-5">
+      <div className="mt-5 rounded-[24px] bg-[#f7f7f5] p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
         <p className="text-sm font-medium">About</p>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-neutral-600 sm:text-base">
           {isHiring
@@ -476,11 +544,12 @@ function OverviewTab({ isHiring, profile, posts, savedJobs, completionScore }) {
           <InfoBox title="Skills" items={profile.skills} empty="No skills added yet." />
           <InfoBox title="Looking for" items={profile.lookingFor} empty="No opportunity type selected yet." />
           <CvBox cv={profile.cv} />
+          <ApplicationsSentBox applications={seekerApplications} />
         </div>
       )}
 
       {isHiring && (
-        <div className="mt-5 rounded-[24px] bg-[#f7f7f5] p-4 sm:mt-6 sm:rounded-[28px] sm:p-5">
+        <div className="mt-5 rounded-[24px] bg-[#f7f7f5] p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-medium">Post a new opportunity</p>
@@ -505,28 +574,28 @@ function OverviewTab({ isHiring, profile, posts, savedJobs, completionScore }) {
 
 function CompletionCard({ completionScore, isHiring }) {
   return (
-    <div className="mb-5 rounded-[24px] bg-black p-4 text-white sm:mb-6 sm:rounded-[28px] sm:p-5">
+    <div className="mb-5 rounded-[24px] border border-neutral-200 bg-white p-4 sm:mb-6 sm:rounded-[26px] sm:p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs text-neutral-300 sm:text-sm">Profile completion</p>
+          <p className="text-xs text-neutral-500 sm:text-sm">Profile completion</p>
           <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] sm:text-2xl">
             {completionScore}% complete
           </h3>
         </div>
 
-        <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-medium text-black sm:text-sm">
-          {completionScore >= 80 ? "Strong" : completionScore >= 50 ? "Good start" : "Needs work"}
+        <span className="shrink-0 rounded-full bg-black px-3 py-1 text-xs font-medium text-white sm:text-sm">
+          {completionScore >= 80 ? "Strong" : completionScore >= 50 ? "Good" : "Start"}
         </span>
       </div>
 
-      <div className="mt-5 h-2 rounded-full bg-white/15">
-        <div className="h-2 rounded-full bg-white transition-all" style={{ width: `${completionScore}%` }} />
+      <div className="mt-5 h-2 rounded-full bg-[#f7f7f5]">
+        <div className="h-2 rounded-full bg-black transition-all" style={{ width: `${completionScore}%` }} />
       </div>
 
-      <p className="mt-4 text-sm leading-6 text-neutral-300">
+      <p className="mt-4 text-sm leading-6 text-neutral-600">
         {isHiring
           ? "Complete your hiring profile and post opportunities to attract better applicants."
-          : "Add your skills, goals, and CV to get better matches and stronger applications."}
+          : "Add skills, goals, and CV to improve your applications and matches."}
       </p>
     </div>
   );
@@ -548,7 +617,7 @@ function CompletionTips({ isHiring, profile, posts }) {
   if (tips.length === 0) return null;
 
   return (
-    <div className="mb-5 rounded-[24px] border border-neutral-200 bg-white p-4 sm:mb-6 sm:rounded-[28px] sm:p-5">
+    <div className="mb-5 rounded-[24px] border border-neutral-200 bg-white p-4 sm:mb-6 sm:rounded-[26px] sm:p-5">
       <p className="text-sm font-medium">Recommended next steps</p>
 
       <div className="mt-4 grid gap-2">
@@ -580,7 +649,7 @@ function PostsTab({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-medium text-neutral-500">Hiring dashboard</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
             Your posted opportunities
           </h2>
         </div>
@@ -595,7 +664,7 @@ function PostsTab({
       </div>
 
       {posts.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[28px] sm:p-8">
+        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[26px] sm:p-8">
           <p className="text-xl font-semibold">No posts yet.</p>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
             Once you post an opportunity, it will appear here and in Explore.
@@ -637,7 +706,7 @@ function EditPostCard({
   cancelPostEdit,
 }) {
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
       <div className="grid gap-3">
         <Field label="Title" value={editingPost.title} onChange={(value) => updateEditingPost("title", value)} />
         <Field label="Location" value={editingPost.location} onChange={(value) => updateEditingPost("location", value)} />
@@ -677,7 +746,7 @@ function PostCard({
   const applicantsCount = getApplicantsCount(post.id);
 
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="line-clamp-2 font-semibold">{post.title}</h3>
@@ -762,12 +831,12 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
   return (
     <div className="mt-6 sm:mt-8">
       <p className="text-sm font-medium text-neutral-500">Saved jobs</p>
-      <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
+      <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
         Opportunities you liked
       </h2>
 
       {jobs.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[28px] sm:p-8">
+        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[26px] sm:p-8">
           <p className="text-xl font-semibold">No saved jobs yet.</p>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
             Save opportunities from Explore and they will appear here.
@@ -783,7 +852,7 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
       ) : (
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {jobs.map((job) => (
-            <div key={job.id} className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+            <div key={job.id} className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
               <h3 className="font-semibold">{job.title}</h3>
               <p className="mt-1 text-sm text-neutral-500">
                 {job.company} · {job.location}
@@ -798,6 +867,145 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
               >
                 Remove saved
               </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ApplicationsTab({ applications }) {
+  const pending = applications.filter((item) => (item.status || "pending") === "pending").length;
+  const shortlisted = applications.filter((item) => item.status === "shortlisted").length;
+  const rejected = applications.filter((item) => item.status === "rejected").length;
+
+  return (
+    <div className="mt-6 sm:mt-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-neutral-500">Application tracker</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
+            Jobs you applied to
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
+            Track your sent applications, status updates, and attached CV metadata.
+          </p>
+        </div>
+
+        <Link
+          to="/explore"
+          className="inline-flex w-full items-center justify-center rounded-full bg-black px-5 py-3 text-sm font-medium text-white sm:w-fit"
+        >
+          Find more
+        </Link>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <StatCard label="Pending" value={pending} />
+        <StatCard label="Shortlisted" value={shortlisted} />
+        <StatCard label="Rejected" value={rejected} />
+      </div>
+
+      {applications.length === 0 ? (
+        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[26px] sm:p-8">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white">
+            <FaPaperPlane />
+          </div>
+
+          <p className="mt-4 text-xl font-semibold">No applications yet.</p>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
+            Apply to opportunities from Explore and they will appear here.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {applications.map((application) => (
+            <div
+              key={application.id}
+              className="rounded-[24px] border border-neutral-200 bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="line-clamp-2 font-semibold">{application.title}</h3>
+                  <p className="mt-1 text-sm text-neutral-500">
+                    {application.company} · {application.opportunity?.location || "Lebanon"}
+                  </p>
+                </div>
+
+                <StatusPill status={application.status || "pending"} />
+              </div>
+
+              <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-600">
+                {application.lastMessage || "Application sent."}
+              </p>
+
+              <div className="mt-4 rounded-2xl bg-white p-4">
+                <p className="text-xs text-neutral-500">CV</p>
+                {application.cv ? (
+                  <p className="mt-2 truncate text-sm font-medium">{application.cv.name}</p>
+                ) : (
+                  <p className="mt-2 text-sm text-neutral-500">No CV attached.</p>
+                )}
+              </div>
+
+              <Link
+                to="/messages"
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white sm:w-fit"
+              >
+                <FaEnvelope className="text-xs" />
+                Open conversation
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatusPill({ status }) {
+  const styles =
+    status === "shortlisted"
+      ? "bg-black text-white"
+      : status === "rejected"
+      ? "bg-red-100 text-red-700"
+      : "bg-white text-neutral-600";
+
+  return (
+    <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${styles}`}>
+      {status}
+    </span>
+  );
+}
+
+function ApplicationsSentBox({ applications }) {
+  return (
+    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5 md:col-span-2">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm text-neutral-500">Applications sent</p>
+          <p className="mt-1 text-sm text-neutral-600">
+            {applications.length} application{applications.length === 1 ? "" : "s"} created from Explore.
+          </p>
+        </div>
+
+        <Link
+          to="/messages"
+          className="shrink-0 rounded-full bg-black px-4 py-2 text-xs font-medium text-white"
+        >
+          View
+        </Link>
+      </div>
+
+      {applications.length > 0 && (
+        <div className="mt-4 grid gap-2">
+          {applications.slice(0, 3).map((application) => (
+            <div key={application.id} className="rounded-2xl bg-white p-3">
+              <p className="line-clamp-1 text-sm font-medium">{application.title}</p>
+              <p className="mt-1 text-xs text-neutral-500">
+                {application.company} · {application.status || "pending"}
+              </p>
             </div>
           ))}
         </div>
@@ -830,7 +1038,7 @@ function ProfileEdit({
             <EditBox title="Looking for" options={lookingOptions} selected={profile.lookingFor} onToggle={(item) => toggleProfileItem("lookingFor", item)} />
           </div>
 
-          <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+          <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
             <p className="font-medium">CV / Resume</p>
             <p className="mt-2 text-sm leading-6 text-neutral-600">
               MVP mode stores file metadata only. Later Firebase Storage will upload the real PDF.
@@ -862,7 +1070,7 @@ function ProfileEdit({
       )}
 
       {isHiring && (
-        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
           <p className="font-medium">Hiring profile</p>
           <p className="mt-2 text-sm leading-6 text-neutral-600">
             Hiring accounts can edit business name, city, email, and manage posts from the My posts tab.
@@ -876,7 +1084,7 @@ function ProfileEdit({
 function SettingsTab({ logout, resetDemoAccount }) {
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-2">
-      <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+      <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
         <p className="font-medium">Session</p>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
           Login/logout is simulated with localStorage for now.
@@ -887,7 +1095,7 @@ function SettingsTab({ logout, resetDemoAccount }) {
         </button>
       </div>
 
-      <div className="rounded-[24px] bg-[#fff5f5] p-4 sm:rounded-[28px] sm:p-5">
+      <div className="rounded-[24px] bg-[#fff5f5] p-4 sm:rounded-[26px] sm:p-5">
         <p className="font-medium text-red-700">Danger zone</p>
         <p className="mt-2 text-sm leading-6 text-red-600">
           Reset this demo account and remove saved local data.
@@ -903,7 +1111,7 @@ function SettingsTab({ logout, resetDemoAccount }) {
 
 function CvBox({ cv }) {
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
       <p className="text-sm text-neutral-500">CV</p>
 
       {cv ? (
@@ -923,7 +1131,7 @@ function CvBox({ cv }) {
 function ApplicantsModal({ post, applicants, onClose, onStatusChange, onOpenMessage }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-[28px] bg-white p-4 shadow-xl sm:rounded-[32px] sm:p-6">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-[26px] bg-white p-4 shadow-xl sm:rounded-[32px] sm:p-6">
         <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-5">
           <div className="min-w-0">
             <p className="text-sm text-neutral-500">Applicants for</p>
@@ -941,7 +1149,7 @@ function ApplicantsModal({ post, applicants, onClose, onStatusChange, onOpenMess
         </div>
 
         {applicants.length === 0 ? (
-          <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[28px] sm:p-8">
+          <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[26px] sm:p-8">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white">
               <FaUsers />
             </div>
@@ -975,7 +1183,7 @@ function ApplicantCard({ applicant, onStatusChange, onOpenMessage }) {
   const status = applicant.status || "pending";
 
   return (
-    <div className="rounded-[24px] border border-neutral-200 bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+    <div className="rounded-[24px] border border-neutral-200 bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
@@ -1082,9 +1290,9 @@ function TabButton({ active, onClick, icon, children }) {
 
 function StatCard({ label, value }) {
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
       <p className="text-sm text-neutral-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
+      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
         {value}
       </p>
     </div>
@@ -1106,7 +1314,7 @@ function Field({ label, value, onChange }) {
 
 function EditBox({ title, options, selected, onToggle }) {
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
       <p className="text-sm font-medium">{title}</p>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -1130,7 +1338,7 @@ function EditBox({ title, options, selected, onToggle }) {
 
 function InfoBox({ title, items, empty }) {
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
       <p className="text-sm text-neutral-500">{title}</p>
 
       <div className="mt-4 flex flex-wrap gap-2">

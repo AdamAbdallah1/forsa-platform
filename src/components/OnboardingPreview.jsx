@@ -1,54 +1,78 @@
+import { FaCheck, FaFileAlt, FaMapMarkerAlt } from "react-icons/fa";
+
 const skills = ["React", "Design", "Marketing", "Video editing", "Sales"];
 const lookingFor = ["Internship", "Freelance", "Part-time", "Remote", "Project"];
 
 export default function OnboardingPreview() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-14 sm:py-16 lg:py-20">
-      <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="text-center lg:text-left">
-          <p className="text-sm font-medium text-neutral-500">Profile setup</p>
+    <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 py-16 sm:px-6 sm:py-20 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="text-center lg:text-left">
+        <p className="text-sm font-medium text-neutral-500">Profile setup</p>
 
-          <h2 className="mx-auto mt-3 max-w-xl text-3xl font-semibold tracking-[-0.04em] sm:text-4xl lg:mx-0">
-            Tell people what you can do.
-          </h2>
+        <h2 className="mx-auto mt-3 max-w-xl text-3xl font-semibold tracking-[-0.045em] sm:text-4xl md:text-5xl lg:mx-0">
+          A profile that works like your mini CV.
+        </h2>
 
-          <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-neutral-600 sm:text-base lg:mx-0">
-            Forsa keeps profiles simple: your skills, your city, and what kind
-            of opportunity you’re looking for.
-          </p>
-        </div>
+        <p className="mx-auto mt-5 max-w-md text-sm leading-7 text-neutral-600 sm:text-base lg:mx-0">
+          Simple enough for students. Useful enough for businesses. Built to
+          help people understand you fast.
+        </p>
+      </div>
 
-        <div className="mx-auto w-full max-w-md rounded-[30px] border border-neutral-200 bg-white p-4 shadow-sm sm:rounded-[32px] sm:p-5 lg:max-w-none">
-          <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:p-5">
-            <p className="text-sm font-medium">Create your profile</p>
-            <p className="mt-1 text-sm leading-6 text-neutral-500">
-              Help businesses and people understand what fits you.
-            </p>
-
-            <div className="mt-6 space-y-6">
-              <ChipGroup title="Your skills" items={skills} />
-              <ChipGroup title="Looking for" items={lookingFor} />
+      <div className="mx-auto w-full max-w-md rounded-[30px] border border-neutral-200 bg-white p-3 shadow-[0_20px_60px_rgba(0,0,0,0.06)] lg:max-w-none">
+        <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold">Opportunity profile</p>
+              <p className="mt-1 text-xs text-neutral-500">Ready to apply</p>
             </div>
 
-            <button className="mt-7 w-full rounded-full bg-black px-5 py-3 text-sm font-medium text-white">
-              Find opportunities
-            </button>
+            <span className="rounded-full bg-black px-3 py-1 text-xs text-white">
+              82%
+            </span>
           </div>
+
+          <div className="mt-5 grid gap-3">
+            <Row icon={<FaMapMarkerAlt />} title="Location" text="Beirut · Remote" />
+            <Row icon={<FaFileAlt />} title="CV metadata" text="Adam_CV.pdf attached" />
+            <ChipGroup title="Skills" items={skills} />
+            <ChipGroup title="Looking for" items={lookingFor} />
+          </div>
+
+          <button className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white">
+            <FaCheck className="text-xs" />
+            Profile ready
+          </button>
         </div>
       </div>
     </section>
   );
 }
 
+function Row({ icon, title, text }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-white p-3">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-sm text-white">
+        {icon}
+      </div>
+
+      <div>
+        <p className="text-xs text-neutral-500">{title}</p>
+        <p className="text-sm font-medium">{text}</p>
+      </div>
+    </div>
+  );
+}
+
 function ChipGroup({ title, items }) {
   return (
-    <div>
-      <p className="mb-3 text-sm font-medium">{title}</p>
+    <div className="rounded-2xl bg-white p-3">
+      <p className="mb-3 text-xs text-neutral-500">{title}</p>
       <div className="flex flex-wrap gap-2">
         {items.map((item) => (
           <span
             key={item}
-            className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
+            className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs"
           >
             {item}
           </span>

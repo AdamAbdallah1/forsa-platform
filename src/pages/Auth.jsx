@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import BrandLogo from "../components/BrandLogo";
+import { useNavigate } from "react-router-dom";
+import { findUser, getUsers, saveUser, setSession } from "../lib/auth";
 import {
   FaArrowLeft,
   FaArrowRight,
@@ -9,7 +9,6 @@ import {
   FaUserPlus,
   FaEye,
   FaEyeSlash,
-  FaCompass,
 } from "react-icons/fa";
 
 export default function Auth() {
@@ -19,6 +18,7 @@ export default function Auth() {
   const [step, setStep] = useState("choice");
   const [accountType, setAccountType] = useState("finder");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -30,17 +30,16 @@ export default function Auth() {
   const isSignup = mode === "signup";
 
   const canContinue = isSignup
-    ? form.name.trim() &&
-      form.email.trim() &&
-      form.password.trim() &&
-      form.city.trim()
+    ? form.name.trim() && form.email.trim() && form.password.trim() && form.city.trim()
     : form.email.trim() && form.password.trim();
 
   const updateField = (field, value) => {
+    setError("");
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const switchMode = (nextMode) => {
+    setError("");
     setMode(nextMode);
     setStep(nextMode === "signup" ? "choice" : "form");
   };
@@ -48,22 +47,47 @@ export default function Auth() {
   const handleSubmit = () => {
     if (!canContinue) return;
 
-    localStorage.setItem(
-      "forsaAccount",
-      JSON.stringify({
-        accountType,
-        name: form.name || "Forsa user",
-        email: form.email,
-        city: form.city || "Lebanon",
-      })
-    );
+    const email = form.email.trim().toLowerCase();
+    const password = form.password.trim();
 
-    if (isSignup && accountType === "hiring") {
+    if (!isSignup) {
+      const user = findUser(email, password);
+
+      if (!user) {
+        setError("Account not found. Create an account first or check your password.");
+        return;
+      }
+
+      setSession(user);
+      navigate(user.accountType === "hiring" ? "/profile" : "/explore");
+      return;
+    }
+
+    const emailExists = getUsers().some((user) => user.email === email);
+
+    if (emailExists) {
+      setError("This email already has an account. Log in instead.");
+      setMode("login");
+      setStep("form");
+      return;
+    }
+
+    const newAccount = {
+      id: Date.now(),
+      accountType,
+      name: form.name.trim(),
+      email,
+      password,
+      city: form.city.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    saveUser(newAccount);
+
+    if (accountType === "hiring") {
       navigate("/post");
-    } else if (isSignup) {
-      navigate("/onboarding");
     } else {
-      navigate("/explore");
+      navigate("/onboarding");
     }
   };
 
@@ -71,7 +95,6 @@ export default function Auth() {
     <main className="min-h-screen bg-[#f7f7f5] text-[#111111]">
       <section className="mx-auto grid min-h-screen max-w-6xl gap-6 px-5 pb-8 pt-5 sm:px-6 lg:grid-cols-[0.88fr_1fr] lg:items-center lg:gap-12 lg:py-10">
         <div className="flex flex-col">
-
           <div className="mt-10 text-center lg:mt-16 lg:text-left">
             <p className="mx-auto w-fit rounded-full border border-neutral-200 bg-white px-4 py-2 text-xs font-medium text-neutral-600 lg:mx-0">
               Local work platform for Lebanon
@@ -116,6 +139,12 @@ export default function Auth() {
             </div>
           </div>
 
+          {error && (
+            <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm leading-6 text-red-600">
+              {error}
+            </div>
+          )}
+
           {isSignup && step === "choice" ? (
             <ChoiceStep
               accountType={accountType}
@@ -150,64 +179,31 @@ function ChoiceStep({ accountType, setAccountType, onContinue }) {
   return (
     <div className="mt-5">
       <p className="text-xs font-medium text-neutral-500">Step 1 of 2</p>
-
       <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
         What brings you to Forsa?
       </h2>
-
       <p className="mt-3 text-sm leading-6 text-neutral-600 sm:text-base sm:leading-7">
         Choose your path first. You can change this later.
       </p>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <TypeCard
-          active={accountType === "finder"}
-          icon={<FaUserPlus />}
-          title="Find opportunities"
-          text="For students, freelancers, and people looking for work."
-          onClick={() => setAccountType("finder")}
-        />
-
-        <TypeCard
-          active={accountType === "hiring"}
-          icon={<FaBriefcase />}
-          title="Hire or post"
-          text="For businesses, creators, and teams posting opportunities."
-          onClick={() => setAccountType("hiring")}
-        />
+        <TypeCard active={accountType === "finder"} icon={<FaUserPlus />} title="Find opportunities" text="For students, freelancers, and people looking for work." onClick={() => setAccountType("finder")} />
+        <TypeCard active={accountType === "hiring"} icon={<FaBriefcase />} title="Hire or post" text="For businesses, creators, and teams posting opportunities." onClick={() => setAccountType("hiring")} />
       </div>
 
-      <button
-        onClick={onContinue}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
-      >
-        Continue
-        <FaArrowRight className="text-xs" />
+      <button onClick={onContinue} className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800">
+        Continue <FaArrowRight className="text-xs" />
       </button>
     </div>
   );
 }
 
-function FormStep({
-  isSignup,
-  accountType,
-  form,
-  updateField,
-  canContinue,
-  onSubmit,
-  onBack,
-  showPassword,
-  setShowPassword,
-}) {
+function FormStep({ isSignup, accountType, form, updateField, canContinue, onSubmit, onBack, showPassword, setShowPassword }) {
   return (
     <div className="mt-5">
       {isSignup && (
-        <button
-          onClick={onBack}
-          className="mb-4 flex items-center gap-2 text-sm text-neutral-500 transition hover:text-black"
-        >
-          <FaArrowLeft className="text-xs" />
-          Change path
+        <button onClick={onBack} className="mb-4 flex items-center gap-2 text-sm text-neutral-500 transition hover:text-black">
+          <FaArrowLeft className="text-xs" /> Change path
         </button>
       )}
 
@@ -216,82 +212,28 @@ function FormStep({
       </p>
 
       <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
-        {isSignup
-          ? accountType === "hiring"
-            ? "Create a hiring profile."
-            : "Create your work profile."
-          : "Log in to Forsa."}
+        {isSignup ? accountType === "hiring" ? "Create a hiring profile." : "Create your work profile." : "Log in to Forsa."}
       </h2>
 
-      <p className="mt-3 text-sm leading-6 text-neutral-600 sm:text-base sm:leading-7">
-        {isSignup
-          ? accountType === "hiring"
-            ? "Post opportunities and connect with local talent."
-            : "Build your profile and start finding opportunities."
-          : "Continue browsing opportunities and managing your profile."}
-      </p>
-
       <div className="mt-5 grid gap-3">
-        {isSignup && (
-          <Field
-            label="Full name"
-            placeholder="Adam Abdallah"
-            value={form.name}
-            onChange={(value) => updateField("name", value)}
-          />
-        )}
-
-        <Field
-          label="Email"
-          type="email"
-          placeholder="you@example.com"
-          value={form.email}
-          onChange={(value) => updateField("email", value)}
-        />
-
-        <PasswordField
-          value={form.password}
-          onChange={(value) => updateField("password", value)}
-          showPassword={showPassword}
-          setShowPassword={setShowPassword}
-        />
+        {isSignup && <Field label="Full name" placeholder="Adam Abdallah" value={form.name} onChange={(value) => updateField("name", value)} />}
+        <Field label="Email" type="email" placeholder="you@example.com" value={form.email} onChange={(value) => updateField("email", value)} />
+        <PasswordField value={form.password} onChange={(value) => updateField("password", value)} showPassword={showPassword} setShowPassword={setShowPassword} />
 
         {isSignup && (
           <div>
             <label className="text-sm font-medium">City</label>
-
             <div className="mt-2 flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 transition focus-within:border-black">
               <FaMapMarkerAlt className="text-neutral-400" />
-              <input
-                value={form.city}
-                onChange={(e) => updateField("city", e.target.value)}
-                placeholder="Beirut, Tripoli, Saida..."
-                className="w-full bg-transparent text-sm outline-none"
-              />
+              <input value={form.city} onChange={(e) => updateField("city", e.target.value)} placeholder="Beirut, Tripoli, Saida..." className="w-full bg-transparent text-sm outline-none" />
             </div>
           </div>
         )}
 
-        <button
-          disabled={!canContinue}
-          onClick={onSubmit}
-          className={`mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${
-            canContinue
-              ? "bg-black text-white hover:bg-neutral-800"
-              : "cursor-not-allowed bg-neutral-200 text-neutral-400"
-          }`}
-        >
-          {isSignup
-            ? accountType === "hiring"
-              ? "Continue to post"
-              : "Continue to profile"
-            : "Log in"}
+        <button disabled={!canContinue} onClick={onSubmit} className={`mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${canContinue ? "bg-black text-white hover:bg-neutral-800" : "cursor-not-allowed bg-neutral-200 text-neutral-400"}`}>
+          {isSignup ? accountType === "hiring" ? "Continue to post" : "Continue to profile" : "Log in"}
           <FaArrowRight className="text-xs" />
         </button>
-
-        <p className="text-center text-xs leading-5 text-neutral-500">
-          MVP demo. Real accounts and verification come later.
-        </p>
       </div>
     </div>
   );
@@ -299,30 +241,12 @@ function FormStep({
 
 function TypeCard({ active, icon, title, text, onClick }) {
   return (
-    <button
-      onClick={onClick}
-      className={`rounded-[24px] border p-4 text-left transition ${
-        active
-          ? "border-black bg-black text-white"
-          : "border-neutral-200 bg-white hover:border-neutral-400"
-      }`}
-    >
-      <div
-        className={`flex h-10 w-10 items-center justify-center rounded-full ${
-          active ? "bg-white text-black" : "bg-[#f7f7f5] text-black"
-        }`}
-      >
+    <button onClick={onClick} className={`rounded-[24px] border p-4 text-left transition ${active ? "border-black bg-black text-white" : "border-neutral-200 bg-white hover:border-neutral-400"}`}>
+      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${active ? "bg-white text-black" : "bg-[#f7f7f5] text-black"}`}>
         {icon}
       </div>
-
       <p className="mt-4 text-sm font-medium sm:text-base">{title}</p>
-      <p
-        className={`mt-2 text-xs leading-5 sm:text-sm sm:leading-6 ${
-          active ? "text-neutral-300" : "text-neutral-500"
-        }`}
-      >
-        {text}
-      </p>
+      <p className={`mt-2 text-xs leading-5 sm:text-sm sm:leading-6 ${active ? "text-neutral-300" : "text-neutral-500"}`}>{text}</p>
     </button>
   );
 }
@@ -331,14 +255,7 @@ function Field({ label, placeholder, value, onChange, type = "text" }) {
   return (
     <div>
       <label className="text-sm font-medium">{label}</label>
-
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="mt-2 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
-      />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="mt-2 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black" />
     </div>
   );
 }
@@ -347,21 +264,9 @@ function PasswordField({ value, onChange, showPassword, setShowPassword }) {
   return (
     <div>
       <label className="text-sm font-medium">Password</label>
-
       <div className="mt-2 flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 transition focus-within:border-black">
-        <input
-          type={showPassword ? "text" : "password"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="••••••••"
-          className="w-full bg-transparent text-sm outline-none"
-        />
-
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          className="text-neutral-400"
-        >
+        <input type={showPassword ? "text" : "password"} value={value} onChange={(e) => onChange(e.target.value)} placeholder="••••••••" className="w-full bg-transparent text-sm outline-none" />
+        <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-neutral-400">
           {showPassword ? <FaEyeSlash /> : <FaEye />}
         </button>
       </div>
