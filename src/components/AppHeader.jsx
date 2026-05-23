@@ -7,7 +7,7 @@ import {
   FaPlus,
   FaUser,
 } from "react-icons/fa";
-import BrandLogo from "./BrandLogo";
+import BrandLogo from "/BrandLogo";
 
 export default function AppHeader() {
   const navigate = useNavigate();
