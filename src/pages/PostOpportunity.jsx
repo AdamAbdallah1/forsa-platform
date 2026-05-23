@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { showToast } from "../lib/toast";
 import {
   FaBriefcase,
   FaCheck,
@@ -148,6 +149,7 @@ export default function PostOpportunity() {
     };
 
     localStorage.setItem("forsaPosts", JSON.stringify([newPost, ...saved]));
+    showToast("Opportunity posted");
     navigate("/explore");
   };
 

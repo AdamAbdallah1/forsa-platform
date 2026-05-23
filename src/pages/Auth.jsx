@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { findUser, getUsers, saveUser, setSession } from "../lib/auth";
+import { showToast } from "../lib/Toast"
+
 import {
   FaArrowLeft,
   FaArrowRight,
@@ -59,6 +61,7 @@ export default function Auth() {
       }
 
       setSession(user);
+      showToast("Welcome back");
       navigate(user.accountType === "hiring" ? "/profile" : "/explore");
       return;
     }
@@ -83,6 +86,7 @@ export default function Auth() {
     };
 
     saveUser(newAccount);
+    showToast("Welcome to Forsa");
 
     if (accountType === "hiring") {
       navigate("/post");

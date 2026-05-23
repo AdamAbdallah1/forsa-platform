@@ -29,7 +29,7 @@ export default function MatchPreview() {
         </div>
 
         <div className="space-y-3">
-          {opportunities.slice(0, 3).map((item, index) => {
+          {opportunities.slice(0, 2).map((item, index) => {
             const Icon = item.icon;
 
             return (

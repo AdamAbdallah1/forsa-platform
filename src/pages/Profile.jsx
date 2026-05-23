@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; 
 import AppHeader from "../components/AppHeader";
+import { showToast } from "../lib/Toast";
+import { loadDemoActivity, clearDemoActivity } from "../lib/demoData";
 import {
   FaBriefcase,
   FaBookmark,
@@ -92,12 +94,11 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingPostId, setEditingPostId] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
-
   if (!account) {
     return (
       <section>
         <AppHeader />
-
+          
         <div className="mx-auto max-w-3xl px-5 py-14 pb-28 sm:px-6 sm:py-20">
           <div className="rounded-[26px] border border-neutral-200 bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-8">
             <h1 className="text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
@@ -234,12 +235,12 @@ export default function Profile() {
     if (!file) return;
 
     if (file.type !== "application/pdf") {
-      alert("Please upload a PDF CV only.");
+      showToast("Please upload a PDF CV only.");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      alert("CV must be less than 5MB.");
+      showToast("CV must be less than 5MB.");
       return;
     }
 
@@ -252,16 +253,19 @@ export default function Profile() {
         uploadedAt: new Date().toISOString(),
       },
     }));
+    showToast("CV added to profile");
   };
 
   const removeCv = () => {
     setProfile((prev) => ({ ...prev, cv: null }));
+    showToast("CV removed");
   };
 
   const saveChanges = () => {
     localStorage.setItem("forsaAccount", JSON.stringify(account));
     localStorage.setItem("forsaProfile", JSON.stringify(profile));
     syncUserRecord(account);
+    showToast("Profile updated");
     setIsEditing(false);
   };
 
@@ -275,6 +279,7 @@ export default function Profile() {
     const updated = savedJobs.filter((job) => job.id !== jobId);
     setSavedJobs(updated);
     localStorage.setItem("forsaSavedJobs", JSON.stringify(updated));
+    showToast("Saved job removed");
   };
 
   const deletePost = (postId) => {
@@ -283,6 +288,7 @@ export default function Profile() {
 
     const updatedPosts = posts.filter((post) => post.id !== postId);
     persistOwnPosts(updatedPosts);
+    showToast("Post deleted");
   };
 
   const togglePostStatus = (postId) => {
@@ -312,6 +318,7 @@ export default function Profile() {
     persistOwnPosts(updatedPosts);
     setEditingPostId(null);
     setEditingPost(null);
+    showToast("Post updated");
   };
 
   const cancelPostEdit = () => {
@@ -343,6 +350,58 @@ export default function Profile() {
     setAccount(null);
     navigate("/auth", { replace: true });
   };
+
+  const loadDemo = () => {
+    const result = loadDemoActivity(account, profile);
+    const allPosts = safeJson("forsaPosts", []);
+    const allMessages = safeJson("forsaMessages", []);
+
+    if (isHiring) {
+      setPosts(
+        allPosts.filter(
+          (post) =>
+            post.ownerEmail === account.email ||
+            (!post.ownerEmail && post.ownerName === account.name) ||
+            (!post.ownerEmail && !post.ownerName)
+        )
+      );
+    } else {
+      setPosts(allPosts);
+    }
+
+    setMessages(allMessages);
+
+    showToast(
+      `Demo activity loaded: ${result.postsAdded} posts, ${result.messagesAdded} application, ${result.notificationsAdded} notifications.`
+    );
+  };
+
+  const clearDemo = () => {
+    const confirmed = window.confirm("Remove only the demo activity?");
+    if (!confirmed) return;
+
+    clearDemoActivity();
+
+    const allPosts = safeJson("forsaPosts", []);
+    const allMessages = safeJson("forsaMessages", []);
+    showToast("Demo activity removed");
+
+    if (isHiring) {
+      setPosts(
+        allPosts.filter(
+          (post) =>
+            post.ownerEmail === account.email ||
+            (!post.ownerEmail && post.ownerName === account.name) ||
+            (!post.ownerEmail && !post.ownerName)
+        )
+      );
+    } else {
+      setPosts(allPosts);
+    }
+
+    setMessages(allMessages);
+  };
+
 
   return (
     <section>
@@ -477,7 +536,7 @@ export default function Profile() {
               )}
 
               {tab === "settings" && (
-                <SettingsTab logout={logout} resetDemoAccount={resetDemoAccount} />
+                <SettingsTab logout={logout} resetDemoAccount={resetDemoAccount} loadDemo={loadDemo} clearDemo={clearDemo} />
               )}
             </>
           )}
@@ -1081,9 +1140,32 @@ function ProfileEdit({
   );
 }
 
-function SettingsTab({ logout, resetDemoAccount }) {
+function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo }) {
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-2">
+      <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+        <p className="font-medium">Demo activity</p>
+        <p className="mt-2 text-sm leading-6 text-neutral-600">
+          Fill Forsa with realistic posts, messages, applications, and notifications so the MVP feels alive during demos.
+        </p>
+
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          <button
+            onClick={loadDemo}
+            className="rounded-full bg-black px-5 py-3 text-sm font-medium text-white"
+          >
+            Load demo activity
+          </button>
+
+          <button
+            onClick={clearDemo}
+            className="rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium"
+          >
+            Clear demo
+          </button>
+        </div>
+      </div>
+
       <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
         <p className="font-medium">Session</p>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
@@ -1095,7 +1177,7 @@ function SettingsTab({ logout, resetDemoAccount }) {
         </button>
       </div>
 
-      <div className="rounded-[24px] bg-[#fff5f5] p-4 sm:rounded-[26px] sm:p-5">
+      <div className="rounded-[24px] bg-[#fff5f5] p-4 sm:rounded-[26px] sm:p-5 md:col-span-2">
         <p className="font-medium text-red-700">Danger zone</p>
         <p className="mt-2 text-sm leading-6 text-red-600">
           Reset this demo account and remove saved local data.

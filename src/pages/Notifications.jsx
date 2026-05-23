@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { showToast } from "../lib/toast";
 import {
   FaBell,
   FaCheck,
@@ -44,6 +45,7 @@ export default function Notifications() {
         item.id === id ? { ...item, read: true } : item
       )
     );
+    showToast("Notification marked as read");
   };
 
   const markAllAsRead = () => {
@@ -54,10 +56,12 @@ export default function Notifications() {
           : item
       )
     );
+    showToast("All notifications marked as read");
   };
 
   const deleteNotification = (id) => {
     saveNotifications(notifications.filter((item) => item.id !== id));
+    showToast("Notification deleted");
   };
 
   if (!account) {

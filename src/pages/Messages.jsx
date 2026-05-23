@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { showToast } from "../lib/Toast";
 import {
   FaArrowLeft,
   FaBriefcase,
@@ -67,6 +68,7 @@ export default function Messages() {
 
     setMessages(updated);
     localStorage.setItem("forsaMessages", JSON.stringify(updated));
+    showToast("Message sent");
     setReply("");
   };
 
@@ -77,6 +79,7 @@ export default function Messages() {
     const updated = messages.filter((message) => message.id !== id);
     setMessages(updated);
     localStorage.setItem("forsaMessages", JSON.stringify(updated));
+    showToast("Thread deleted");
     setActiveId(updated[0]?.id || null);
     setMobileThreadOpen(false);
   };
