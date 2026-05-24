@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { showToast } from "../lib/toast";
+import { showToast } from "../lib/Toast";
 import {
   FaBell,
   FaCheck,

@@ -11,6 +11,7 @@ import MobileNav from "./components/MobileNav";
 import HiringRoute from "./components/HiringRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SeekerRoute from "./components/SeekerRoute";
+import AdminReview from "./pages/AdminReview";
 import Toast from "./components/Toast";
 
 export default function App() {
@@ -31,7 +32,7 @@ export default function App() {
           />
 
           <Route path="/explore" element={<Explore />} />
-
+          <Route path="/admin-review" element={<AdminReview />} />
           <Route
             path="/profile"
             element={

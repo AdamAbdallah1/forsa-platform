@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { showToast } from "../lib/toast";
+import { showToast } from "../lib/Toast";
 import {
   FaBriefcase,
   FaCheck,
@@ -11,6 +11,9 @@ import {
   FaTag,
   FaTimes,
   FaBolt,
+  FaClock,
+  FaUndo,
+  FaTrash,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 
@@ -66,6 +69,77 @@ const tagOptions = [
   "Math",
 ];
 
+const templates = [
+  {
+    label: "Barista",
+    data: {
+      title: "Part-time Barista",
+      type: "Part-time",
+      pay: "$250/month + tips",
+      tags: ["Barista", "Customer service", "Sales"],
+      description:
+        "Looking for a friendly part-time barista for weekend shifts. Experience is helpful, but being punctual, clean, and comfortable with customers matters most.",
+    },
+  },
+  {
+    label: "React Internship",
+    data: {
+      title: "Junior React Developer Internship",
+      type: "Internship",
+      pay: "Paid internship",
+      tags: ["React", "JavaScript", "Frontend", "UI/UX"],
+      description:
+        "Looking for a motivated junior React developer to help build landing pages and dashboards. Good fit for students who know React, Tailwind, and basic UI structure.",
+    },
+  },
+  {
+    label: "Social Media",
+    data: {
+      title: "Social Media Content Creator",
+      type: "Freelance",
+      pay: "$120/project",
+      tags: ["Marketing", "Instagram", "Content creation", "Video editing"],
+      description:
+        "Need someone to create Instagram content, captions, and simple reels for a local brand. Portfolio or previous examples are preferred.",
+    },
+  },
+  {
+    label: "Graphic Designer",
+    data: {
+      title: "Graphic Designer",
+      type: "Project",
+      pay: "Per project",
+      tags: ["Graphic design", "Branding", "Canva"],
+      description:
+        "Looking for a designer to create social posts, branding assets, and clean marketing visuals for a local business campaign.",
+    },
+  },
+  {
+    label: "Event Staff",
+    data: {
+      title: "Event assistants needed",
+      type: "Project",
+      pay: "$25/day",
+      tags: ["Events", "Customer service", "Part-time"],
+      description:
+        "Need energetic event assistants for guest check-in, setup, and coordination. Must be available on event day and comfortable working with people.",
+    },
+  },
+];
+
+const emptyForm = (account) => ({
+  title: "",
+  company: account?.name || "",
+  location: account?.city || "",
+  type: "Freelance",
+  pay: "",
+  description: "",
+  contact: account?.email || "",
+  tags: [],
+  urgent: false,
+  featured: false,
+});
+
 function safeJson(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) || fallback;
@@ -74,26 +148,102 @@ function safeJson(key, fallback) {
   }
 }
 
+function formatTime(iso) {
+  if (!iso) return "Not saved yet";
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Not saved yet";
+
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function PostOpportunity() {
   const navigate = useNavigate();
   const account = safeJson("forsaAccount", null);
+  const draftKey = `forsaOpportunityDraft:${account?.email || "guest"}`;
+
+  const typeRef = useRef(null);
+  const tagsRef = useRef(null);
+  const hasMounted = useRef(false);
 
   const [typeOpen, setTypeOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
+  const [showRestoreDraft, setShowRestoreDraft] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState(null);
+  const [draftIgnored, setDraftIgnored] = useState(false);
 
-  const [form, setForm] = useState({
-    title: "",
-    company: account?.name || "",
-    location: account?.city || "",
-    type: "Freelance",
-    pay: "",
-    description: "",
-    contact: account?.email || "",
-    tags: [],
-    urgent: false,
-    featured: false,
-  });
+  const [form, setForm] = useState(() => emptyForm(account));
+
+  useEffect(() => {
+    const draft = safeJson(draftKey, null);
+
+    if (
+      draft &&
+      (draft.title ||
+        draft.pay ||
+        draft.description ||
+        draft.tags?.length ||
+        draft.location ||
+        draft.company)
+    ) {
+      setShowRestoreDraft(true);
+      setDraftSavedAt(draft.savedAt || null);
+    }
+  }, [draftKey]);
+
+  useEffect(() => {
+    const closeDropdowns = (event) => {
+      if (typeRef.current && !typeRef.current.contains(event.target)) {
+        setTypeOpen(false);
+      }
+
+      if (tagsRef.current && !tagsRef.current.contains(event.target)) {
+        setTagsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeDropdowns);
+    return () => document.removeEventListener("mousedown", closeDropdowns);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      return;
+    }
+
+    if (draftIgnored) return;
+
+    const hasContent =
+      form.title.trim() ||
+      form.pay.trim() ||
+      form.description.trim() ||
+      form.tags.length > 0;
+
+    if (!hasContent) return;
+
+    const timeout = setTimeout(() => {
+      const savedAt = new Date().toISOString();
+
+      localStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          ...form,
+          savedAt,
+        })
+      );
+
+      setDraftSavedAt(savedAt);
+    }, 700);
+
+    return () => clearTimeout(timeout);
+  }, [form, draftKey, draftIgnored]);
 
   const filteredTags = tagOptions.filter((tag) =>
     tag.toLowerCase().includes(tagSearch.trim().toLowerCase())
@@ -121,10 +271,13 @@ export default function PostOpportunity() {
     form.tags.length > 0;
 
   const updateForm = (field, value) => {
+    setDraftIgnored(false);
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const toggleTag = (tag) => {
+    setDraftIgnored(false);
+
     setForm((prev) => ({
       ...prev,
       tags: prev.tags.includes(tag)
@@ -133,8 +286,61 @@ export default function PostOpportunity() {
     }));
   };
 
+  const applyTemplate = (template) => {
+    setDraftIgnored(false);
+
+    setForm((prev) => ({
+      ...prev,
+      ...template.data,
+      tags: Array.from(new Set([...(prev.tags || []), ...template.data.tags])),
+    }));
+
+    showToast(`${template.label} template applied`, "info");
+  };
+
+  const restoreDraft = () => {
+    const draft = safeJson(draftKey, null);
+
+    if (!draft) {
+      setShowRestoreDraft(false);
+      return;
+    }
+
+    const { savedAt, ...cleanDraft } = draft;
+    setForm({
+      ...emptyForm(account),
+      ...cleanDraft,
+      tags: cleanDraft.tags || [],
+    });
+    setDraftSavedAt(savedAt || new Date().toISOString());
+    setShowRestoreDraft(false);
+    setDraftIgnored(false);
+    showToast("Draft restored");
+  };
+
+  const dismissDraft = () => {
+    localStorage.removeItem(draftKey);
+    setShowRestoreDraft(false);
+    setDraftSavedAt(null);
+    setDraftIgnored(true);
+    showToast("Draft dismissed", "info");
+  };
+
+  const clearCurrentDraft = () => {
+    const confirmed = window.confirm("Clear this draft?");
+    if (!confirmed) return;
+
+    localStorage.removeItem(draftKey);
+    setForm(emptyForm(account));
+    setDraftSavedAt(null);
+    setShowRestoreDraft(false);
+    setDraftIgnored(true);
+    showToast("Draft cleared");
+  };
+
   const handleSubmit = () => {
     if (!canPost) return;
+    
 
     const saved = safeJson("forsaPosts", []);
 
@@ -142,13 +348,21 @@ export default function PostOpportunity() {
       id: Date.now(),
       ownerEmail: account?.email || form.contact,
       ownerName: account?.name || form.company,
+      featured: false,
+      closed: false,
+      reports: 0,
+      views: 0,
+      applications: 0,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       status: "active",
       qualityScore,
       ...form,
     };
 
     localStorage.setItem("forsaPosts", JSON.stringify([newPost, ...saved]));
+    localStorage.removeItem(draftKey);
+    setDraftSavedAt(null);
     showToast("Opportunity posted");
     navigate("/explore");
   };
@@ -157,30 +371,45 @@ export default function PostOpportunity() {
     <section>
       <AppHeader />
 
-      <div className="mx-auto max-w-6xl px-5 pb-28 sm:px-6 lg:pb-20">
-        <div className="mt-6 grid gap-6 sm:mt-10 lg:grid-cols-[0.86fr_1.14fr] lg:gap-8">
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div>
+      <div className="mx-auto max-w-[1180px] px-4 pb-28 sm:px-6 lg:pb-20">
+        <div className="mt-5 grid gap-5 sm:mt-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-6">
+          <aside className="lg:sticky lg:top-20 lg:self-start">
+            <div className="rounded-[26px] border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
               <p className="text-sm font-medium text-neutral-500">Post</p>
 
-              <h1 className="mt-3 max-w-xl text-3xl font-semibold tracking-[-0.04em] sm:text-4xl md:text-5xl">
-                Post a local opportunity.
+              <h1 className="mt-3 max-w-xl text-3xl font-semibold leading-[1] tracking-[-0.045em] sm:text-4xl">
+                Create a clear opportunity.
               </h1>
 
-              <p className="mt-4 max-w-xl text-sm leading-7 text-neutral-600 sm:text-base">
-                Create a clear post that helps people understand the role,
-                skills, location, pay, and how to contact you.
+              <p className="mt-4 text-sm leading-7 text-neutral-600">
+                Help applicants understand the role, pay, location, required
+                skills, and how to reach you.
               </p>
             </div>
 
             <QualityCard qualityScore={qualityScore} />
+
+            <DraftStatusCard
+              draftSavedAt={draftSavedAt}
+              onClearDraft={clearCurrentDraft}
+            />
+
+            <TemplatesCard onApply={applyTemplate} />
 
             <div className="hidden lg:block">
               <PreviewCard form={form} qualityScore={qualityScore} />
             </div>
           </aside>
 
-          <div className="rounded-[28px] border border-neutral-200 bg-white p-4 shadow-sm sm:rounded-[32px] sm:p-6">
+          <div className="rounded-[26px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-5">
+            {showRestoreDraft && (
+              <RestoreDraftBanner
+                draftSavedAt={draftSavedAt}
+                onRestore={restoreDraft}
+                onDismiss={dismissDraft}
+              />
+            )}
+
             <div className="grid gap-4 md:grid-cols-2">
               <Field
                 label="Opportunity title"
@@ -212,6 +441,7 @@ export default function PostOpportunity() {
             </div>
 
             <Dropdown
+              refEl={typeRef}
               label="Type"
               value={form.type}
               open={typeOpen}
@@ -233,7 +463,7 @@ export default function PostOpportunity() {
               ))}
             </Dropdown>
 
-            <div className="mt-5">
+            <div ref={tagsRef} className="mt-5">
               <label className="text-sm font-medium">Skills / tags</label>
 
               <div className="relative mt-2">
@@ -314,12 +544,12 @@ export default function PostOpportunity() {
               <textarea
                 value={form.description}
                 onChange={(e) => updateForm("description", e.target.value)}
-                placeholder="Explain what you need, who it fits, requirements, schedule, and how serious the opportunity is."
+                placeholder="Explain the role, requirements, schedule, and who this opportunity fits."
                 className="mt-2 min-h-36 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-black"
               />
 
               <p className="mt-2 text-xs text-neutral-500">
-                {form.description.trim().length}/60 minimum recommended.
+                {form.description.trim().length}/60 recommended characters.
               </p>
             </div>
 
@@ -334,25 +564,25 @@ export default function PostOpportunity() {
               <ToggleCard
                 active={form.urgent}
                 icon={<FaBolt />}
-                title="Urgent hiring"
-                text="Show this post as urgent."
+                title="Urgent"
+                text="Show this post as time-sensitive."
                 onClick={() => updateForm("urgent", !form.urgent)}
               />
 
               <ToggleCard
                 active={form.featured}
                 icon={<FaStar />}
-                title="Featured opportunity"
-                text="Make this post stand out."
+                title="Featured"
+                text="Make this post stand out in Explore."
                 onClick={() => updateForm("featured", !form.featured)}
               />
             </div>
 
-            <div className="mt-6 lg:hidden">
+            <div className="mt-5 lg:hidden">
               <PreviewCard form={form} qualityScore={qualityScore} />
             </div>
 
-            <div className="sticky bottom-0 -mx-4 mt-8 border-t border-neutral-100 bg-white/95 px-4 py-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0">
+            <div className="sticky bottom-0 -mx-4 mt-7 border-t border-neutral-100 bg-white/95 px-4 py-4 backdrop-blur-xl sm:-mx-5 sm:px-5 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0">
               <button
                 disabled={!canPost}
                 onClick={handleSubmit}
@@ -378,9 +608,104 @@ export default function PostOpportunity() {
   );
 }
 
+function RestoreDraftBanner({ draftSavedAt, onRestore, onDismiss }) {
+  return (
+    <div className="mb-5 rounded-[22px] border border-neutral-200 bg-[#f7f7f5] p-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white">
+            <FaUndo className="text-sm" />
+          </div>
+
+          <div>
+            <p className="text-sm font-medium">Restore previous draft?</p>
+            <p className="mt-1 text-sm leading-6 text-neutral-600">
+              We found an unsaved opportunity draft from {formatTime(draftSavedAt)}.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 sm:flex">
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium"
+          >
+            Dismiss
+          </button>
+
+          <button
+            type="button"
+            onClick={onRestore}
+            className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white"
+          >
+            Restore
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DraftStatusCard({ draftSavedAt, onClearDraft }) {
+  return (
+    <div className="mt-4 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium">Draft autosave</p>
+          <p className="mt-1 text-sm leading-6 text-neutral-600">
+            {draftSavedAt
+              ? `Last saved ${formatTime(draftSavedAt)}`
+              : "Start writing and your draft saves automatically."}
+          </p>
+        </div>
+
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f7f7f5] text-neutral-600">
+          <FaClock className="text-sm" />
+        </div>
+      </div>
+
+      {draftSavedAt && (
+        <button
+          type="button"
+          onClick={onClearDraft}
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600"
+        >
+          <FaTrash className="text-xs" />
+          Clear draft
+        </button>
+      )}
+    </div>
+  );
+}
+
+function TemplatesCard({ onApply }) {
+  return (
+    <div className="mt-4 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <p className="text-sm font-medium">Quick templates</p>
+      <p className="mt-1 text-sm leading-6 text-neutral-600">
+        Start faster with common local opportunity formats.
+      </p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {templates.map((template) => (
+          <button
+            key={template.label}
+            type="button"
+            onClick={() => onApply(template)}
+            className="rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-sm transition hover:border-black"
+          >
+            {template.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function QualityCard({ qualityScore }) {
   return (
-    <div className="mt-6 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm sm:mt-8 sm:rounded-[28px] sm:p-5">
+    <div className="mt-4 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Post quality</p>
         <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
@@ -395,17 +720,30 @@ function QualityCard({ qualityScore }) {
         />
       </div>
 
-      <p className="mt-3 text-sm leading-6 text-neutral-600">
-        Clear posts get better applicants. Add pay, tags, contact, and a useful
-        description.
+      <div className="mt-4 grid gap-2">
+        <QualityItem active={qualityScore >= 20} text="Clear title" />
+        <QualityItem active={qualityScore >= 40} text="Location and pay added" />
+        <QualityItem active={qualityScore >= 60} text="Skills selected" />
+        <QualityItem active={qualityScore >= 80} text="Detailed description" />
+      </div>
+    </div>
+  );
+}
+
+function QualityItem({ active, text }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className={`h-2 w-2 rounded-full ${active ? "bg-black" : "bg-neutral-300"}`} />
+      <p className={`text-sm ${active ? "text-black" : "text-neutral-500"}`}>
+        {text}
       </p>
     </div>
   );
 }
 
-function Dropdown({ label, value, open, setOpen, children }) {
+function Dropdown({ refEl, label, value, open, setOpen, children }) {
   return (
-    <div className="mt-5">
+    <div ref={refEl} className="mt-5">
       <label className="text-sm font-medium">{label}</label>
 
       <div className="relative mt-2">
@@ -445,7 +783,7 @@ function Field({ label, placeholder, value, onChange }) {
 
 function PreviewCard({ form, qualityScore }) {
   return (
-    <div className="mt-6 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm sm:rounded-[28px] sm:p-5">
+    <div className="mt-4 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-neutral-500">Live preview</p>
 
@@ -454,8 +792,8 @@ function PreviewCard({ form, qualityScore }) {
         </span>
       </div>
 
-      <div className="mt-5 flex gap-3 sm:gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black text-white sm:h-12 sm:w-12">
+      <div className="mt-5 flex gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black text-white">
           <FaBriefcase />
         </div>
 
@@ -540,11 +878,7 @@ function ToggleCard({ active, icon, title, text, onClick }) {
 
       <p className="mt-4 text-sm font-medium">{title}</p>
 
-      <p
-        className={`mt-1 text-sm leading-6 ${
-          active ? "text-neutral-300" : "text-neutral-500"
-        }`}
-      >
+      <p className={`mt-1 text-sm leading-6 ${active ? "text-neutral-300" : "text-neutral-500"}`}>
         {text}
       </p>
     </button>

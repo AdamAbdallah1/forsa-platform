@@ -18,6 +18,9 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaPaperPlane,
+  FaClock,
+  FaEye,
+  FaArrowRight,
 } from "react-icons/fa";
 
 const skillOptions = [
@@ -64,6 +67,43 @@ const safeJson = (key, fallback) => {
   }
 };
 
+const writeJson = (key, value) => {
+  localStorage.setItem(key, JSON.stringify(value));
+};
+
+const formatDate = (value) => {
+  if (!value) return "Recently";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Recently";
+
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const applicationSteps = ["pending", "shortlisted", "accepted"];
+
+const getApplicationStepIndex = (status) => {
+  if (status === "rejected") return 0;
+  return Math.max(0, applicationSteps.indexOf(status || "pending"));
+};
+
+const getPostAnalytics = () => safeJson("forsaPostAnalytics", {});
+
+const getAnalyticsForPost = (postId) => {
+  const analytics = getPostAnalytics();
+  return analytics[postId] || {
+    views: 0,
+    saves: 0,
+    applications: 0,
+    shares: 0,
+    reports: 0,
+  };
+};
+
 export default function Profile() {
   const navigate = useNavigate();
 
@@ -89,6 +129,7 @@ export default function Profile() {
   });
   const [savedJobs, setSavedJobs] = useState(safeJson("forsaSavedJobs", []));
   const [messages, setMessages] = useState(safeJson("forsaMessages", []));
+  const [recentlyViewed, setRecentlyViewed] = useState(safeJson("forsaRecentlyViewed", []));
   const [selectedApplicantsPost, setSelectedApplicantsPost] = useState(null);
   const [tab, setTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
@@ -195,6 +236,8 @@ export default function Profile() {
     const thread = messages.find((item) => item.id === threadId);
     const notifications = safeJson("forsaNotifications", []);
 
+    showToast(`Application marked as ${status}`);
+
     if (thread?.seeker?.email) {
       localStorage.setItem(
         "forsaNotifications",
@@ -299,6 +342,8 @@ export default function Profile() {
     );
 
     persistOwnPosts(updatedPosts);
+    const post = posts.find((item) => item.id === postId);
+    showToast(post?.status === "closed" ? "Post reopened" : "Post closed");
   };
 
   const startEditPost = (post) => {
@@ -346,6 +391,8 @@ export default function Profile() {
     localStorage.removeItem("forsaMessages");
     localStorage.removeItem("forsaNotifications");
     localStorage.removeItem("forsaUsers");
+    localStorage.removeItem("forsaRecentlyViewed");
+    localStorage.removeItem("forsaSavedJobNotes");
 
     setAccount(null);
     navigate("/auth", { replace: true });
@@ -480,6 +527,10 @@ export default function Profile() {
                 <TabButton active={tab === "applications"} onClick={() => setTab("applications")} icon={<FaPaperPlane />}>
                   Applications
                 </TabButton>
+
+                <TabButton active={tab === "viewed"} onClick={() => setTab("viewed")} icon={<FaEye />}>
+                  Viewed
+                </TabButton>
               </>
             )}
 
@@ -508,6 +559,7 @@ export default function Profile() {
                   savedJobs={savedJobs}
                   completionScore={completionScore}
                   seekerApplications={seekerApplications}
+                  recentlyViewed={recentlyViewed}
                 />
               )}
 
@@ -533,6 +585,17 @@ export default function Profile() {
 
               {tab === "applications" && !isHiring && (
                 <ApplicationsTab applications={seekerApplications} />
+              )}
+
+              {tab === "viewed" && !isHiring && (
+                <RecentlyViewedTab
+                  jobs={recentlyViewed}
+                  onClear={() => {
+                    writeJson("forsaRecentlyViewed", []);
+                    setRecentlyViewed([]);
+                    showToast("Recently viewed cleared");
+                  }}
+                />
               )}
 
               {tab === "settings" && (
@@ -563,6 +626,7 @@ function OverviewTab({
   savedJobs,
   completionScore,
   seekerApplications = [],
+  recentlyViewed = [],
 }) {
   return (
     <div className="mt-6 sm:mt-8">
@@ -605,6 +669,10 @@ function OverviewTab({
           <CvBox cv={profile.cv} />
           <ApplicationsSentBox applications={seekerApplications} />
         </div>
+      )}
+
+      {!isHiring && recentlyViewed.length > 0 && (
+        <RecentlyViewedPreview jobs={recentlyViewed} />
       )}
 
       {isHiring && (
@@ -749,6 +817,7 @@ function PostsTab({
                 startEditPost={startEditPost}
                 getApplicantsCount={getApplicantsCount}
                 openApplicants={openApplicants}
+                analytics={getAnalyticsForPost(post.id)}
               />
             )
           )}
@@ -801,6 +870,7 @@ function PostCard({
   startEditPost,
   getApplicantsCount,
   openApplicants,
+  analytics,
 }) {
   const applicantsCount = getApplicantsCount(post.id);
 
@@ -839,7 +909,14 @@ function PostCard({
         ))}
       </div>
 
-      <div className="mt-5 rounded-2xl bg-white p-4">
+      <div className="mt-5 grid grid-cols-4 gap-2 rounded-2xl bg-white p-3">
+        <MiniAnalytics label="Views" value={analytics?.views || 0} />
+        <MiniAnalytics label="Saves" value={analytics?.saves || 0} />
+        <MiniAnalytics label="Apps" value={analytics?.applications || applicantsCount} />
+        <MiniAnalytics label="Shares" value={analytics?.shares || 0} />
+      </div>
+
+      <div className="mt-3 rounded-2xl bg-white p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium">Applicants</p>
@@ -886,17 +963,55 @@ function PostCard({
   );
 }
 
+
+function MiniAnalytics({ label, value }) {
+  return (
+    <div className="text-center">
+      <p className="text-sm font-semibold">{value}</p>
+      <p className="mt-1 text-[11px] text-neutral-500">{label}</p>
+    </div>
+  );
+}
+
 function SavedJobsTab({ jobs, removeSavedJob }) {
+  const [notes, setNotes] = useState(safeJson("forsaSavedJobNotes", {}));
+
+  const updateNote = (jobId, value) => {
+    const updated = {
+      ...notes,
+      [jobId]: value,
+    };
+
+    setNotes(updated);
+    writeJson("forsaSavedJobNotes", updated);
+  };
+
   return (
     <div className="mt-6 sm:mt-8">
-      <p className="text-sm font-medium text-neutral-500">Saved jobs</p>
-      <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
-        Opportunities you liked
-      </h2>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-neutral-500">Saved jobs</p>
+
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
+            Opportunities you liked
+          </h2>
+
+          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
+            Keep private notes, open posts quickly, and apply when ready.
+          </p>
+        </div>
+
+        {jobs.length > 0 && (
+          <span className="w-fit rounded-full bg-[#f7f7f5] px-4 py-2 text-sm text-neutral-600">
+            {jobs.length} saved
+          </span>
+        )}
+      </div>
 
       {jobs.length === 0 ? (
         <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[26px] sm:p-8">
           <p className="text-xl font-semibold">No saved jobs yet.</p>
+
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
             Save opportunities from Explore and they will appear here.
           </p>
@@ -911,21 +1026,72 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
       ) : (
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {jobs.map((job) => (
-            <div key={job.id} className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
-              <h3 className="font-semibold">{job.title}</h3>
-              <p className="mt-1 text-sm text-neutral-500">
-                {job.company} · {job.location}
-              </p>
+            <div
+              key={job.id}
+              className="rounded-[24px] border border-neutral-200 bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="line-clamp-2 font-semibold">{job.title}</h3>
+
+                  <p className="mt-1 text-sm text-neutral-500">
+                    {job.company} · {job.location}
+                  </p>
+                </div>
+
+                <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs text-neutral-600">
+                  {job.type || "Saved"}
+                </span>
+              </div>
+
               <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-600">
                 {job.description}
               </p>
 
-              <button
-                onClick={() => removeSavedJob(job.id)}
-                className="mt-5 w-full rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 sm:w-fit"
-              >
-                Remove saved
-              </button>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {(job.tags || []).slice(0, 4).map((tag) => (
+                  <span key={tag} className="rounded-full bg-white px-3 py-1 text-xs">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-5 rounded-2xl bg-white p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm font-medium">Private note</label>
+                  <span className="text-xs text-neutral-400">
+                    {(notes[job.id] || "").length} chars
+                  </span>
+                </div>
+
+                <textarea
+                  value={notes[job.id] || ""}
+                  onChange={(e) => updateNote(job.id, e.target.value)}
+                  placeholder="Example: Ask about schedule, pay, or portfolio..."
+                  className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-black"
+                />
+
+                <p className="mt-2 text-xs text-neutral-500">
+                  Only visible to you.
+                </p>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <Link
+                  to={`/explore?post=${job.id}`}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white"
+                >
+                  Open
+                  <FaArrowRight className="text-xs" />
+                </Link>
+
+                <button
+                  onClick={() => removeSavedJob(job.id)}
+                  className="rounded-full border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -934,9 +1100,11 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
   );
 }
 
+
 function ApplicationsTab({ applications }) {
   const pending = applications.filter((item) => (item.status || "pending") === "pending").length;
   const shortlisted = applications.filter((item) => item.status === "shortlisted").length;
+  const accepted = applications.filter((item) => item.status === "accepted").length;
   const rejected = applications.filter((item) => item.status === "rejected").length;
 
   return (
@@ -960,9 +1128,10 @@ function ApplicationsTab({ applications }) {
         </Link>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+      <div className="mt-5 grid gap-3 sm:grid-cols-4">
         <StatCard label="Pending" value={pending} />
         <StatCard label="Shortlisted" value={shortlisted} />
+        <StatCard label="Accepted" value={accepted} />
         <StatCard label="Rejected" value={rejected} />
       </div>
 
@@ -978,34 +1147,48 @@ function ApplicationsTab({ applications }) {
           </p>
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid gap-4">
           {applications.map((application) => (
             <div
               key={application.id}
               className="rounded-[24px] border border-neutral-200 bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5"
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0">
                   <h3 className="line-clamp-2 font-semibold">{application.title}</h3>
                   <p className="mt-1 text-sm text-neutral-500">
                     {application.company} · {application.opportunity?.location || "Lebanon"}
+                  </p>
+                  <p className="mt-2 text-xs text-neutral-400">
+                    Updated {formatDate(application.updatedAt || application.createdAt)}
                   </p>
                 </div>
 
                 <StatusPill status={application.status || "pending"} />
               </div>
 
+              <ApplicationTimeline status={application.status || "pending"} />
+
               <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-600">
                 {application.lastMessage || "Application sent."}
               </p>
 
-              <div className="mt-4 rounded-2xl bg-white p-4">
-                <p className="text-xs text-neutral-500">CV</p>
-                {application.cv ? (
-                  <p className="mt-2 truncate text-sm font-medium">{application.cv.name}</p>
-                ) : (
-                  <p className="mt-2 text-sm text-neutral-500">No CV attached.</p>
-                )}
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl bg-white p-4">
+                  <p className="text-xs text-neutral-500">CV</p>
+                  {application.cv ? (
+                    <p className="mt-2 truncate text-sm font-medium">{application.cv.name}</p>
+                  ) : (
+                    <p className="mt-2 text-sm text-neutral-500">No CV attached.</p>
+                  )}
+                </div>
+
+                <div className="rounded-2xl bg-white p-4">
+                  <p className="text-xs text-neutral-500">Contact</p>
+                  <p className="mt-2 break-all text-sm font-medium">
+                    {application.opportunity?.contact || "Inside messages"}
+                  </p>
+                </div>
               </div>
 
               <Link
@@ -1023,10 +1206,52 @@ function ApplicationsTab({ applications }) {
   );
 }
 
+function ApplicationTimeline({ status }) {
+  const stepIndex = getApplicationStepIndex(status);
+
+  if (status === "rejected") {
+    return (
+      <div className="mt-4 rounded-2xl bg-white p-4">
+        <div className="flex items-center gap-2">
+          <FaTimesCircle className="text-red-600" />
+          <p className="text-sm font-medium text-red-700">Application rejected</p>
+        </div>
+        <p className="mt-2 text-sm leading-6 text-neutral-600">
+          Keep applying. Your saved jobs and recommendations can help you find a better fit.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl bg-white p-4">
+      <div className="flex gap-2">
+        {applicationSteps.map((step, index) => (
+          <div
+            key={step}
+            className={`h-2 flex-1 rounded-full ${
+              index <= stepIndex ? "bg-black" : "bg-neutral-200"
+            }`}
+          />
+        ))}
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 text-[11px] uppercase tracking-wide text-neutral-500">
+        <span>Pending</span>
+        <span className="text-center">Shortlisted</span>
+        <span className="text-right">Accepted</span>
+      </div>
+    </div>
+  );
+}
+
+
 function StatusPill({ status }) {
   const styles =
     status === "shortlisted"
       ? "bg-black text-white"
+      : status === "accepted"
+      ? "bg-green-100 text-green-700"
       : status === "rejected"
       ? "bg-red-100 text-red-700"
       : "bg-white text-neutral-600";
@@ -1097,10 +1322,15 @@ function ProfileEdit({
             <EditBox title="Looking for" options={lookingOptions} selected={profile.lookingFor} onToggle={(item) => toggleProfileItem("lookingFor", item)} />
           </div>
 
+          <SmartCvAutofill
+            profile={profile}
+            toggleProfileItem={toggleProfileItem}
+          />
+
           <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
             <p className="font-medium">CV / Resume</p>
             <p className="mt-2 text-sm leading-6 text-neutral-600">
-              MVP mode stores file metadata only. Later Firebase Storage will upload the real PDF.
+              Upload your PDF CV. MVP mode stores file metadata only.
             </p>
 
             {profile.cv ? (
@@ -1139,6 +1369,243 @@ function ProfileEdit({
     </div>
   );
 }
+
+function SmartCvAutofill({ profile, toggleProfileItem }) {
+  const [cvText, setCvText] = useState("");
+  const [suggestedSkills, setSuggestedSkills] = useState([]);
+  const [suggestedLooking, setSuggestedLooking] = useState([]);
+
+  const analyzeCv = () => {
+    const text = cvText.toLowerCase();
+
+    const skills = skillOptions.filter((skill) =>
+      text.includes(skill.toLowerCase())
+    );
+
+    const looking = lookingOptions.filter((item) => {
+      const value = item.toLowerCase();
+
+      return (
+        text.includes(value) ||
+        (value.includes("internship") && text.includes("intern")) ||
+        (value.includes("freelance") && text.includes("freelancer")) ||
+        (value.includes("remote") && text.includes("remote")) ||
+        (value.includes("part-time") && text.includes("part time"))
+      );
+    });
+
+    setSuggestedSkills(skills);
+    setSuggestedLooking(looking);
+  };
+
+  const applySuggestions = () => {
+    suggestedSkills.forEach((skill) => {
+      if (!profile.skills.includes(skill)) {
+        toggleProfileItem("skills", skill);
+      }
+    });
+
+    suggestedLooking.forEach((item) => {
+      if (!profile.lookingFor.includes(item)) {
+        toggleProfileItem("lookingFor", item);
+      }
+    });
+  };
+
+  const hasSuggestions = suggestedSkills.length > 0 || suggestedLooking.length > 0;
+
+  return (
+    <div className="mt-6 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm sm:rounded-[26px] sm:p-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="font-medium">Smart CV Autofill</p>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
+            Paste CV text and Forsa will suggest skills and opportunity interests.
+          </p>
+        </div>
+
+        <span className="w-fit rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
+          Beta
+        </span>
+      </div>
+
+      <textarea
+        value={cvText}
+        onChange={(e) => setCvText(e.target.value)}
+        placeholder="Paste CV text here..."
+        className="mt-4 min-h-32 w-full resize-none rounded-2xl border border-neutral-200 bg-[#f7f7f5] px-4 py-3 text-sm outline-none transition focus:border-black"
+      />
+
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <button
+          type="button"
+          onClick={analyzeCv}
+          disabled={!cvText.trim()}
+          className={`rounded-full px-5 py-3 text-sm font-medium ${
+            cvText.trim()
+              ? "bg-black text-white"
+              : "cursor-not-allowed bg-neutral-200 text-neutral-400"
+          }`}
+        >
+          Analyze CV
+        </button>
+
+        {hasSuggestions && (
+          <button
+            type="button"
+            onClick={applySuggestions}
+            className="rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium"
+          >
+            Apply suggestions
+          </button>
+        )}
+      </div>
+
+      {hasSuggestions && (
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <SuggestionBox title="Suggested skills" items={suggestedSkills} />
+          <SuggestionBox title="Suggested interests" items={suggestedLooking} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SuggestionBox({ title, items }) {
+  return (
+    <div className="rounded-2xl bg-[#f7f7f5] p-4">
+      <p className="text-sm font-medium">{title}</p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {items.length > 0 ? (
+          items.map((item) => (
+            <span key={item} className="rounded-full bg-white px-3 py-1.5 text-xs">
+              {item}
+            </span>
+          ))
+        ) : (
+          <p className="text-sm text-neutral-500">No matches found.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RecentlyViewedPreview({ jobs }) {
+  return (
+    <div className="mt-5 rounded-[24px] bg-[#f7f7f5] p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="font-medium">Recently viewed</p>
+          <p className="mt-1 text-sm text-neutral-600">
+            Continue from opportunities you opened recently.
+          </p>
+        </div>
+
+        <Link
+          to="/profile"
+          className="hidden rounded-full bg-white px-4 py-2 text-xs font-medium sm:inline-flex"
+        >
+          View
+        </Link>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {jobs.slice(0, 3).map((job) => (
+          <Link
+            key={job.id}
+            to={`/explore?post=${job.id}`}
+            className="rounded-2xl bg-white p-4 transition hover:-translate-y-0.5"
+          >
+            <p className="line-clamp-2 text-sm font-medium">{job.title}</p>
+            <p className="mt-2 text-xs text-neutral-500">
+              {job.company} · {formatDate(job.viewedAt)}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RecentlyViewedTab({ jobs, onClear }) {
+  return (
+    <div className="mt-6 sm:mt-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-neutral-500">Recently viewed</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
+            Continue browsing
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
+            Posts you opened from Explore are saved here automatically.
+          </p>
+        </div>
+
+        {jobs.length > 0 && (
+          <button
+            onClick={onClear}
+            className="rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium"
+          >
+            Clear history
+          </button>
+        )}
+      </div>
+
+      {jobs.length === 0 ? (
+        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[26px] sm:p-8">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white">
+            <FaEye />
+          </div>
+
+          <p className="mt-4 text-xl font-semibold">No viewed jobs yet.</p>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
+            Open opportunities from Explore and they will appear here.
+          </p>
+
+          <Link
+            to="/explore"
+            className="mt-6 inline-flex rounded-full bg-black px-5 py-3 text-sm font-medium text-white"
+          >
+            Explore opportunities
+          </Link>
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {jobs.map((job) => (
+            <Link
+              key={job.id}
+              to={`/explore?post=${job.id}`}
+              className="rounded-[24px] border border-neutral-200 bg-[#f7f7f5] p-4 transition hover:border-black sm:rounded-[26px] sm:p-5"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="line-clamp-2 font-semibold">{job.title}</h3>
+                  <p className="mt-1 text-sm text-neutral-500">
+                    {job.company} · {job.location}
+                  </p>
+                </div>
+
+                <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs text-neutral-600">
+                  {job.type || "Viewed"}
+                </span>
+              </div>
+
+              <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-600">
+                {job.description}
+              </p>
+
+              <p className="mt-4 text-xs text-neutral-400">
+                Viewed {formatDate(job.viewedAt)}
+              </p>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo }) {
   return (
