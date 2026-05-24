@@ -164,6 +164,15 @@ export default function Profile() {
   }
 
   const isHiring = account.accountType === "hiring";
+  const displayName =
+  isHiring
+    ? account.companyName || account.name
+    : account.name;
+
+const displayEmail =
+  isHiring
+    ? account.companyEmail || account.email
+    : account.email;
   const initial = account.name?.charAt(0)?.toUpperCase() || "F";
 
   const getApplicantsForPost = (postId) => {
@@ -465,8 +474,8 @@ export default function Profile() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="max-w-full truncate text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
-                    {account.name}
-                  </h1>
+  {displayName}
+</h1>
 
                   <span className="rounded-full bg-[#f7f7f5] px-3 py-1 text-xs text-neutral-600">
                     {isHiring ? "Hiring account" : "Looking for work"}
@@ -474,10 +483,21 @@ export default function Profile() {
                 </div>
 
                 <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-neutral-500 sm:text-base">
+                  {isHiring && (
+  <Link
+    to={`/company/${encodeURIComponent(
+      account.companyEmail || account.email
+    )}`}
+    className="mt-4 inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-xs font-medium text-white"
+  >
+    <FaEye className="text-[10px]" />
+    View public company profile
+  </Link>
+)}
                   <FaMapMarkerAlt className="text-xs" />
                   <span>{account.city}</span>
                   <span className="hidden sm:inline">·</span>
-                  <span className="break-all">{account.email}</span>
+                  <span className="break-all">{displayEmail}</span>
                 </p>
               </div>
             </div>
@@ -1309,17 +1329,121 @@ function ProfileEdit({
 }) {
   return (
     <div className="mt-6 sm:mt-8">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Full name / business name" value={account.name} onChange={(value) => updateAccount("name", value)} />
-        <Field label="Email" value={account.email} onChange={(value) => updateAccount("email", value)} />
-        <Field label="City" value={account.city} onChange={(value) => updateAccount("city", value)} />
-      </div>
-
-      {!isHiring && (
+      {isHiring ? (
         <>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field
+              label="Company name"
+              value={account.companyName || account.name}
+              onChange={(value) => {
+                updateAccount("companyName", value);
+                updateAccount("name", value);
+              }}
+            />
+
+            <Field
+              label="Company email"
+              value={account.companyEmail || account.email}
+              onChange={(value) => {
+                updateAccount("companyEmail", value);
+                updateAccount("email", value);
+              }}
+            />
+
+            <Field
+              label="Contact person"
+              value={account.contactPerson || ""}
+              onChange={(value) => updateAccount("contactPerson", value)}
+            />
+
+            <Field
+              label="Company location"
+              value={account.city}
+              onChange={(value) => updateAccount("city", value)}
+            />
+
+            <Field
+              label="Website"
+              value={account.website || ""}
+              onChange={(value) => updateAccount("website", value)}
+            />
+
+            <Field
+              label="Instagram"
+              value={account.instagram || ""}
+              onChange={(value) => updateAccount("instagram", value)}
+            />
+          </div>
+
+          <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+            <label className="text-sm font-medium">Company bio</label>
+
+            <textarea
+              value={account.companyBio || ""}
+              onChange={(e) => updateAccount("companyBio", e.target.value)}
+              placeholder="Write a short description about your company, what you do, and what kind of people you hire."
+              className="mt-2 min-h-32 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-black"
+            />
+
+            <p className="mt-2 text-xs text-neutral-500">
+              This will appear on your public company profile.
+            </p>
+          </div>
+
+          <div className="mt-6 rounded-[24px] border border-neutral-200 bg-white p-4 sm:rounded-[26px] sm:p-5">
+            <p className="font-medium">Public company profile</p>
+
+            <p className="mt-2 text-sm leading-6 text-neutral-600">
+              People can view your company profile, active opportunities, and
+              basic contact details.
+            </p>
+
+            <Link
+              to={`/company/${encodeURIComponent(
+                account.companyEmail || account.email
+              )}`}
+              className="mt-4 inline-flex rounded-full bg-black px-5 py-3 text-sm font-medium text-white"
+            >
+              View public profile
+            </Link>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field
+              label="Full name"
+              value={account.name}
+              onChange={(value) => updateAccount("name", value)}
+            />
+
+            <Field
+              label="Email"
+              value={account.email}
+              onChange={(value) => updateAccount("email", value)}
+            />
+
+            <Field
+              label="City"
+              value={account.city}
+              onChange={(value) => updateAccount("city", value)}
+            />
+          </div>
+
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <EditBox title="Your skills" options={skillOptions} selected={profile.skills} onToggle={(item) => toggleProfileItem("skills", item)} />
-            <EditBox title="Looking for" options={lookingOptions} selected={profile.lookingFor} onToggle={(item) => toggleProfileItem("lookingFor", item)} />
+            <EditBox
+              title="Your skills"
+              options={skillOptions}
+              selected={profile.skills}
+              onToggle={(item) => toggleProfileItem("skills", item)}
+            />
+
+            <EditBox
+              title="Looking for"
+              options={lookingOptions}
+              selected={profile.lookingFor}
+              onToggle={(item) => toggleProfileItem("lookingFor", item)}
+            />
           </div>
 
           <SmartCvAutofill
@@ -1329,6 +1453,7 @@ function ProfileEdit({
 
           <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
             <p className="font-medium">CV / Resume</p>
+
             <p className="mt-2 text-sm leading-6 text-neutral-600">
               Upload your PDF CV. MVP mode stores file metadata only.
             </p>
@@ -1337,34 +1462,37 @@ function ProfileEdit({
               <div className="mt-4 flex flex-col justify-between gap-3 rounded-2xl bg-white p-4 md:flex-row md:items-center">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{profile.cv.name}</p>
+
                   <p className="mt-1 text-sm text-neutral-500">
                     {(profile.cv.size / 1024 / 1024).toFixed(2)} MB · PDF
                   </p>
                 </div>
 
-                <button onClick={removeCv} className="rounded-full border border-red-200 px-4 py-2 text-sm text-red-600">
+                <button
+                  onClick={removeCv}
+                  className="rounded-full border border-red-200 px-4 py-2 text-sm text-red-600"
+                >
                   Remove CV
                 </button>
               </div>
             ) : (
               <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white p-6 text-center">
                 <FaFileAlt />
+
                 <span className="mt-3 text-sm font-medium">Upload PDF CV</span>
+
                 <span className="mt-1 text-xs text-neutral-500">Max 5MB</span>
-                <input type="file" accept="application/pdf" className="hidden" onChange={(e) => handleCvUpload(e.target.files?.[0])} />
+
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={(e) => handleCvUpload(e.target.files?.[0])}
+                />
               </label>
             )}
           </div>
         </>
-      )}
-
-      {isHiring && (
-        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
-          <p className="font-medium">Hiring profile</p>
-          <p className="mt-2 text-sm leading-6 text-neutral-600">
-            Hiring accounts can edit business name, city, email, and manage posts from the My posts tab.
-          </p>
-        </div>
       )}
     </div>
   );

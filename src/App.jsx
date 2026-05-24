@@ -11,6 +11,7 @@ import MobileNav from "./components/MobileNav";
 import HiringRoute from "./components/HiringRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SeekerRoute from "./components/SeekerRoute";
+import CompanyProfile from "./pages/CompanyProfile";
 import AdminReview from "./pages/AdminReview";
 import Toast from "./components/Toast";
 
@@ -59,7 +60,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
+          <Route path="/company/:email" element={<CompanyProfile />} />
           <Route
             path="/post"
             element={

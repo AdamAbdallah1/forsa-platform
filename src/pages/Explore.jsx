@@ -428,7 +428,7 @@ export default function Explore() {
     showToast("Report submitted", "info");
   };
 
-  const submitApplication = ({ item, message, attachCv }) => {
+  const submitApplication = ({ item, message, attachCv, answers }) => {
     const messages = safeJson("forsaMessages", []);
     const existing = messages.find(
       (thread) => thread.opportunityId === item.id && thread.seeker?.email === account.email
@@ -447,6 +447,8 @@ export default function Explore() {
       lastMessage: message,
       status: existing?.status || "pending",
       cv: attachCv ? savedProfile.cv : null,
+      answers,
+questions: item.questions || [],
       seeker: {
         name: account.name,
         email: account.email,
@@ -464,16 +466,17 @@ export default function Explore() {
         contact: item.contact,
       },
       conversation: [
-        ...(existing?.conversation || []),
-        {
-          id: Date.now(),
-          from: account.name,
-          role: "seeker",
-          text: message,
-          createdAt: now,
-          cv: attachCv ? savedProfile.cv : null,
-        },
-      ],
+  ...(existing?.conversation || []),
+  {
+    id: Date.now(),
+    from: account.name,
+    role: "seeker",
+    text: message,
+    createdAt: now,
+    cv: attachCv ? savedProfile.cv : null,
+    answers,
+  },
+],
     };
 
     const updatedMessages = existing

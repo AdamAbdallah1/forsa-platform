@@ -129,6 +129,7 @@ const templates = [
 
 const emptyForm = (account) => ({
   title: "",
+  questions: [""],
   company: account?.name || "",
   location: account?.city || "",
   type: "Freelance",
@@ -285,6 +286,30 @@ export default function PostOpportunity() {
         : [...prev.tags, tag],
     }));
   };
+  const updateQuestion = (index, value) => {
+  setForm((prev) => ({
+    ...prev,
+    questions: prev.questions.map((question, i) =>
+      i === index ? value : question
+    ),
+  }));
+};
+
+const addQuestion = () => {
+  if (form.questions.length >= 5) return;
+
+  setForm((prev) => ({
+    ...prev,
+    questions: [...prev.questions, ""],
+  }));
+};
+
+const removeQuestion = (index) => {
+  setForm((prev) => ({
+    ...prev,
+    questions: prev.questions.filter((_, i) => i !== index),
+  }));
+};
 
   const applyTemplate = (template) => {
     setDraftIgnored(false);
@@ -559,7 +584,55 @@ export default function PostOpportunity() {
               value={form.contact}
               onChange={(value) => updateForm("contact", value)}
             />
+<div className="mt-5 rounded-[24px] border border-neutral-200 bg-[#fafaf8] p-4">
+  <div className="flex items-center justify-between gap-3">
+    <div>
+      <p className="text-sm font-medium">
+        Application questions
+      </p>
 
+      <p className="mt-1 text-sm text-neutral-500">
+        Ask applicants extra questions before applying.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      onClick={addQuestion}
+      className="rounded-full bg-black px-4 py-2 text-xs font-medium text-white"
+    >
+      Add question
+    </button>
+  </div>
+
+  <div className="mt-4 grid gap-3">
+    {form.questions.map((question, index) => (
+      <div
+        key={index}
+        className="flex items-center gap-2"
+      >
+        <input
+          value={question}
+          onChange={(e) =>
+            updateQuestion(index, e.target.value)
+          }
+          placeholder={`Question ${index + 1}`}
+          className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
+        />
+
+        {form.questions.length > 1 && (
+          <button
+            type="button"
+            onClick={() => removeQuestion(index)}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-red-200 text-red-600"
+          >
+            <FaTrash className="text-xs" />
+          </button>
+        )}
+      </div>
+    ))}
+  </div>
+</div>
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               <ToggleCard
                 active={form.urgent}
