@@ -176,12 +176,12 @@ export default function PostOpportunity() {
   const [typeOpen, setTypeOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
-const [showRestoreDraft, setShowRestoreDraft] = useState(false);
-const [draftSavedAt, setDraftSavedAt] = useState(null);
-const [draftIgnored, setDraftIgnored] = useState(false);
-const [posting, setPosting] = useState(false);
+  const [showRestoreDraft, setShowRestoreDraft] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState(null);
+  const [draftIgnored, setDraftIgnored] = useState(false);
+  const [posting, setPosting] = useState(false);
 
-const [form, setForm] = useState(() => emptyForm(account));
+  const [form, setForm] = useState(() => emptyForm(account));
 
   useEffect(() => {
     const draft = safeJson(draftKey, null);
@@ -238,7 +238,7 @@ const [form, setForm] = useState(() => emptyForm(account));
         draftKey,
         JSON.stringify({
           ...form,
-questions: form.questions.filter((question) => question.trim()),
+          questions: form.questions.filter((question) => question.trim()),
           savedAt,
         })
       );
@@ -289,30 +289,37 @@ questions: form.questions.filter((question) => question.trim()),
         : [...prev.tags, tag],
     }));
   };
+
   const updateQuestion = (index, value) => {
-  setForm((prev) => ({
-    ...prev,
-    questions: prev.questions.map((question, i) =>
-      i === index ? value : question
-    ),
-  }));
-};
+    setDraftIgnored(false);
 
-const addQuestion = () => {
-  if (form.questions.length >= 5) return;
+    setForm((prev) => ({
+      ...prev,
+      questions: prev.questions.map((question, i) =>
+        i === index ? value : question
+      ),
+    }));
+  };
 
-  setForm((prev) => ({
-    ...prev,
-    questions: [...prev.questions, ""],
-  }));
-};
+  const addQuestion = () => {
+    if (form.questions.length >= 5) return;
 
-const removeQuestion = (index) => {
-  setForm((prev) => ({
-    ...prev,
-    questions: prev.questions.filter((_, i) => i !== index),
-  }));
-};
+    setDraftIgnored(false);
+
+    setForm((prev) => ({
+      ...prev,
+      questions: [...prev.questions, ""],
+    }));
+  };
+
+  const removeQuestion = (index) => {
+    setDraftIgnored(false);
+
+    setForm((prev) => ({
+      ...prev,
+      questions: prev.questions.filter((_, i) => i !== index),
+    }));
+  };
 
   const applyTemplate = (template) => {
     setDraftIgnored(false);
@@ -320,6 +327,7 @@ const removeQuestion = (index) => {
     setForm((prev) => ({
       ...prev,
       ...template.data,
+      questions: prev.questions?.length ? prev.questions : [""],
       tags: Array.from(new Set([...(prev.tags || []), ...template.data.tags])),
     }));
 
@@ -339,6 +347,7 @@ const removeQuestion = (index) => {
       ...emptyForm(account),
       ...cleanDraft,
       tags: cleanDraft.tags || [],
+      questions: cleanDraft.questions?.length ? cleanDraft.questions : [""],
     });
     setDraftSavedAt(savedAt || new Date().toISOString());
     setShowRestoreDraft(false);
@@ -367,35 +376,54 @@ const removeQuestion = (index) => {
   };
 
   const handleSubmit = async () => {
-    if (!canPost) return;
-    
+    if (!canPost || posting) return;
 
-    const saved = safeJson("forsaPosts", []);
+    setPosting(true);
 
-    const newPost = {
-  id: Date.now(),
-  ownerEmail: account?.email || form.contact,
-  ownerName: account?.name || form.company,
-  featured: false,
-  closed: false,
-  reports: 0,
-  views: 0,
-  applications: 0,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  status: "active",
-  qualityScore,
-  ...form,
-  questions: form.questions.filter((question) =>
-    question.trim()
-  ),
-};
+    try {
+      const cleanQuestions = form.questions.filter((question) =>
+        question.trim()
+      );
 
-    localStorage.setItem("forsaPosts", JSON.stringify([newPost, ...saved]));
-    localStorage.removeItem(draftKey);
-    setDraftSavedAt(null);
-    showToast("Opportunity posted");
-    navigate("/explore");
+      const newPost = {
+        ownerUid: account?.uid || null,
+        ownerEmail: account?.email || form.contact,
+        ownerName: account?.name || form.company,
+        company: form.company.trim(),
+        location: form.location.trim(),
+        title: form.title.trim(),
+        type: form.type,
+        pay: form.pay.trim(),
+        description: form.description.trim(),
+        contact: form.contact.trim(),
+        tags: form.tags || [],
+        urgent: Boolean(form.urgent),
+        featured: false,
+        trusted: Boolean(account?.trusted),
+        verified: Boolean(account?.verified),
+        questions: cleanQuestions,
+        reports: 0,
+        views: 0,
+        applications: 0,
+        qualityScore,
+      };
+
+      const createdPost = await createPost(newPost);
+
+      const saved = safeJson("forsaPosts", []);
+      localStorage.setItem("forsaPosts", JSON.stringify([createdPost, ...saved]));
+
+      localStorage.removeItem(draftKey);
+      setDraftSavedAt(null);
+
+      showToast("Opportunity posted");
+      navigate("/explore");
+    } catch (error) {
+      console.error("Create post error:", error);
+      showToast("Could not post opportunity. Try again.", "error");
+    } finally {
+      setPosting(false);
+    }
   };
 
   return (
@@ -663,15 +691,15 @@ const removeQuestion = (index) => {
 
             <div className="sticky bottom-0 -mx-4 mt-7 border-t border-neutral-100 bg-white/95 px-4 py-4 backdrop-blur-xl sm:-mx-5 sm:px-5 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0">
               <button
-                disabled={!canPost}
+                disabled={!canPost || posting}
                 onClick={handleSubmit}
                 className={`w-full rounded-full px-5 py-3 text-sm font-medium transition ${
-                  canPost
+                  canPost && !posting
                     ? "bg-black text-white hover:bg-neutral-800"
                     : "cursor-not-allowed bg-neutral-200 text-neutral-400"
                 }`}
               >
-                Post opportunity
+                {posting ? "Posting..." : "Post opportunity"}
               </button>
 
               {!canPost && (
