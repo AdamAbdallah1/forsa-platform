@@ -656,6 +656,7 @@ function ConversationList({ account, thread }) {
             role: "seeker",
             text: thread.lastMessage,
             createdAt: thread.createdAt,
+            answers: thread.answers || {},
           },
         ];
 
@@ -671,6 +672,10 @@ function ConversationList({ account, thread }) {
             (account.accountType !== "hiring" && item.role === "seeker");
 
           const isSystem = item.role === "system";
+          const answers = item.answers || {};
+          const answerEntries = Object.entries(answers).filter(
+            ([question, answer]) => question?.trim() && answer?.trim()
+          );
 
           if (isSystem) {
             return (
@@ -712,6 +717,10 @@ function ConversationList({ account, thread }) {
                   {item.text}
                 </p>
 
+                {answerEntries.length > 0 && (
+                  <ApplicationAnswers answers={answers} dark={isMine} />
+                )}
+
                 {item.createdAt && (
                   <p className="mt-3 text-[11px] text-neutral-400">
                     {formatDateTime(item.createdAt)}
@@ -721,6 +730,52 @@ function ConversationList({ account, thread }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function ApplicationAnswers({ answers, dark = false }) {
+  const entries = Object.entries(answers || {}).filter(
+    ([question, answer]) => question?.trim() && answer?.trim()
+  );
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div
+      className={`mt-4 rounded-2xl p-3 ${
+        dark ? "bg-white/10" : "bg-[#f7f7f5]"
+      }`}
+    >
+      <p
+        className={`text-xs font-medium ${
+          dark ? "text-neutral-300" : "text-neutral-500"
+        }`}
+      >
+        Application answers
+      </p>
+
+      <div className="mt-3 grid gap-3">
+        {entries.map(([question, answer]) => (
+          <div key={question}>
+            <p
+              className={`text-xs font-medium ${
+                dark ? "text-white" : "text-black"
+              }`}
+            >
+              {question}
+            </p>
+
+            <p
+              className={`mt-1 text-sm leading-6 ${
+                dark ? "text-neutral-200" : "text-neutral-600"
+              }`}
+            >
+              {answer}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -765,6 +820,11 @@ function ApplicationCard({ account, profile, thread, isHiringThread }) {
     ? seeker.lookingFor
     : profile.lookingFor;
 
+  const answers = thread.answers || {};
+  const answerEntries = Object.entries(answers).filter(
+    ([question, answer]) => question?.trim() && answer?.trim()
+  );
+
   return (
     <div className="rounded-[24px] bg-black p-4 text-white sm:rounded-[28px] sm:p-5">
       <div className="flex items-start gap-3">
@@ -799,6 +859,23 @@ function ApplicationCard({ account, profile, thread, isHiringThread }) {
           }
         />
       </div>
+
+      {answerEntries.length > 0 && (
+        <div className="mt-3 rounded-2xl bg-white/10 p-4">
+          <p className="text-xs text-neutral-300">Application answers</p>
+
+          <div className="mt-3 grid gap-3">
+            {answerEntries.map(([question, answer]) => (
+              <div key={question}>
+                <p className="text-sm font-medium text-white">{question}</p>
+                <p className="mt-1 text-sm leading-6 text-neutral-300">
+                  {answer}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-3 rounded-2xl bg-white/10 p-4">
         <p className="text-xs text-neutral-300">CV metadata</p>

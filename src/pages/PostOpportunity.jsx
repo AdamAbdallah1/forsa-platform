@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { showToast } from "../lib/Toast";
+import { createPost } from "../lib/postService";
 import {
   FaBriefcase,
   FaCheck,
@@ -175,11 +176,12 @@ export default function PostOpportunity() {
   const [typeOpen, setTypeOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
-  const [showRestoreDraft, setShowRestoreDraft] = useState(false);
-  const [draftSavedAt, setDraftSavedAt] = useState(null);
-  const [draftIgnored, setDraftIgnored] = useState(false);
+const [showRestoreDraft, setShowRestoreDraft] = useState(false);
+const [draftSavedAt, setDraftSavedAt] = useState(null);
+const [draftIgnored, setDraftIgnored] = useState(false);
+const [posting, setPosting] = useState(false);
 
-  const [form, setForm] = useState(() => emptyForm(account));
+const [form, setForm] = useState(() => emptyForm(account));
 
   useEffect(() => {
     const draft = safeJson(draftKey, null);
@@ -236,6 +238,7 @@ export default function PostOpportunity() {
         draftKey,
         JSON.stringify({
           ...form,
+questions: form.questions.filter((question) => question.trim()),
           savedAt,
         })
       );
@@ -363,27 +366,30 @@ const removeQuestion = (index) => {
     showToast("Draft cleared");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canPost) return;
     
 
     const saved = safeJson("forsaPosts", []);
 
     const newPost = {
-      id: Date.now(),
-      ownerEmail: account?.email || form.contact,
-      ownerName: account?.name || form.company,
-      featured: false,
-      closed: false,
-      reports: 0,
-      views: 0,
-      applications: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: "active",
-      qualityScore,
-      ...form,
-    };
+  id: Date.now(),
+  ownerEmail: account?.email || form.contact,
+  ownerName: account?.name || form.company,
+  featured: false,
+  closed: false,
+  reports: 0,
+  views: 0,
+  applications: 0,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  status: "active",
+  qualityScore,
+  ...form,
+  questions: form.questions.filter((question) =>
+    question.trim()
+  ),
+};
 
     localStorage.setItem("forsaPosts", JSON.stringify([newPost, ...saved]));
     localStorage.removeItem(draftKey);

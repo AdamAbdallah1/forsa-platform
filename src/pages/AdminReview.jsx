@@ -48,7 +48,7 @@ export default function AdminReview() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
 
-  const isAdmin = account?.email === "adam@gmail.com";
+  const isAdmin = account?.email === "adamabdallah@gmail.com";
 
   const analytics = safeJson("forsaPostAnalytics", {});
 

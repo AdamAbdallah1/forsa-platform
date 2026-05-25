@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { findUser, getUsers, saveUser, setSession } from "../lib/auth";
+import { loginUser, registerUser } from "../lib/auth";
 import { showToast } from "../lib/Toast";
 import {
   FaArrowLeft,
@@ -15,6 +15,76 @@ import {
   FaUser,
 } from "react-icons/fa";
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const validatePassword = (password) => {
+  const value = password.trim();
+
+  if (value.length < 8) return "Password must be at least 8 characters.";
+  if (!/[A-Z]/.test(value)) return "Add at least one uppercase letter.";
+  if (!/[a-z]/.test(value)) return "Add at least one lowercase letter.";
+  if (!/[0-9]/.test(value)) return "Add at least one number.";
+  if (!/[^A-Za-z0-9]/.test(value)) return "Add at least one symbol.";
+
+  return "";
+};
+
+const validateName = (name, label = "Name") => {
+  const value = name.trim();
+
+  if (value.length < 2) return `${label} must be at least 2 characters.`;
+  if (value.length > 60) return `${label} is too long.`;
+  if (!/^[a-zA-Z\u0600-\u06FF\s.'-]+$/.test(value)) {
+    return `${label} can only include letters, spaces, dots, hyphens, or apostrophes.`;
+  }
+
+  return "";
+};
+
+const validateCompanyName = (name) => {
+  const value = name.trim();
+
+  if (value.length < 2) return "Company name must be at least 2 characters.";
+  if (value.length > 80) return "Company name is too long.";
+
+  return "";
+};
+
+const validateCity = (city) => {
+  const value = city.trim();
+
+  if (value.length < 2) return "City is required.";
+  if (value.length > 50) return "City name is too long.";
+
+  return "";
+};
+
+const getFriendlyAuthError = (error, isSignup) => {
+  const code = error?.code || "";
+
+  const messages = {
+    "auth/email-already-in-use":
+      "This email is already registered. Please log in instead.",
+    "auth/invalid-email": "Please enter a valid email address.",
+    "auth/weak-password":
+      "Password is too weak. Use 8+ characters with a number and symbol.",
+    "auth/invalid-credential": "Email or password is incorrect.",
+    "auth/user-not-found": "No account found with this email.",
+    "auth/wrong-password": "Email or password is incorrect.",
+    "auth/network-request-failed":
+      "Network error. Check your connection and try again.",
+    "auth/too-many-requests":
+      "Too many attempts. Please wait a moment and try again.",
+  };
+
+  return (
+    messages[code] ||
+    (isSignup
+      ? "We could not create your account. Please check your details and try again."
+      : "We could not log you in. Please check your email and password.")
+  );
+};
+
 export default function Auth() {
   const navigate = useNavigate();
 
@@ -23,6 +93,7 @@ export default function Auth() {
   const [accountType, setAccountType] = useState("finder");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -36,19 +107,21 @@ export default function Auth() {
 
   const isSignup = mode === "signup";
   const isHiring = accountType === "hiring";
+  const signupEmail = isHiring ? form.companyEmail : form.email;
+  const passwordIssue = isSignup ? validatePassword(form.password) : "";
 
   const canContinue = isSignup
     ? isHiring
-      ? form.companyName.trim() &&
-        form.companyEmail.trim() &&
-        form.contactPerson.trim() &&
-        form.password.trim() &&
-        form.city.trim()
-      : form.name.trim() &&
-        form.email.trim() &&
-        form.password.trim() &&
-        form.city.trim()
-    : form.email.trim() && form.password.trim();
+      ? validateCompanyName(form.companyName) === "" &&
+        emailRegex.test(form.companyEmail.trim()) &&
+        validateName(form.contactPerson, "Contact person") === "" &&
+        validateCity(form.city) === "" &&
+        passwordIssue === ""
+      : validateName(form.name, "Full name") === "" &&
+        emailRegex.test(form.email.trim()) &&
+        validateCity(form.city) === "" &&
+        passwordIssue === ""
+    : emailRegex.test(form.email.trim()) && form.password.trim();
 
   const updateField = (field, value) => {
     setError("");
@@ -61,64 +134,89 @@ export default function Auth() {
     setStep(nextMode === "signup" ? "choice" : "form");
   };
 
-  const handleSubmit = () => {
-    if (!canContinue) return;
+  const validateBeforeSubmit = () => {
+    const emailToCheck = isSignup && isHiring ? form.companyEmail : form.email;
 
-    const loginEmail = form.email.trim().toLowerCase();
-    const companyEmail = form.companyEmail.trim().toLowerCase();
-    const finalEmail = isSignup && isHiring ? companyEmail : loginEmail;
-    const password = form.password.trim();
+    if (!emailRegex.test(emailToCheck.trim())) {
+      return "Please enter a valid email address.";
+    }
 
     if (!isSignup) {
-      const user = findUser(loginEmail, password);
+      if (!form.password.trim()) return "Please enter your password.";
+      return "";
+    }
 
-      if (!user) {
-        setError("Account not found. Create an account first or check your password.");
+    const passError = validatePassword(form.password);
+    if (passError) return passError;
+
+    if (isHiring) {
+      return (
+        validateCompanyName(form.companyName) ||
+        validateName(form.contactPerson, "Contact person") ||
+        validateCity(form.city)
+      );
+    }
+
+    return validateName(form.name, "Full name") || validateCity(form.city);
+  };
+
+  const handleSubmit = async () => {
+    if (loading) return;
+
+    const validationError = validateBeforeSubmit();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const loginEmail = form.email.trim().toLowerCase();
+      const companyEmail = form.companyEmail.trim().toLowerCase();
+      const finalEmail = isSignup && isHiring ? companyEmail : loginEmail;
+      const password = form.password.trim();
+
+      if (!isSignup) {
+        const user = await loginUser(loginEmail, password);
+        showToast("Welcome back");
+        navigate(user.accountType === "hiring" ? "/profile" : "/explore");
         return;
       }
 
-      setSession(user);
-      showToast("Welcome back");
-      navigate(user.accountType === "hiring" ? "/profile" : "/explore");
-      return;
+      const newAccount = isHiring
+        ? {
+            accountType: "hiring",
+            name: form.companyName.trim(),
+            email: finalEmail,
+            city: form.city.trim(),
+            companyName: form.companyName.trim(),
+            companyEmail: finalEmail,
+            contactPerson: form.contactPerson.trim(),
+            trusted: false,
+            verified: false,
+          }
+        : {
+            accountType: "finder",
+            name: form.name.trim(),
+            email: finalEmail,
+            city: form.city.trim(),
+          };
+
+      const user = await registerUser({
+        ...newAccount,
+        password,
+      });
+
+      showToast(isHiring ? "Company account created" : "Welcome to Forsa");
+      navigate(user.accountType === "hiring" ? "/post" : "/onboarding");
+    } catch (err) {
+      console.error("Auth error:", err);
+      setError(getFriendlyAuthError(err, isSignup));
+    } finally {
+      setLoading(false);
     }
-
-    const emailExists = getUsers().some((user) => user.email === finalEmail);
-
-    if (emailExists) {
-      setError("This email already has an account. Log in instead.");
-      setMode("login");
-      setStep("form");
-      return;
-    }
-
-    const newAccount = isHiring
-      ? {
-          id: Date.now(),
-          accountType: "hiring",
-          name: form.companyName.trim(),
-          email: finalEmail,
-          password,
-          city: form.city.trim(),
-          companyName: form.companyName.trim(),
-          companyEmail: finalEmail,
-          contactPerson: form.contactPerson.trim(),
-          createdAt: new Date().toISOString(),
-        }
-      : {
-          id: Date.now(),
-          accountType: "finder",
-          name: form.name.trim(),
-          email: finalEmail,
-          password,
-          city: form.city.trim(),
-          createdAt: new Date().toISOString(),
-        };
-
-    saveUser(newAccount);
-    showToast(isHiring ? "Company account created" : "Welcome to Forsa");
-
-    navigate(isHiring ? "/post" : "/onboarding");
   };
 
   return (
@@ -156,6 +254,7 @@ export default function Auth() {
             <div className="grid grid-cols-2 gap-1.5">
               <button
                 onClick={() => switchMode("signup")}
+                disabled={loading}
                 className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
                   mode === "signup" ? "bg-white shadow-sm" : "text-neutral-500"
                 }`}
@@ -165,6 +264,7 @@ export default function Auth() {
 
               <button
                 onClick={() => switchMode("login")}
+                disabled={loading}
                 className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
                   mode === "login" ? "bg-white shadow-sm" : "text-neutral-500"
                 }`}
@@ -192,11 +292,13 @@ export default function Auth() {
               accountType={accountType}
               form={form}
               updateField={updateField}
-              canContinue={canContinue}
+              canContinue={Boolean(canContinue)}
               onSubmit={handleSubmit}
               onBack={() => setStep("choice")}
               showPassword={showPassword}
               setShowPassword={setShowPassword}
+              loading={loading}
+              passwordIssue={passwordIssue}
             />
           )}
         </div>
@@ -253,6 +355,8 @@ function FormStep({
   onBack,
   showPassword,
   setShowPassword,
+  loading,
+  passwordIssue,
 }) {
   const isHiring = accountType === "hiring";
 
@@ -261,6 +365,7 @@ function FormStep({
       {isSignup && (
         <button
           onClick={onBack}
+          disabled={loading}
           className="mb-4 flex items-center gap-2 text-sm text-neutral-500 transition hover:text-black"
         >
           <FaArrowLeft className="text-xs" />
@@ -290,17 +395,25 @@ function FormStep({
         )}
 
         {isSignup && !isHiring && (
-          <Field label="Full name" placeholder="Adam Abdallah" value={form.name} onChange={(value) => updateField("name", value)} />
+          <>
+            <Field label="Full name" placeholder="Adam Abdallah" value={form.name} onChange={(value) => updateField("name", value)} />
+            <Field label="Email" type="email" placeholder="you@example.com" value={form.email} onChange={(value) => updateField("email", value)} />
+          </>
         )}
 
         {!isSignup && (
           <Field label="Email" type="email" placeholder="you@example.com" value={form.email} onChange={(value) => updateField("email", value)} />
         )}
 
-        <PasswordField value={form.password} onChange={(value) => updateField("password", value)} showPassword={showPassword} setShowPassword={setShowPassword} />
+        <PasswordField
+          value={form.password}
+          onChange={(value) => updateField("password", value)}
+          showPassword={showPassword}
+          setShowPassword={setShowPassword}
+        />
 
-        {isSignup && !isHiring && (
-          <Field label="Email" type="email" placeholder="you@example.com" value={form.email} onChange={(value) => updateField("email", value)} />
+        {isSignup && passwordIssue && form.password && (
+          <p className="text-xs leading-5 text-neutral-500">{passwordIssue}</p>
         )}
 
         {isSignup && (
@@ -308,16 +421,23 @@ function FormStep({
         )}
 
         <button
-          disabled={!canContinue}
+          disabled={!canContinue || loading}
           onClick={onSubmit}
           className={`mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${
-            canContinue
+            canContinue && !loading
               ? "bg-black text-white hover:bg-neutral-800"
               : "cursor-not-allowed bg-neutral-200 text-neutral-400"
           }`}
         >
-          {isSignup ? (isHiring ? "Continue to post" : "Continue to profile") : "Log in"}
-          <FaArrowRight className="text-xs" />
+          {loading
+            ? "Please wait..."
+            : isSignup
+            ? isHiring
+              ? "Continue to post"
+              : "Continue to profile"
+            : "Log in"}
+
+          {!loading && <FaArrowRight className="text-xs" />}
         </button>
       </div>
     </div>
@@ -329,15 +449,25 @@ function TypeCard({ active, icon, title, text, onClick }) {
     <button
       onClick={onClick}
       className={`rounded-[22px] border p-4 text-left transition ${
-        active ? "border-black bg-black text-white" : "border-neutral-200 bg-white hover:border-neutral-400"
+        active
+          ? "border-black bg-black text-white"
+          : "border-neutral-200 bg-white hover:border-neutral-400"
       }`}
     >
-      <div className={`flex h-9 w-9 items-center justify-center rounded-full ${active ? "bg-white text-black" : "bg-[#f7f7f5] text-black"}`}>
+      <div
+        className={`flex h-9 w-9 items-center justify-center rounded-full ${
+          active ? "bg-white text-black" : "bg-[#f7f7f5] text-black"
+        }`}
+      >
         {icon}
       </div>
 
       <p className="mt-4 text-sm font-medium">{title}</p>
-      <p className={`mt-2 text-xs leading-5 ${active ? "text-neutral-300" : "text-neutral-500"}`}>
+      <p
+        className={`mt-2 text-xs leading-5 ${
+          active ? "text-neutral-300" : "text-neutral-500"
+        }`}
+      >
         {text}
       </p>
     </button>
@@ -351,6 +481,7 @@ function Field({ label, placeholder, value, onChange, type = "text", icon }) {
 
       <div className="mt-2 flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 transition focus-within:border-black">
         {icon && <span className="text-neutral-400">{icon}</span>}
+
         <input
           type={type}
           value={value}
@@ -373,7 +504,7 @@ function PasswordField({ value, onChange, showPassword, setShowPassword }) {
           type={showPassword ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="••••••••"
+          placeholder="8+ chars, number, symbol"
           className="w-full bg-transparent text-sm outline-none"
         />
 

@@ -398,6 +398,12 @@ export default function Explore() {
     }
   };
 
+  const getApplicantCount = (postId) => {
+  return safeJson("forsaMessages", []).filter(
+    (thread) => String(thread.opportunityId) === String(postId)
+  ).length;
+};
+
   const shareToWhatsApp = (item) => {
     const url = buildPostUrl(item.id);
     const text = `Check this opportunity on Forsa:\n${item.title}\n${item.company}\n${url}`;
@@ -583,6 +589,7 @@ questions: item.questions || [],
               <OpportunityCard
                 key={item.id}
                 item={item}
+                applicantCount={getApplicantCount(item.id)}
                 saved={isSaved(item.id)}
                 applied={appliedIds.has(item.id)}
                 canInteract={canInteract}
@@ -841,7 +848,7 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
   );
 }
 
-function OpportunityCard({ item, saved, applied, canInteract, onSave, onDetails, onApply, onShare }) {
+function OpportunityCard({ item, saved, applied, canInteract, applicantCount, onSave, onDetails, onApply, onShare }) {
   const Icon = item.icon || FaBriefcase;
 
   return (
@@ -883,6 +890,7 @@ function OpportunityCard({ item, saved, applied, canInteract, onSave, onDetails,
         {item.matchScore > 0 && <Pill tone="dark">{item.matchScore}% match</Pill>}
         {item.urgent && <Pill tone="dark" icon={<FaBolt />}>Urgent</Pill>}
         {item.featured && <Pill icon={<FaStar />}>Featured</Pill>}
+        <Pill>{applicantCount} applicant{applicantCount === 1 ? "" : "s"}</Pill>
         {applied && <Pill tone="dark">Applied</Pill>}
       </div>
 

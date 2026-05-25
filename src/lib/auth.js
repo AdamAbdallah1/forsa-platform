@@ -1,3 +1,17 @@
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { auth, db } from "./firebase";
+
 export function safeJson(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) || fallback;
@@ -10,32 +24,77 @@ export function getAccount() {
   return safeJson("forsaAccount", null);
 }
 
-export function getUsers() {
-  return safeJson("forsaUsers", []);
-}
-
 export function setSession(account) {
   localStorage.setItem("forsaAccount", JSON.stringify(account));
 }
+export async function registerUser(accountData) {
+  const email = accountData.email.trim().toLowerCase();
+  const password = accountData.password;
 
-export function saveUser(user) {
-  const users = getUsers();
-  const exists = users.some((item) => item.email === user.email);
+  const credential = await createUserWithEmailAndPassword(auth, email, password);
+  const uid = credential.user.uid;
 
-  const updated = exists
-    ? users.map((item) => (item.email === user.email ? user : item))
-    : [user, ...users];
+  const { password: _, ...safeAccountData } = accountData;
 
-  localStorage.setItem("forsaUsers", JSON.stringify(updated));
-  setSession(user);
+  const cleanAccount = {
+    ...safeAccountData,
+    uid,
+    email,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  await setDoc(doc(db, "users", uid), cleanAccount);
+
+  const sessionAccount = {
+    ...safeAccountData,
+    uid,
+    email,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  setSession(sessionAccount);
+  return sessionAccount;
 }
 
-export function findUser(email, password) {
-  return getUsers().find(
-    (user) => user.email === email && user.password === password
+export async function loginUser(email, password) {
+  const credential = await signInWithEmailAndPassword(
+    auth,
+    email.trim().toLowerCase(),
+    password
   );
+
+  const uid = credential.user.uid;
+  const snap = await getDoc(doc(db, "users", uid));
+
+  if (!snap.exists()) {
+    throw new Error("User profile not found.");
+  }
+
+  const account = {
+    uid,
+    ...snap.data(),
+  };
+
+  setSession(account);
+  return account;
 }
 
-export function logout() {
+export async function updateUserAccount(uid, data) {
+  await updateDoc(doc(db, "users", uid), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  });
+
+  const current = getAccount();
+  const next = { ...current, ...data };
+  setSession(next);
+
+  return next;
+}
+
+export async function logout() {
+  await signOut(auth);
   localStorage.removeItem("forsaAccount");
 }
