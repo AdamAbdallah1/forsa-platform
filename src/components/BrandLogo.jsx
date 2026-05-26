@@ -10,7 +10,7 @@ export default function BrandLogo({ to = "/", size = "md" }) {
   return (
     <Link to={to} className="inline-flex items-center gap-2">
       <img
-        src="/forsa-platform/f-logo.png"
+        src="/f-logo.png"
         alt="Forsa"
         className={`${sizes[size]} object-contain`}
       />

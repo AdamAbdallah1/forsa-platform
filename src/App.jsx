@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
 import Explore from "./pages/Explore";
@@ -20,7 +20,7 @@ import Toast from "./components/Toast";
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <main className="min-h-screen overflow-x-hidden bg-[var(--forsa-bg)] pb-24 text-[#111111] md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -98,6 +98,6 @@ export default function App() {
         <MobileNav />
         <Toast />
       </main>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
