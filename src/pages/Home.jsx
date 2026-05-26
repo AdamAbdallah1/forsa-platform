@@ -4,8 +4,10 @@ import ProblemSection from "../components/ProblemSection";
 import HowItWorks from "../components/HowItWorks";
 import CategoriesSection from "../components/CategoriesSection";
 import Grainient from "../components/ui/Grainient";
+import CurvedLoop from "../components/CurvedLoop";
 import OnboardingPreview from "../components/OnboardingPreview";
 import CTASection from "../components/CTASection";
+import WorkFlowOrbit from "../components/WorkFlowOrbit";
 
 export default function Home() {
   return (
@@ -34,7 +36,13 @@ export default function Home() {
     <MatchPreview />
   </div>
 </section>
-
+<CurvedLoop
+  marqueeText="Find work ✦ Hire talent ✦ Apply faster ✦ Verified companies ✦ Built for Lebanon ✦"
+  speed={0.6}
+  curveAmount={42}
+  direction="left"
+  interactive={false}
+/>
       <ProblemSection />
       <HowItWorks />
       <CategoriesSection />

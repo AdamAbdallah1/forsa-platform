@@ -8,9 +8,7 @@ import {
 } from "react-icons/fa";
 
 const categories = [
-  { icon: FaLaptopCode, title: "Tech", text: "Websites, dashboards, frontend, support." },
   { icon: FaPenNib, title: "Design", text: "Branding, Canva posts, menus, visuals." },
-  { icon: FaCamera, title: "Content", text: "Reels, photography, captions, creators." },
   { icon: FaBriefcase, title: "Part-time", text: "Cafés, events, shops, weekend shifts." },
   { icon: FaBullhorn, title: "Marketing", text: "Social media, offers, outreach, campaigns." },
   { icon: FaGraduationCap, title: "Internships", text: "Student-friendly experience and training." },
