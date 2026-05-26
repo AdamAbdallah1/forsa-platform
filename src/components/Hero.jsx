@@ -12,10 +12,6 @@ export default function Hero() {
       transition={{ duration: 0.45, ease: "easeOut" }}
       className="text-center lg:text-left"
     >
-      <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white/85 px-3.5 py-2 text-xs font-medium text-neutral-600 shadow-sm backdrop-blur lg:mx-0">
-        <span className="h-2 w-2 rounded-full bg-[var(--forsa-gold)]" />
-        Lebanon’s opportunity platform
-      </div>
 
       <h1 className="mx-auto mt-5 max-w-4xl text-[44px] font-semibold leading-[0.9] tracking-[-0.075em] text-[var(--forsa-text)] sm:text-[64px] md:text-[82px] lg:mx-0 lg:text-[88px]">
         Find work.

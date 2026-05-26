@@ -23,7 +23,6 @@ export default function BrandLogo({ to = "/" }) {
         }}
       >
         forsa
-        <span className="absolute -right-2 top-0 h-1.5 w-1.5 rounded-full bg-[var(--forsa-primary)] shadow-[0_0_18px_rgba(109,40,217,0.65)]" />
       </span>
     </Link>
   );
