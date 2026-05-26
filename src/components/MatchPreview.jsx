@@ -8,7 +8,7 @@ export default function MatchPreview() {
       initial={{ opacity: 0, y: 24, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.55, delay: 0.1, ease: "easeOut" }}
-      className="mx-auto w-full max-w-md rounded-[30px] border border-neutral-200 bg-white p-3 shadow-[0_20px_60px_rgba(0,0,0,0.06)] lg:max-w-none"
+      className="mx-auto w-full max-w-md rounded-[30px] border border-[var(--forsa-border)] bg-white p-3 shadow-[0_20px_60px_rgba(0,0,0,0.06)] lg:max-w-none"
     >
 
 
@@ -23,7 +23,7 @@ export default function MatchPreview() {
             </p>
           </div>
 
-          <span className="shrink-0 rounded-full bg-black px-3 py-1 text-xs text-white">
+          <span className="shrink-0 rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs text-white">
             Lebanon
           </span>
         </div>
@@ -35,10 +35,10 @@ export default function MatchPreview() {
             return (
               <div
                 key={item.id}
-                className="rounded-[22px] border border-neutral-200 bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
+                className="rounded-[22px] border border-[var(--forsa-border)] bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
               >
                 <div className="flex gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
                     <Icon />
                   </div>
 
@@ -53,7 +53,7 @@ export default function MatchPreview() {
                         </p>
                       </div>
 
-                      <button className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500">
+                      <button className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--forsa-border)] bg-white text-neutral-500">
                         <FaBookmark className="text-xs" />
                       </button>
                     </div>
@@ -70,7 +70,7 @@ export default function MatchPreview() {
                         {item.pay || "Paid"}
                       </span>
                       {index === 0 && (
-                        <span className="rounded-full bg-black px-3 py-1 text-xs text-white">
+                        <span className="rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs text-white">
                           Best fit
                         </span>
                       )}
@@ -82,7 +82,7 @@ export default function MatchPreview() {
           })}
         </div>
 
-        <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white">
+        <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white">
           <FaPaperPlane className="text-xs" />
           Apply in one message
         </button>

@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { createNotification } from "../lib/notificationService";
 import { showToast } from "../lib/Toast";
+import {
+  deleteThreadFromFirestore,
+  listenUserThreads,
+  sendThreadReply,
+  updateThreadStatus,
+} from "../lib/applicationService";
 import {
   FaArrowLeft,
   FaBriefcase,
@@ -13,6 +20,7 @@ import {
   FaTimesCircle,
   FaClock,
   FaCircle,
+  FaSearch,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 
@@ -80,10 +88,13 @@ export default function Messages() {
     cv: null,
   });
 
-  const [messages, setMessages] = useState(safeJson("forsaMessages", []));
-  const [activeId, setActiveId] = useState(messages[0]?.id || null);
+  const [messages, setMessages] = useState(safeJson("forsaMessagesCache", []));
+  const [activeId, setActiveId] = useState(null);
   const [reply, setReply] = useState("");
+  const [messageSearch, setMessageSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [mobileThreadOpen, setMobileThreadOpen] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(true);
 
   useEffect(() => {
     if (!account?.email) return;
@@ -96,6 +107,39 @@ export default function Messages() {
       },
     });
   }, [account?.email]);
+
+  useEffect(() => {
+    if (!account?.email) {
+      setLoadingMessages(false);
+      return undefined;
+    }
+
+    setLoadingMessages(true);
+
+    const unsubscribe = listenUserThreads(
+      account,
+      (threads) => {
+        setMessages(threads);
+        writeJson("forsaMessagesCache", threads);
+        writeJson("forsaMessages", threads);
+        setLoadingMessages(false);
+      },
+      (error) => {
+        console.error("Messages listener error:", error);
+        setMessages(safeJson("forsaMessagesCache", []));
+        setLoadingMessages(false);
+        showToast("Could not refresh messages. Showing saved data.", "info");
+      }
+    );
+
+    return unsubscribe;
+  }, [account?.email, account?.uid, account?.accountType, account?.name]);
+
+  useEffect(() => {
+    if (!activeId && messages.length > 0) {
+      setActiveId(messages[0].id);
+    }
+  }, [activeId, messages]);
 
   const presence = safeJson("forsaPresence", {});
 
@@ -117,12 +161,24 @@ export default function Messages() {
   }, [messages, account]);
 
   const sortedMessages = useMemo(() => {
-    return [...visibleMessages].sort(
-      (a, b) =>
-        new Date(b.updatedAt || b.createdAt || 0) -
-        new Date(a.updatedAt || a.createdAt || 0)
-    );
-  }, [visibleMessages]);
+    const query = messageSearch.trim().toLowerCase();
+
+    return [...visibleMessages]
+      .filter((thread) => {
+        const matchesStatus =
+          statusFilter === "all" || (thread.status || "pending") === statusFilter;
+
+        const text = `${thread.title} ${thread.company} ${thread.seeker?.name || ""} ${thread.seeker?.email || ""} ${thread.lastMessage || ""}`.toLowerCase();
+        const matchesSearch = !query || text.includes(query);
+
+        return matchesStatus && matchesSearch;
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt || b.createdAt || 0) -
+          new Date(a.updatedAt || a.createdAt || 0)
+      );
+  }, [visibleMessages, messageSearch, statusFilter]);
 
   const activeThread = useMemo(
     () =>
@@ -140,6 +196,7 @@ export default function Messages() {
 
   const persistMessages = (nextMessages) => {
     setMessages(nextMessages);
+    writeJson("forsaMessagesCache", nextMessages);
     writeJson("forsaMessages", nextMessages);
   };
 
@@ -148,25 +205,22 @@ export default function Messages() {
     setMobileThreadOpen(true);
   };
 
-  const notifyStatusChange = (thread, status) => {
+  const notifyStatusChange = async (thread, status) => {
     if (!thread?.seeker?.email) return;
 
-    const notifications = safeJson("forsaNotifications", []);
-    writeJson("forsaNotifications", [
-      {
-        id: Date.now(),
+    try {
+      await createNotification({
         type: "application_status",
         title: "Application status updated",
         text: `Your application for ${thread.title} was marked as ${getStatusLabel(status).toLowerCase()}.`,
         targetEmail: thread.seeker.email,
-        createdAt: new Date().toISOString(),
-        read: false,
-      },
-      ...notifications,
-    ]);
+      });
+    } catch (error) {
+      console.error("Create notification error:", error);
+    }
   };
 
-  const updateStatus = (status) => {
+  const updateStatus = async (status) => {
     if (!activeThread) return;
     if ((activeThread.status || "pending") === status) return;
 
@@ -180,7 +234,7 @@ export default function Messages() {
       createdAt: now,
     };
 
-    const updated = messages.map((thread) =>
+    const optimisticMessages = messages.map((thread) =>
       thread.id === activeThread.id
         ? {
             ...thread,
@@ -200,12 +254,24 @@ export default function Messages() {
         : thread
     );
 
-    persistMessages(updated);
-    notifyStatusChange(activeThread, status);
-    showToast(`Application marked as ${getStatusLabel(status).toLowerCase()}`);
+    persistMessages(optimisticMessages);
+
+    try {
+      await updateThreadStatus(activeThread.id, {
+        status,
+        by: account?.email || "system",
+        systemMessage,
+      });
+
+      await notifyStatusChange(activeThread, status);
+      showToast(`Application marked as ${getStatusLabel(status).toLowerCase()}`);
+    } catch (error) {
+      console.error("Update status error:", error);
+      showToast("Could not update status. Try again.", "error");
+    }
   };
 
-  const sendReply = () => {
+  const sendReply = async () => {
     if (!reply.trim() || !activeThread) return;
 
     const now = new Date().toISOString();
@@ -218,12 +284,14 @@ export default function Messages() {
       createdAt: now,
     };
 
+    const textToSend = reply.trim();
+
     const updated = messages.map((message) => {
       if (message.id !== activeThread.id) return message;
 
       return {
         ...message,
-        lastMessage: reply.trim(),
+        lastMessage: textToSend,
         updatedAt: now,
         conversation: [...(message.conversation || []), newMessage],
       };
@@ -239,21 +307,48 @@ export default function Messages() {
       });
     }
 
-    persistMessages(updated);
-    showToast("Message sent");
     setReply("");
+    persistMessages(updated);
+
+    try {
+      await sendThreadReply(activeThread.id, {
+        message: newMessage,
+        lastMessage: textToSend,
+      });
+
+      showToast("Message sent");
+    } catch (error) {
+      console.error("Send message error:", error);
+      showToast("Could not send message. Try again.", "error");
+    }
   };
 
-  const deleteThread = (id) => {
+  const deleteThread = async (id) => {
     const confirmed = window.confirm("Delete this message thread?");
     if (!confirmed) return;
 
-    const updated = messages.filter((message) => message.id !== id);
-    persistMessages(updated);
-    showToast("Thread deleted");
-    setActiveId(updated[0]?.id || null);
-    setMobileThreadOpen(false);
+    try {
+      await deleteThreadFromFirestore(id);
+
+      const updated = messages.filter((message) => message.id !== id);
+      persistMessages(updated);
+      showToast("Thread deleted");
+      setActiveId(updated[0]?.id || null);
+      setMobileThreadOpen(false);
+    } catch (error) {
+      console.error("Delete thread error:", error);
+      showToast("Could not delete thread. Try again.", "error");
+    }
   };
+
+  const messageStats = useMemo(() => {
+    return {
+      total: visibleMessages.length,
+      pending: visibleMessages.filter((item) => (item.status || "pending") === "pending").length,
+      shortlisted: visibleMessages.filter((item) => item.status === "shortlisted").length,
+      accepted: visibleMessages.filter((item) => item.status === "accepted").length,
+    };
+  }, [visibleMessages]);
 
   if (!account) {
     return (
@@ -261,8 +356,8 @@ export default function Messages() {
         <AppHeader />
 
         <div className="mx-auto max-w-3xl px-5 py-14 pb-28 sm:px-6 sm:py-20">
-          <div className="rounded-[28px] border border-neutral-200 bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-8">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-black text-white">
+          <div className="rounded-[28px] border border-[var(--forsa-border)] bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-8">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
               <FaPaperPlane />
             </div>
 
@@ -277,7 +372,7 @@ export default function Messages() {
 
             <Link
               to="/auth"
-              className="mt-7 inline-flex rounded-full bg-black px-6 py-3 text-sm font-medium text-white"
+              className="mt-7 inline-flex rounded-full bg-[var(--forsa-green)] px-6 py-3 text-sm font-medium text-white"
             >
               Create account
             </Link>
@@ -292,23 +387,43 @@ export default function Messages() {
       <AppHeader />
 
       <div className="mx-auto max-w-[1180px] px-5 pb-28 sm:px-6 lg:pb-20">
-        <div className="mt-6 sm:mt-8">
-          <p className="text-sm font-medium text-neutral-500">Messages</p>
+        <div className="relative mt-6 overflow-hidden rounded-[30px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:mt-8 sm:p-6">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-[var(--forsa-gold-soft)]/35 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 -left-28 h-64 w-64 rounded-full bg-[var(--forsa-green)]/10 blur-3xl" />
 
-          <h1 className="mt-3 max-w-2xl text-3xl font-semibold tracking-[-0.04em] sm:text-4xl md:text-5xl">
-            Applications and messages
-          </h1>
+          <div className="relative">
+            <p className="text-sm font-medium text-neutral-500">Messages</p>
 
-          <p className="mt-4 max-w-xl text-sm leading-7 text-neutral-600 sm:text-base">
-            Manage applications, candidate conversations, and status updates in
-            one place.
-          </p>
+            <h1 className="mt-3 max-w-2xl text-3xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-4xl md:text-5xl">
+              Applications, replies, and hiring decisions.
+            </h1>
+
+            <p className="mt-4 max-w-xl text-sm leading-7 text-neutral-600 sm:text-base">
+              Keep every application conversation organized with status updates, candidate details, and quick replies.
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-4">
+              <MessageStat label="Threads" value={messageStats.total} />
+              <MessageStat label="Pending" value={messageStats.pending} />
+              <MessageStat label="Shortlisted" value={messageStats.shortlisted} />
+              <MessageStat label="Accepted" value={messageStats.accepted} />
+            </div>
+          </div>
         </div>
 
-        {sortedMessages.length === 0 ? (
+        <MessageToolbar
+          search={messageSearch}
+          setSearch={setMessageSearch}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+        />
+
+        {loadingMessages ? (
+          <LoadingMessages />
+        ) : sortedMessages.length === 0 ? (
           <EmptyMessages />
         ) : (
-          <div className="mt-6 grid gap-4 lg:min-h-[650px] lg:grid-cols-[0.38fr_0.62fr]">
+          <div className="mt-6 grid gap-4 lg:min-h-[650px] lg:grid-cols-[0.36fr_0.64fr]">
             <InboxPanel
               messages={sortedMessages}
               activeId={activeThread?.id}
@@ -338,10 +453,77 @@ export default function Messages() {
   );
 }
 
+function MessageToolbar({ search, setSearch, statusFilter, setStatusFilter }) {
+  const filters = [
+    { value: "all", label: "All" },
+    { value: "pending", label: "Pending" },
+    { value: "shortlisted", label: "Shortlisted" },
+    { value: "accepted", label: "Accepted" },
+    { value: "rejected", label: "Rejected" },
+  ];
+
+  return (
+    <div className="sticky top-[58px] z-20 mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white/90 p-3 shadow-sm backdrop-blur-xl">
+      <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div className="flex items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-[var(--forsa-bg)] px-4 py-3">
+          <FaSearch className="text-sm text-neutral-400" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search thread, role, company, applicant..."
+            className="w-full bg-transparent text-sm outline-none"
+          />
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto">
+          {filters.map((filter) => (
+            <button
+              key={filter.value}
+              onClick={() => setStatusFilter(filter.value)}
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                statusFilter === filter.value
+                  ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white shadow-sm"
+                  : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-[var(--forsa-green)]"
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MessageStat({ label, value }) {
+  return (
+    <div className="rounded-2xl bg-[var(--forsa-bg)] p-4">
+      <p className="text-xs text-neutral-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tracking-[-0.04em]">{value}</p>
+    </div>
+  );
+}
+
+function LoadingMessages() {
+  return (
+    <div className="mt-8 rounded-[28px] border border-[var(--forsa-border)] bg-white p-8 text-center shadow-sm sm:rounded-[32px] sm:p-10">
+      <div className="mx-auto h-12 w-12 animate-pulse rounded-full bg-[var(--forsa-bg)]" />
+
+      <h2 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">
+        Loading messages
+      </h2>
+
+      <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-neutral-600 sm:text-base">
+        Fetching your latest applications and conversations.
+      </p>
+    </div>
+  );
+}
+
 function EmptyMessages() {
   return (
-    <div className="mt-8 rounded-[28px] border border-neutral-200 bg-white p-8 text-center shadow-sm sm:rounded-[32px] sm:p-10">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-black text-white">
+    <div className="mt-8 rounded-[28px] border border-[var(--forsa-border)] bg-white p-8 text-center shadow-sm sm:rounded-[32px] sm:p-10">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
         <FaPaperPlane />
       </div>
 
@@ -355,7 +537,7 @@ function EmptyMessages() {
 
       <Link
         to="/explore"
-        className="mt-6 inline-flex rounded-full bg-black px-5 py-3 text-sm font-medium text-white"
+        className="mt-6 inline-flex rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
       >
         Explore opportunities
       </Link>
@@ -365,7 +547,7 @@ function EmptyMessages() {
 
 function InboxPanel({ messages, activeId, openThread, account, presence }) {
   return (
-    <div className="rounded-[28px] border border-neutral-200 bg-white p-3 shadow-sm sm:rounded-[32px]">
+    <div className="rounded-[28px] border border-[var(--forsa-border)] bg-white/90 p-3 shadow-sm backdrop-blur-xl sm:rounded-[32px]">
       <div className="flex items-center justify-between border-b border-neutral-100 px-3 py-3">
         <div>
           <p className="text-sm font-medium">Inbox</p>
@@ -374,7 +556,7 @@ function InboxPanel({ messages, activeId, openThread, account, presence }) {
           </p>
         </div>
 
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f7f7f5] text-neutral-600">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--forsa-bg)] text-neutral-600">
           <FaInbox className="text-sm" />
         </div>
       </div>
@@ -404,7 +586,7 @@ function ThreadButton({ message, active, onClick, account, presence }) {
     <button
       onClick={onClick}
       className={`rounded-2xl p-4 text-left transition ${
-        active ? "bg-black text-white" : "bg-[#f7f7f5] hover:bg-neutral-100"
+        active ? "bg-[var(--forsa-green)] text-white shadow-[0_14px_30px_rgba(18,60,47,0.18)]" : "bg-[var(--forsa-bg)] text-black hover:bg-white hover:shadow-sm"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -439,7 +621,7 @@ function ThreadButton({ message, active, onClick, account, presence }) {
         }`}
       >
         <span>{getPresenceText(lastSeen || message.updatedAt || message.createdAt)}</span>
-        {unread && <span className="h-2 w-2 rounded-full bg-black" />}
+        {unread && <span className="h-2 w-2 rounded-full bg-[var(--forsa-green)]" />}
       </div>
     </button>
   );
@@ -462,10 +644,10 @@ function ThreadPanel({
   return (
     <div
       className={`${
-        mobileThreadOpen ? "fixed inset-0 z-50 flex bg-[#f7f7f5]" : "hidden"
+        mobileThreadOpen ? "fixed inset-0 z-50 flex bg-[var(--forsa-bg)]" : "hidden"
       } lg:static lg:z-auto lg:flex`}
     >
-      <div className="flex h-full w-full flex-col rounded-none bg-white shadow-sm lg:rounded-[32px] lg:border lg:border-neutral-200 lg:p-5">
+      <div className="flex h-full w-full flex-col rounded-none bg-white shadow-sm lg:rounded-[32px] lg:border lg:border-[var(--forsa-border)] lg:p-5">
         {activeThread ? (
           <>
             <ThreadHeader
@@ -499,7 +681,7 @@ function ThreadPanel({
             <ReplyBox reply={reply} setReply={setReply} sendReply={sendReply} />
           </>
         ) : (
-          <div className="hidden h-full items-center justify-center rounded-[28px] bg-[#f7f7f5] p-8 text-center lg:flex">
+          <div className="hidden h-full items-center justify-center rounded-[28px] bg-[var(--forsa-bg)] p-8 text-center lg:flex">
             <div>
               <FaArrowLeft className="mx-auto text-neutral-400" />
               <p className="mt-4 font-medium">Select a thread</p>
@@ -525,7 +707,7 @@ function ThreadHeader({ thread, account, presence, onDelete, onBack }) {
         <div className="flex min-w-0 items-start gap-3">
           <button
             onClick={onBack}
-            className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f7f7f5] lg:hidden"
+            className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-bg)] lg:hidden"
           >
             <FaArrowLeft className="text-sm" />
           </button>
@@ -578,7 +760,7 @@ function StatusTimeline({ status }) {
   const currentIndex = Math.max(0, timelineSteps.indexOf(status || "pending"));
 
   return (
-    <div className="mb-4 rounded-[24px] border border-neutral-200 bg-white p-4">
+    <div className="mb-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium">Status timeline</p>
@@ -587,7 +769,7 @@ function StatusTimeline({ status }) {
           </p>
         </div>
 
-        <span className="rounded-full bg-[#f7f7f5] px-3 py-1 text-xs text-neutral-600">
+        <span className="rounded-full bg-[var(--forsa-bg)] px-3 py-1 text-xs text-neutral-600">
           {currentIndex + 1}/3
         </span>
       </div>
@@ -597,7 +779,7 @@ function StatusTimeline({ status }) {
           <div
             key={step}
             className={`h-2 flex-1 rounded-full ${
-              index <= currentIndex ? "bg-black" : "bg-neutral-200"
+              index <= currentIndex ? "bg-[var(--forsa-green)]" : "bg-neutral-200"
             }`}
           />
         ))}
@@ -614,7 +796,7 @@ function StatusTimeline({ status }) {
 
 function StatusControl({ status, onChange }) {
   return (
-    <div className="mb-4 rounded-[24px] border border-neutral-200 bg-white p-4">
+    <div className="mb-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4">
       <p className="text-sm font-medium">Application status</p>
       <p className="mt-1 text-sm text-neutral-500">
         Update this candidate and notify them automatically.
@@ -631,8 +813,8 @@ function StatusControl({ status, onChange }) {
               onClick={() => onChange(option.value)}
               className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
                 active
-                  ? "border-black bg-black text-white"
-                  : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+                  ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white"
+                  : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-neutral-400"
               }`}
             >
               <Icon className="text-xs" />
@@ -661,7 +843,7 @@ function ConversationList({ account, thread }) {
         ];
 
   return (
-    <div className="mt-4 rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[28px] sm:p-5">
+    <div className="mt-4 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[28px] sm:p-5">
       <p className="text-sm font-medium">Conversation</p>
 
       <div className="mt-4 grid gap-3">
@@ -694,13 +876,13 @@ function ConversationList({ account, thread }) {
             >
               <div
                 className={`max-w-[92%] rounded-2xl p-4 sm:max-w-[75%] ${
-                  isMine ? "bg-black text-white" : "bg-white text-black"
+                  isMine ? "bg-[var(--forsa-green)] text-white" : "bg-white text-black"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <div
                     className={`flex h-7 w-7 items-center justify-center rounded-full text-xs ${
-                      isMine ? "bg-white text-black" : "bg-black text-white"
+                      isMine ? "bg-white text-black" : "bg-[var(--forsa-green)] text-white"
                     }`}
                   >
                     <FaUser />
@@ -745,7 +927,7 @@ function ApplicationAnswers({ answers, dark = false }) {
   return (
     <div
       className={`mt-4 rounded-2xl p-3 ${
-        dark ? "bg-white/10" : "bg-[#f7f7f5]"
+        dark ? "bg-white/10" : "bg-[var(--forsa-bg)]"
       }`}
     >
       <p
@@ -783,14 +965,14 @@ function ApplicationAnswers({ answers, dark = false }) {
 
 function ReplyBox({ reply, setReply, sendReply }) {
   return (
-    <div className="sticky bottom-0 border-t border-neutral-100 bg-white p-4 lg:static lg:mt-4 lg:rounded-[28px] lg:border lg:border-neutral-200">
+    <div className="sticky bottom-0 border-t border-neutral-100 bg-white p-4 lg:static lg:mt-4 lg:rounded-[28px] lg:border lg:border-[var(--forsa-border)]">
       <label className="text-sm font-medium">Add a message</label>
 
       <textarea
         value={reply}
         onChange={(e) => setReply(e.target.value)}
         placeholder="Write a follow-up message..."
-        className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-black lg:min-h-28"
+        className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--forsa-green)] lg:min-h-28"
       />
 
       <button
@@ -798,7 +980,7 @@ function ReplyBox({ reply, setReply, sendReply }) {
         disabled={!reply.trim()}
         className={`mt-3 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium sm:w-fit ${
           reply.trim()
-            ? "bg-black text-white"
+            ? "bg-[var(--forsa-green)] text-white"
             : "cursor-not-allowed bg-neutral-200 text-neutral-400"
         }`}
       >
@@ -826,7 +1008,7 @@ function ApplicationCard({ account, profile, thread, isHiringThread }) {
   );
 
   return (
-    <div className="rounded-[24px] bg-black p-4 text-white sm:rounded-[28px] sm:p-5">
+    <div className="rounded-[24px] bg-[var(--forsa-green)] p-4 text-white sm:rounded-[28px] sm:p-5">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black">
           <FaBriefcase />
@@ -907,7 +1089,7 @@ function StatusPill({ status, active }) {
     status === "shortlisted"
       ? active
         ? "bg-white text-black"
-        : "bg-black text-white"
+        : "bg-[var(--forsa-green)] text-white"
       : status === "accepted"
       ? "bg-green-100 text-green-700"
       : status === "rejected"

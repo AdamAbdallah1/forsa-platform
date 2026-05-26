@@ -4,8 +4,11 @@ import Onboarding from "./pages/Onboarding";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
+import Companies from "./pages/Companies";
 import PostOpportunity from "./pages/PostOpportunity";
 import Notifications from "./pages/Notifications";
+import SavedJobs from "./pages/SavedJobs";
+import Applicants from "./pages/Applicants";
 import Messages from "./pages/Messages";
 import MobileNav from "./components/MobileNav";
 import HiringRoute from "./components/HiringRoute";
@@ -18,7 +21,7 @@ import Toast from "./components/Toast";
 export default function App() {
   return (
     <HashRouter>
-      <main className="min-h-screen overflow-x-hidden bg-[#f7f7f5] pb-24 text-[#111111] md:pb-0">
+      <main className="min-h-screen overflow-x-hidden bg-[var(--forsa-bg)] pb-24 text-[#111111] md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth" element={<Auth />} />
@@ -34,6 +37,16 @@ export default function App() {
 
           <Route path="/explore" element={<Explore />} />
           <Route path="/admin-review" element={<AdminReview />} />
+
+          <Route
+            path="/saved"
+            element={
+              <ProtectedRoute>
+                <SavedJobs />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/profile"
             element={
@@ -42,13 +55,22 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
+<Route path="/companies" element={<Companies />} />
           <Route
             path="/messages"
             element={
               <ProtectedRoute>
                 <Messages />
               </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/applicants"
+            element={
+              <HiringRoute>
+                <Applicants />
+              </HiringRoute>
             }
           />
 
@@ -60,7 +82,9 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
           <Route path="/company/:email" element={<CompanyProfile />} />
+
           <Route
             path="/post"
             element={

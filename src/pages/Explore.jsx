@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { showToast } from "../lib/Toast";
+import { getActivePosts } from "../lib/postService";
+import { createNotification } from "../lib/notificationService";
+import { createApplicationThread } from "../lib/applicationService";
+import { getUserSavedJobs, saveJob, unsaveJob } from "../lib/savedJobsService";
+import { createReport } from "../lib/reportService";
 import {
   FaBriefcase,
   FaBookmark,
@@ -154,6 +159,12 @@ const cleanPostForStorage = (post) => ({
   icon: undefined,
 });
 
+const getDateValue = (value) => {
+  if (!value) return Date.now();
+  if (typeof value?.toDate === "function") return value.toDate().toISOString();
+  return value;
+};
+
 const types = ["All", "Internship", "Freelance", "Part-time", "Project", "Remote"];
 const sortOptions = ["Best match", "Newest", "Urgent"];
 
@@ -181,36 +192,109 @@ export default function Explore() {
   const [activeType, setActiveType] = useState("All");
   const [sortBy, setSortBy] = useState("Best match");
   const [savedJobs, setSavedJobs] = useState(safeJson("forsaSavedJobs", []));
+  const [savedLoading, setSavedLoading] = useState(false);
   const [recentlyViewed, setRecentlyViewed] = useState(safeJson("forsaRecentlyViewed", []));
+  const [firebasePosts, setFirebasePosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadPosts = async () => {
+      setPostsLoading(true);
+
+      try {
+        const posts = await getActivePosts();
+
+        if (!active) return;
+
+        setFirebasePosts(posts);
+        writeJson("forsaPostsCache", posts);
+      } catch (error) {
+        console.error("Load posts error:", error);
+
+        if (!active) return;
+
+        setFirebasePosts(safeJson("forsaPostsCache", []));
+        showToast("Could not refresh posts. Showing saved data.", "info");
+      } finally {
+        if (active) setPostsLoading(false);
+      }
+    };
+
+    loadPosts();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!account?.uid || isHiring) return;
+
+    let active = true;
+
+    const loadSavedJobs = async () => {
+      try {
+        const saved = await getUserSavedJobs(account.uid);
+
+        if (!active) return;
+
+        const normalized = saved.map((item) => ({
+          ...cleanPostForStorage(item.post || {}),
+          savedJobId: item.id,
+          savedAt: item.savedAt,
+        }));
+
+        setSavedJobs(normalized);
+        writeJson("forsaSavedJobs", normalized);
+      } catch (error) {
+        console.error("Load saved jobs error:", error);
+        setSavedJobs(safeJson("forsaSavedJobs", []));
+      }
+    };
+
+    loadSavedJobs();
+
+    return () => {
+      active = false;
+    };
+  }, [account?.uid, isHiring]);
 
   const allOpportunities = useMemo(() => {
-    const userPosts = safeJson("forsaPosts", []).filter((post) => post.status !== "closed");
+    const localFallback = safeJson("forsaPosts", []);
+    const sourcePosts = firebasePosts.length > 0 ? firebasePosts : localFallback;
 
-    const normalizedPosts = userPosts.map((post) => ({
-      ...post,
-      icon: FaBriefcase,
-      tags: post.tags || [],
-      company: post.company || "Local poster",
-      location: post.location || "Lebanon",
-      type: post.type || "Project",
-      pay: post.pay || "Not specified",
-      contact: post.contact || "Not specified",
-      description: post.description || "No description provided.",
-      ownerEmail: post.ownerEmail || post.contact || null,
-      createdAt: post.createdAt || post.id || Date.now(),
-      source: "community",
-    }));
+    const normalizedPosts = sourcePosts
+      .filter((post) => post.status !== "closed")
+      .map((post) => ({
+        ...post,
+        icon: FaBriefcase,
+        tags: post.tags || [],
+        questions: post.questions || [],
+        company: post.company || "Local poster",
+        location: post.location || "Lebanon",
+        type: post.type || "Project",
+        pay: post.pay || "Not specified",
+        contact: post.contact || "Not specified",
+        description: post.description || "No description provided.",
+        ownerEmail: post.ownerEmail || post.contact || null,
+        createdAt: getDateValue(post.createdAt || post.id || Date.now()),
+        updatedAt: getDateValue(post.updatedAt || post.createdAt || Date.now()),
+        source: "community",
+      }));
 
     const normalizedSeed = opportunities.map((item) => ({
       ...item,
       tags: item.tags || [],
+      questions: item.questions || [],
       ownerEmail: item.ownerEmail || null,
       createdAt: item.createdAt || item.id || 0,
       source: "featured",
     }));
 
     return [...normalizedPosts, ...normalizedSeed];
-  }, []);
+  }, [firebasePosts]);
 
   const appliedIds = useMemo(() => {
     if (!account?.email) return new Set();
@@ -282,7 +366,7 @@ export default function Explore() {
     const found = allOpportunities.find((item) => String(item.id) === String(postId));
 
     if (!found) {
-      showToast("This post is not available on this device yet", "info");
+      showToast(postsLoading ? "Loading post..." : "This post is not available", "info");
       return;
     }
 
@@ -298,7 +382,7 @@ export default function Explore() {
     };
   }, [rankedOpportunities, savedJobs.length, appliedIds]);
 
-  const isSaved = (id) => savedJobs.some((job) => job.id === id);
+  const isSaved = (id) => savedJobs.some((job) => String(job.id) === String(id));
 
   const requireSeekerAccount = (action) => {
     if (!isLoggedIn) {
@@ -328,20 +412,46 @@ export default function Explore() {
     writeJson("forsaRecentlyViewed", updated);
   };
 
-  const toggleSave = (item) => {
+  const toggleSave = async (item) => {
     if (!requireSeekerAccount("save")) return;
+    if (!account?.uid || savedLoading) return;
 
     const alreadySaved = isSaved(item.id);
-    const updated = alreadySaved
-      ? savedJobs.filter((job) => job.id !== item.id)
-      : [{ ...cleanPostForStorage(item), savedAt: new Date().toISOString() }, ...savedJobs];
+    const cleanPost = cleanPostForStorage(item);
 
-    setSavedJobs(updated);
-    writeJson("forsaSavedJobs", updated);
+    const optimistic = alreadySaved
+      ? savedJobs.filter((job) => String(job.id) !== String(item.id))
+      : [{ ...cleanPost, savedAt: new Date().toISOString() }, ...savedJobs];
 
-    if (!alreadySaved) updatePostAnalytics(item.id, "saves");
+    setSavedJobs(optimistic);
+    writeJson("forsaSavedJobs", optimistic);
+    setSavedLoading(true);
 
-    showToast(alreadySaved ? "Removed from saved jobs" : "Saved to profile");
+    try {
+      if (alreadySaved) {
+        await unsaveJob({
+          userUid: account.uid,
+          postId: item.id,
+        });
+      } else {
+        await saveJob({
+          userUid: account.uid,
+          userEmail: account.email,
+          post: cleanPost,
+        });
+
+        updatePostAnalytics(item.id, "saves");
+      }
+
+      showToast(alreadySaved ? "Removed from saved jobs" : "Saved to profile");
+    } catch (error) {
+      console.error("Save job error:", error);
+      setSavedJobs(savedJobs);
+      writeJson("forsaSavedJobs", savedJobs);
+      showToast("Could not update saved jobs. Try again.", "error");
+    } finally {
+      setSavedLoading(false);
+    }
   };
 
   const openApply = (item) => {
@@ -411,40 +521,52 @@ export default function Explore() {
     updatePostAnalytics(item.id, "shares");
   };
 
-  const reportOpportunity = (item) => {
-    const reason = window.prompt("Report reason: fake post, unclear pay, spam, unsafe, or other");
+  const reportOpportunity = async (item) => {
+    if (!isLoggedIn) {
+      setAuthModal("report");
+      return;
+    }
+
+    const reason = window.prompt(
+      "Report reason: fake post, unclear pay, spam, unsafe, or other"
+    );
 
     if (!reason?.trim()) return;
 
-    const reports = safeJson("forsaReports", []);
-    writeJson("forsaReports", [
-      {
-        id: Date.now(),
+    try {
+      await createReport({
         postId: item.id,
         title: item.title,
         company: item.company,
         reason: reason.trim(),
+        reporterUid: account?.uid || null,
         reporterEmail: account?.email || "guest",
-        createdAt: new Date().toISOString(),
-      },
-      ...reports,
-    ]);
+        ownerUid: item.ownerUid || null,
+        ownerEmail: item.ownerEmail || item.contact || null,
+        post: cleanPostForStorage(item),
+      });
 
-    updatePostAnalytics(item.id, "reports");
-    showToast("Report submitted", "info");
+      updatePostAnalytics(item.id, "reports");
+      showToast("Report submitted", "info");
+    } catch (error) {
+      console.error("Create report error:", error);
+      showToast("Could not submit report. Try again.", "error");
+    }
   };
 
-  const submitApplication = ({ item, message, attachCv, answers }) => {
+  const submitApplication = async ({ item, message, attachCv, answers }) => {
     const messages = safeJson("forsaMessages", []);
     const existing = messages.find(
-      (thread) => thread.opportunityId === item.id && thread.seeker?.email === account.email
+      (thread) =>
+        thread.opportunityId === item.id &&
+        thread.seeker?.email === account.email
     );
 
     const now = new Date().toISOString();
 
-    const threadPayload = {
-      id: existing?.id || Date.now(),
+    const baseThreadPayload = {
       opportunityId: item.id,
+      ownerUid: item.ownerUid || null,
       ownerEmail: item.ownerEmail || item.contact || null,
       title: item.title,
       company: item.company,
@@ -454,8 +576,9 @@ export default function Explore() {
       status: existing?.status || "pending",
       cv: attachCv ? savedProfile.cv : null,
       answers,
-questions: item.questions || [],
+      questions: item.questions || [],
       seeker: {
+        uid: account.uid || null,
         name: account.name,
         email: account.email,
         city: account.city,
@@ -472,44 +595,53 @@ questions: item.questions || [],
         contact: item.contact,
       },
       conversation: [
-  ...(existing?.conversation || []),
-  {
-    id: Date.now(),
-    from: account.name,
-    role: "seeker",
-    text: message,
-    createdAt: now,
-    cv: attachCv ? savedProfile.cv : null,
-    answers,
-  },
-],
+        ...(existing?.conversation || []),
+        {
+          id: Date.now(),
+          from: account.name,
+          role: "seeker",
+          text: message,
+          createdAt: now,
+          cv: attachCv ? savedProfile.cv : null,
+          answers,
+        },
+      ],
     };
 
-    const updatedMessages = existing
-      ? messages.map((thread) => (thread.id === existing.id ? threadPayload : thread))
-      : [threadPayload, ...messages];
+    try {
+      const createdThread = existing
+        ? {
+            ...existing,
+            ...baseThreadPayload,
+            id: existing.id,
+          }
+        : await createApplicationThread(baseThreadPayload);
 
-    writeJson("forsaMessages", updatedMessages);
+      const updatedMessages = existing
+        ? messages.map((thread) =>
+            thread.id === existing.id ? createdThread : thread
+          )
+        : [createdThread, ...messages];
 
-    const notifications = safeJson("forsaNotifications", []);
-    writeJson("forsaNotifications", [
-      {
-        id: Date.now() + 1,
+      writeJson("forsaMessages", updatedMessages);
+      writeJson("forsaMessagesCache", updatedMessages);
+
+      await createNotification({
         type: "new_application",
         title: "New application received",
         text: `${account.name} applied to ${item.title}`,
         targetEmail: item.ownerEmail || item.contact || null,
-        createdAt: now,
-        read: false,
-      },
-      ...notifications,
-    ]);
+      });
 
-    updatePostAnalytics(item.id, "applications");
+      updatePostAnalytics(item.id, "applications");
 
-    setApplyOpportunity(null);
-    showToast(existing ? "Application updated" : "Application sent");
-    navigate("/messages");
+      setApplyOpportunity(null);
+      showToast(existing ? "Application updated" : "Application sent");
+      navigate("/messages");
+    } catch (error) {
+      console.error("Create application error:", error);
+      showToast("Could not send application. Try again.", "error");
+    }
   };
 
   return (
@@ -574,14 +706,16 @@ questions: item.questions || [],
           {canInteract && (
             <Link
               to="/profile"
-              className="hidden rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-600 transition hover:border-neutral-400 hover:text-black sm:inline-flex"
+              className="hidden rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-sm font-medium text-neutral-600 transition hover:border-neutral-400 hover:text-black sm:inline-flex"
             >
               Improve profile
             </Link>
           )}
         </div>
 
-        {rankedOpportunities.length === 0 ? (
+        {postsLoading ? (
+          <LoadingState />
+        ) : rankedOpportunities.length === 0 ? (
           <EmptyState search={search} />
         ) : (
           <div className="mt-5 grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -591,6 +725,7 @@ questions: item.questions || [],
                 item={item}
                 applicantCount={getApplicantCount(item.id)}
                 saved={isSaved(item.id)}
+                savedLoading={savedLoading}
                 applied={appliedIds.has(item.id)}
                 canInteract={canInteract}
                 onSave={() => toggleSave(item)}
@@ -649,8 +784,9 @@ questions: item.questions || [],
 
 function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
   return (
-    <div className="relative mt-5 overflow-hidden rounded-[28px] border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:mt-8 sm:p-6 md:p-7">
-      <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-[#f7f7f5] blur-3xl" />
+    <div className="relative mt-5 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:mt-8 sm:p-6 md:p-7">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-[var(--forsa-gold-soft)]/35 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-28 -left-28 h-64 w-64 rounded-full bg-[var(--forsa-green)]/10 blur-3xl" />
 
       <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
@@ -668,7 +804,7 @@ function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
 
         <button
           onClick={() => navigate(isHiring ? "/post" : isLoggedIn ? "/profile" : "/auth")}
-          className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 sm:w-fit"
+          className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)] sm:w-fit"
         >
           {isHiring ? "Post opportunity" : isLoggedIn ? "Improve profile" : "Join Forsa"}
           <FaArrowRight className="text-xs transition group-hover:translate-x-0.5" />
@@ -687,7 +823,7 @@ function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
 
 function MiniStat({ label, value }) {
   return (
-    <div className="rounded-2xl bg-[#f7f7f5] p-3">
+    <div className="rounded-2xl bg-[var(--forsa-bg)] p-3">
       <p className="text-xl font-semibold tracking-[-0.04em]">{value}</p>
       <p className="mt-1 text-xs text-neutral-500">{label}</p>
     </div>
@@ -696,9 +832,9 @@ function MiniStat({ label, value }) {
 
 function SearchPanel({ search, setSearch, activeType, setActiveType, sortBy, setSortBy }) {
   return (
-    <div className="sticky top-[57px] z-30 -mx-4 mt-4 border-y border-neutral-200/80 bg-[#f7f7f5]/95 px-4 py-3 backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[26px] sm:border sm:bg-white/90 sm:p-3 sm:shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="sticky top-[57px] z-30 -mx-4 mt-4 border-y border-[var(--forsa-border)]/80 bg-[var(--forsa-bg)]/95 px-4 py-3 backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[26px] sm:border sm:bg-white/90 sm:p-3 sm:shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-        <div className="flex items-center gap-3 rounded-full border border-neutral-200 bg-white px-4 py-3 sm:bg-[#f7f7f5]">
+        <div className="flex items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-3 sm:bg-[var(--forsa-bg)]">
           <FaSearch className="text-sm text-neutral-400" />
           <input
             value={search}
@@ -738,8 +874,8 @@ function FilterButton({ active, onClick, children }) {
       onClick={onClick}
       className={`shrink-0 rounded-full border px-3.5 py-2 text-[13px] font-medium transition ${
         active
-          ? "border-black bg-black text-white"
-          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400 hover:text-black"
+          ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white"
+          : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-neutral-400 hover:text-black"
       }`}
     >
       {children}
@@ -764,7 +900,7 @@ function RecentlyViewedSection({ items, onOpen }) {
           <button
             key={`${item.id}-${item.viewedAt || "viewed"}`}
             onClick={() => onOpen(item)}
-            className="min-w-[260px] rounded-[24px] border border-neutral-200 bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-black"
+            className="min-w-[260px] rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-[var(--forsa-green)]"
           >
             <p className="text-xs text-neutral-500">{item.company}</p>
             <h3 className="mt-2 line-clamp-2 font-semibold tracking-[-0.02em]">{item.title}</h3>
@@ -777,10 +913,10 @@ function RecentlyViewedSection({ items, onOpen }) {
 }
 
 function RecommendedSection({ items, savedJobs, appliedIds, canInteract, onSave, onDetails, onApply, onShare, navigate }) {
-  const isSaved = (id) => savedJobs.some((job) => job.id === id);
+  const isSaved = (id) => savedJobs.some((job) => String(job.id) === String(id));
 
   return (
-    <section className="mt-6 rounded-[28px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-5">
+    <section className="mt-6 rounded-[28px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-medium text-neutral-500">Personalized</p>
@@ -812,11 +948,11 @@ function RecommendedSection({ items, savedJobs, appliedIds, canInteract, onSave,
 
 function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, onDetails, onApply, onShare }) {
   return (
-    <article className="rounded-[24px] bg-[#f7f7f5] p-4">
+    <article className="rounded-[24px] bg-[var(--forsa-bg)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-black px-2.5 py-1 text-[11px] font-medium text-white">
+            <span className="rounded-full bg-[var(--forsa-green)] px-2.5 py-1 text-[11px] font-medium text-white">
               {item.matchScore}% match
             </span>
             {item.urgent && <span className="rounded-full bg-white px-2.5 py-1 text-[11px] text-neutral-600">Urgent</span>}
@@ -827,7 +963,7 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
 
         <button
           onClick={onSave}
-          className={`shrink-0 rounded-full border p-2 ${saved ? "border-black bg-black text-white" : "border-neutral-200 bg-white text-neutral-500"} ${!canInteract ? "opacity-70" : ""}`}
+          className={`shrink-0 rounded-full border p-2 ${saved ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white" : "border-[var(--forsa-border)] bg-white text-neutral-500"} ${!canInteract ? "opacity-70" : ""}`}
         >
           {saved ? <FaBookmark /> : <FaRegBookmark />}
         </button>
@@ -840,7 +976,7 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
         <button onClick={onShare} className="inline-flex items-center justify-center rounded-full border border-neutral-300 bg-white px-3 py-2.5 text-sm font-medium">
           <FaShareAlt className="text-xs" />
         </button>
-        <button onClick={onApply} className={`rounded-full px-3 py-2.5 text-sm font-medium ${canInteract ? "bg-black text-white" : "bg-neutral-200 text-neutral-500"}`}>
+        <button onClick={onApply} className={`rounded-full px-3 py-2.5 text-sm font-medium ${canInteract ? "bg-[var(--forsa-green)] text-white" : "bg-neutral-200 text-neutral-500"}`}>
           {applied ? "Open" : "Apply"}
         </button>
       </div>
@@ -848,14 +984,14 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
   );
 }
 
-function OpportunityCard({ item, saved, applied, canInteract, applicantCount, onSave, onDetails, onApply, onShare }) {
+function OpportunityCard({ item, saved, savedLoading, applied, canInteract, applicantCount, onSave, onDetails, onApply, onShare }) {
   const Icon = item.icon || FaBriefcase;
 
   return (
-    <article className="group flex h-full min-h-[450px] flex-col rounded-[26px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:-translate-y-1 hover:shadow-[0_14px_35px_rgba(0,0,0,0.06)]">
+    <article className="group flex h-full min-h-[450px] flex-col rounded-[26px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:-translate-y-1 hover:shadow-[0_14px_35px_rgba(0,0,0,0.06)]">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
             <Icon className="text-sm" />
           </div>
 
@@ -873,10 +1009,11 @@ function OpportunityCard({ item, saved, applied, canInteract, applicantCount, on
 
         <button
           onClick={onSave}
+          disabled={savedLoading}
           className={`shrink-0 rounded-full border p-2 transition ${
             saved
-              ? "border-black bg-black text-white"
-              : "border-neutral-200 bg-white text-neutral-500 hover:border-neutral-400"
+              ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white"
+              : "border-[var(--forsa-border)] bg-white text-neutral-500 hover:border-neutral-400"
           } ${!canInteract ? "opacity-70" : ""}`}
           aria-label="Save opportunity"
         >
@@ -888,10 +1025,10 @@ function OpportunityCard({ item, saved, applied, canInteract, applicantCount, on
         <Pill>{item.type}</Pill>
         <Pill>{item.pay}</Pill>
         {item.matchScore > 0 && <Pill tone="dark">{item.matchScore}% match</Pill>}
-        {item.urgent && <Pill tone="dark" icon={<FaBolt />}>Urgent</Pill>}
-        {item.featured && <Pill icon={<FaStar />}>Featured</Pill>}
+        {item.urgent && <Pill tone="red" icon={<FaBolt />}>Urgent</Pill>}
+        {item.featured && <Pill tone="gold" icon={<FaStar />}>Featured</Pill>}
         <Pill>{applicantCount} applicant{applicantCount === 1 ? "" : "s"}</Pill>
-        {applied && <Pill tone="dark">Applied</Pill>}
+        {applied && <Pill tone="gold">Applied</Pill>}
       </div>
 
       <p className="mt-4 line-clamp-3 min-h-[72px] text-sm leading-6 text-neutral-600">
@@ -910,13 +1047,13 @@ function OpportunityCard({ item, saved, applied, canInteract, applicantCount, on
         <p className="text-xs text-neutral-400">Tags</p>
         <div className="mt-2 flex min-h-[28px] flex-wrap gap-2">
           {(item.tags || []).slice(0, 4).map((tag) => (
-            <span key={tag} className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs">
+            <span key={tag} className="rounded-full border border-[var(--forsa-border)] bg-white px-3 py-1 text-xs">
               {tag}
             </span>
           ))}
 
           {(item.tags || []).length > 4 && (
-            <span className="rounded-full bg-[#f7f7f5] px-3 py-1 text-xs text-neutral-500">
+            <span className="rounded-full bg-[var(--forsa-bg)] px-3 py-1 text-xs text-neutral-500">
               +{item.tags.length - 4}
             </span>
           )}
@@ -935,7 +1072,7 @@ function OpportunityCard({ item, saved, applied, canInteract, applicantCount, on
         <button
           onClick={onApply}
           className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-3 text-sm font-medium transition ${
-            canInteract ? "bg-black text-white hover:bg-neutral-800" : "bg-neutral-200 text-neutral-500"
+            canInteract ? "bg-[var(--forsa-green)] text-white hover:bg-[var(--forsa-green-light)]" : "bg-neutral-200 text-neutral-500"
           }`}
         >
           {!canInteract ? <FaLock className="text-xs" /> : <FaPaperPlane className="text-xs" />}
@@ -949,10 +1086,10 @@ function OpportunityCard({ item, saved, applied, canInteract, applicantCount, on
 function StatusCard({ isLoggedIn, isHiring, savedProfile, navigate }) {
   if (!isLoggedIn) {
     return (
-      <div className="mt-4 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <div className="mt-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f7f7f5]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-bg)]">
               <FaUserCircle className="text-neutral-500" />
             </div>
 
@@ -964,7 +1101,7 @@ function StatusCard({ isLoggedIn, isHiring, savedProfile, navigate }) {
             </div>
           </div>
 
-          <button onClick={() => navigate("/auth")} className="w-full rounded-full bg-black px-5 py-3 text-sm font-medium text-white sm:w-fit">
+          <button onClick={() => navigate("/auth")} className="w-full rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white sm:w-fit">
             Create account
           </button>
         </div>
@@ -974,7 +1111,7 @@ function StatusCard({ isLoggedIn, isHiring, savedProfile, navigate }) {
 
   if (isHiring) {
     return (
-      <div className="mt-4 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <div className="mt-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         <p className="font-medium">Hiring mode</p>
         <p className="mt-1 text-sm leading-6 text-neutral-600">
           Browse the market and manage applicants from your profile dashboard.
@@ -984,7 +1121,7 @@ function StatusCard({ isLoggedIn, isHiring, savedProfile, navigate }) {
   }
 
   return (
-    <div className="mt-4 grid gap-3 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] md:grid-cols-2">
+    <div className="mt-4 grid gap-3 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] md:grid-cols-2">
       <SkillBox title="Your skills" skills={savedProfile.skills} />
       <SkillBox title="Looking for" skills={savedProfile.lookingFor} />
     </div>
@@ -993,7 +1130,7 @@ function StatusCard({ isLoggedIn, isHiring, savedProfile, navigate }) {
 
 function SkillBox({ title, skills }) {
   return (
-    <div className="rounded-2xl bg-[#f7f7f5] p-4">
+    <div className="rounded-2xl bg-[var(--forsa-bg)] p-4">
       <p className="text-xs text-neutral-500">{title}</p>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -1011,10 +1148,26 @@ function SkillBox({ title, skills }) {
   );
 }
 
+function LoadingState() {
+  return (
+    <div className="mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white p-8 text-center shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-10">
+      <div className="mx-auto h-10 w-10 animate-pulse rounded-full bg-[var(--forsa-bg)]" />
+
+      <h3 className="mt-5 text-xl font-semibold tracking-[-0.02em]">
+        Loading opportunities
+      </h3>
+
+      <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-neutral-600 sm:text-base">
+        Fetching the latest posts from Forsa.
+      </p>
+    </div>
+  );
+}
+
 function EmptyState({ search }) {
   return (
-    <div className="mt-5 rounded-[26px] border border-neutral-200 bg-white p-8 text-center shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-10">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f7f7f5]">
+    <div className="mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white p-8 text-center shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-10">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-bg)]">
         <FaSearch className="text-neutral-500" />
       </div>
 
@@ -1030,8 +1183,19 @@ function EmptyState({ search }) {
 }
 
 function Pill({ children, icon, tone = "light" }) {
+  const styles = {
+    dark: "bg-[var(--forsa-green)] text-white",
+    gold: "bg-[var(--forsa-gold)] text-black",
+    red: "bg-[var(--forsa-red)] text-white",
+    light: "bg-[var(--forsa-bg)] text-neutral-600",
+  };
+
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs ${tone === "dark" ? "bg-black text-white" : "bg-[#f7f7f5] text-neutral-600"}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs ${
+        styles[tone] || styles.light
+      }`}
+    >
       {icon}
       {children}
     </span>
@@ -1042,11 +1206,11 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
   const Icon = item.icon || FaBriefcase;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--forsa-green)]/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
       <div className="max-h-[90vh] w-full max-w-md overflow-auto rounded-[28px] bg-white p-5 shadow-xl sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black text-white">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
               <Icon />
             </div>
 
@@ -1058,7 +1222,7 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
             </div>
           </div>
 
-          <button onClick={onClose} className="shrink-0 rounded-full bg-[#f7f7f5] p-2 text-sm">
+          <button onClick={onClose} className="shrink-0 rounded-full bg-[var(--forsa-bg)] p-2 text-sm">
             <FaTimes />
           </button>
         </div>
@@ -1067,7 +1231,7 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
           {item.description}
         </p>
 
-        <div className="mt-5 rounded-2xl bg-[#f7f7f5] p-4 text-sm">
+        <div className="mt-5 rounded-2xl bg-[var(--forsa-bg)] p-4 text-sm">
           <InfoLine label="Company" value={item.company} />
           <InfoLine label="Location" value={item.location} />
           <InfoLine label="Pay" value={item.pay} />
@@ -1098,14 +1262,14 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
           <button
             onClick={onSave}
             className={`inline-flex items-center justify-center gap-2 rounded-full border px-5 py-3 text-sm font-medium transition ${
-              saved ? "border-black bg-black text-white" : "border-neutral-300 bg-white text-black hover:border-neutral-500"
+              saved ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white" : "border-neutral-300 bg-white text-black hover:border-neutral-500"
             } ${!canInteract ? "opacity-70" : ""}`}
           >
             {saved ? <FaBookmark /> : <FaRegBookmark />}
             {saved ? "Saved" : "Save"}
           </button>
 
-          <button onClick={onApply} className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium ${canInteract ? "bg-black text-white" : "bg-neutral-200 text-neutral-500"}`}>
+          <button onClick={onApply} className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium ${canInteract ? "bg-[var(--forsa-green)] text-white" : "bg-neutral-200 text-neutral-500"}`}>
             {!canInteract ? <FaLock className="text-xs" /> : <FaPaperPlane className="text-xs" />}
             {applied ? "Open" : "Apply"}
           </button>
@@ -1125,7 +1289,7 @@ function FitExplanation({ item }) {
   if (item.featured) reasons.push("Featured by poster");
 
   return (
-    <div className="mt-5 rounded-2xl border border-neutral-200 bg-white p-4">
+    <div className="mt-5 rounded-2xl border border-[var(--forsa-border)] bg-white p-4">
       <div className="flex items-center gap-2">
         <FaShieldAlt className="text-xs text-neutral-500" />
         <p className="text-sm font-medium">Why this may fit you</p>
@@ -1134,7 +1298,7 @@ function FitExplanation({ item }) {
       <div className="mt-3 grid gap-2">
         {reasons.length > 0 ? (
           reasons.map((reason) => (
-            <div key={reason} className="rounded-xl bg-[#f7f7f5] px-3 py-2 text-sm text-neutral-700">
+            <div key={reason} className="rounded-xl bg-[var(--forsa-bg)] px-3 py-2 text-sm text-neutral-700">
               {reason}
             </div>
           ))
@@ -1157,43 +1321,100 @@ function InfoLine({ label, value, breakAll = false }) {
 }
 
 function ApplyModal({ item, account, profile, profileStrength, onClose, onSubmit }) {
+  const questions = (item.questions || []).filter((question) => question.trim());
+
   const [message, setMessage] = useState(
     `Hi, I'm interested in the ${item.title} opportunity. I believe my skills fit this role.`
   );
+
+  const [answers, setAnswers] = useState(
+    questions.reduce((acc, question) => {
+      acc[question] = "";
+      return acc;
+    }, {})
+  );
+
   const [attachCv, setAttachCv] = useState(Boolean(profile.cv));
 
-  const canSend = message.trim().length >= 20;
+  const answeredAllQuestions = questions.every(
+    (question) => answers[question]?.trim().length >= 2
+  );
+
+  const canSend =
+    message.trim().length >= 20 &&
+    (questions.length === 0 || answeredAllQuestions);
+
+  const updateAnswer = (question, value) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [question]: value,
+    }));
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--forsa-green)]/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
       <div className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-[28px] bg-white p-5 shadow-xl sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-sm text-neutral-500">Apply to</p>
+
             <h2 className="mt-1 line-clamp-2 text-2xl font-semibold tracking-[-0.03em]">
               {item.title}
             </h2>
+
             <p className="mt-1 text-sm text-neutral-500">
               {item.company} · {item.location}
             </p>
           </div>
 
-          <button onClick={onClose} className="shrink-0 rounded-full bg-[#f7f7f5] p-2 text-sm">
+          <button
+            onClick={onClose}
+            className="shrink-0 rounded-full bg-[var(--forsa-bg)] p-2 text-sm"
+          >
             <FaTimes />
           </button>
         </div>
 
         <ProfileStrengthCard strength={profileStrength} />
 
-        <div className="mt-5 rounded-2xl bg-[#f7f7f5] p-4">
+        <div className="mt-5 rounded-2xl bg-[var(--forsa-bg)] p-4">
           <p className="text-sm font-medium">Application profile</p>
+
           <p className="mt-2 break-all text-sm leading-6 text-neutral-600">
             {account.name} · {account.city} · {account.email}
           </p>
+
           <p className="mt-2 text-sm leading-6 text-neutral-600">
             Skills: {profile.skills?.length ? profile.skills.join(", ") : "No skills added"}
           </p>
         </div>
+
+        {questions.length > 0 && (
+          <div className="mt-5 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4">
+            <p className="text-sm font-medium">Questions from the company</p>
+
+            <p className="mt-1 text-sm text-neutral-500">
+              Answer these before sending your application.
+            </p>
+
+            <div className="mt-4 grid gap-4">
+              {questions.map((question, index) => (
+                <div key={question}>
+                  <label className="text-sm font-medium">
+                    {index + 1}. {question}
+                  </label>
+
+                  <textarea
+                    value={answers[question] || ""}
+                    onChange={(e) => updateAnswer(question, e.target.value)}
+                    placeholder="Write your answer..."
+                    className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-[var(--forsa-bg)] px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-5">
           <label className="text-sm font-medium">Message</label>
@@ -1201,7 +1422,7 @@ function ApplyModal({ item, account, profile, profileStrength, onClose, onSubmit
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="mt-2 min-h-36 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
+            className="mt-2 min-h-32 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--forsa-green)]"
           />
 
           <p className="mt-2 text-xs text-neutral-500">
@@ -1213,15 +1434,17 @@ function ApplyModal({ item, account, profile, profileStrength, onClose, onSubmit
           type="button"
           onClick={() => profile.cv && setAttachCv(!attachCv)}
           className={`mt-5 flex w-full items-center justify-between rounded-2xl border p-4 text-left transition ${
-            attachCv ? "border-black bg-black text-white" : "border-neutral-200 bg-white"
+            attachCv ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white" : "border-[var(--forsa-border)] bg-white"
           } ${!profile.cv ? "cursor-not-allowed opacity-70" : ""}`}
         >
           <span className="flex min-w-0 items-center gap-3">
             <FaFileAlt className="shrink-0" />
+
             <span className="min-w-0">
               <span className="block text-sm font-medium">
                 {profile.cv ? "Attach CV metadata" : "No CV uploaded"}
               </span>
+
               <span className={`block truncate text-xs ${attachCv ? "text-neutral-300" : "text-neutral-500"}`}>
                 {profile.cv ? profile.cv.name : "Upload a PDF CV from profile"}
               </span>
@@ -1239,14 +1462,20 @@ function ApplyModal({ item, account, profile, profileStrength, onClose, onSubmit
 
         <button
           disabled={!canSend}
-          onClick={() => onSubmit({ item, message, attachCv })}
+          onClick={() => onSubmit({ item, message, attachCv, answers })}
           className={`mt-6 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium ${
-            canSend ? "bg-black text-white" : "cursor-not-allowed bg-neutral-200 text-neutral-400"
+            canSend ? "bg-[var(--forsa-green)] text-white" : "cursor-not-allowed bg-neutral-200 text-neutral-400"
           }`}
         >
           <FaPaperPlane className="text-xs" />
           Send application
         </button>
+
+        {!answeredAllQuestions && questions.length > 0 && (
+          <p className="mt-2 text-center text-xs text-neutral-500">
+            Answer all company questions to continue.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -1257,7 +1486,7 @@ function ProfileStrengthCard({ strength }) {
   const missing = strength?.missing || [];
 
   return (
-    <div className="mt-5 rounded-2xl border border-neutral-200 bg-white p-4">
+    <div className="mt-5 rounded-2xl border border-[var(--forsa-border)] bg-white p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium">Profile strength</p>
@@ -1266,13 +1495,13 @@ function ProfileStrengthCard({ strength }) {
           </p>
         </div>
 
-        <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
+        <span className="rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs font-medium text-white">
           {score}%
         </span>
       </div>
 
-      <div className="mt-3 h-2 rounded-full bg-[#f7f7f5]">
-        <div className="h-2 rounded-full bg-black transition-all" style={{ width: `${score}%` }} />
+      <div className="mt-3 h-2 rounded-full bg-[var(--forsa-bg)]">
+        <div className="h-2 rounded-full bg-[var(--forsa-green)] transition-all" style={{ width: `${score}%` }} />
       </div>
 
       {missing.length > 0 && (
@@ -1288,9 +1517,9 @@ function AuthRequiredModal({ type, onClose, onCreateAccount }) {
   const seekerOnly = type === "seeker-only";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--forsa-green)]/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
       <div className="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-xl sm:p-6">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black text-white">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
           <FaLock />
         </div>
 
@@ -1306,7 +1535,7 @@ function AuthRequiredModal({ type, onClose, onCreateAccount }) {
 
         <div className="mt-6 grid gap-2">
           {!seekerOnly && (
-            <button onClick={onCreateAccount} className="rounded-full bg-black px-5 py-3 text-sm font-medium text-white">
+            <button onClick={onCreateAccount} className="rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white">
               Create account
             </button>
           )}

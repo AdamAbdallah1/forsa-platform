@@ -223,7 +223,7 @@ export default function Auth() {
     <main className="min-h-screen bg-[#f7f7f5] text-[#111111]">
       <section className="mx-auto grid min-h-screen max-w-6xl gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[0.85fr_1fr] lg:items-center lg:gap-10 lg:py-8">
         <div className="hidden lg:block">
-          <p className="w-fit rounded-full border border-neutral-200 bg-white px-4 py-2 text-xs font-medium text-neutral-600">
+          <p className="w-fit rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-xs font-medium text-neutral-600">
             Local work platform for Lebanon
           </p>
 
@@ -242,7 +242,7 @@ export default function Auth() {
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[500px] rounded-[28px] border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mx-auto w-full max-w-[500px] rounded-[28px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:p-5">
           <div className="mb-5 lg:hidden">
             <p className="text-sm font-semibold tracking-[-0.03em]">forsa</p>
             <h1 className="mt-4 text-3xl font-semibold leading-[1] tracking-[-0.05em]">
@@ -336,7 +336,7 @@ function ChoiceStep({ accountType, setAccountType, onContinue }) {
 
       <button
         onClick={onContinue}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
       >
         Continue
         <FaArrowRight className="text-xs" />
@@ -425,7 +425,7 @@ function FormStep({
           onClick={onSubmit}
           className={`mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${
             canContinue && !loading
-              ? "bg-black text-white hover:bg-neutral-800"
+              ? "bg-[var(--forsa-green)] text-white hover:bg-[var(--forsa-green-light)]"
               : "cursor-not-allowed bg-neutral-200 text-neutral-400"
           }`}
         >
@@ -450,8 +450,8 @@ function TypeCard({ active, icon, title, text, onClick }) {
       onClick={onClick}
       className={`rounded-[22px] border p-4 text-left transition ${
         active
-          ? "border-black bg-black text-white"
-          : "border-neutral-200 bg-white hover:border-neutral-400"
+          ? "border-black bg-[var(--forsa-green)] text-white"
+          : "border-[var(--forsa-border)] bg-white hover:border-neutral-400"
       }`}
     >
       <div
@@ -479,7 +479,7 @@ function Field({ label, placeholder, value, onChange, type = "text", icon }) {
     <div>
       <label className="text-sm font-medium">{label}</label>
 
-      <div className="mt-2 flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 transition focus-within:border-black">
+      <div className="mt-2 flex items-center gap-3 rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 transition focus-within:border-black">
         {icon && <span className="text-neutral-400">{icon}</span>}
 
         <input
@@ -499,7 +499,7 @@ function PasswordField({ value, onChange, showPassword, setShowPassword }) {
     <div>
       <label className="text-sm font-medium">Password</label>
 
-      <div className="mt-2 flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 transition focus-within:border-black">
+      <div className="mt-2 flex items-center gap-3 rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 transition focus-within:border-black">
         <input
           type={showPassword ? "text" : "password"}
           value={value}
@@ -522,7 +522,7 @@ function PasswordField({ value, onChange, showPassword, setShowPassword }) {
 
 function TrustItem({ title, text }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+    <div className="rounded-2xl border border-[var(--forsa-border)] bg-white p-4">
       <p className="text-sm font-medium">{title}</p>
       <p className="mt-1 text-sm leading-6 text-neutral-500">{text}</p>
     </div>

@@ -26,9 +26,9 @@ export default function CategoriesSection() {
           return (
             <div
               key={item.title}
-              className="group rounded-[26px] border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:-translate-y-1 hover:shadow-[0_12px_35px_rgba(0,0,0,0.06)] sm:p-6"
+              className="group rounded-[26px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:-translate-y-1 hover:shadow-[0_12px_35px_rgba(0,0,0,0.06)] sm:p-6"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white transition group-hover:scale-105">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white transition group-hover:scale-105">
                 <Icon className="text-sm" />
               </div>
 

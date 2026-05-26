@@ -58,10 +58,10 @@ export default function CompanyProfile() {
       <AppHeader />
 
       <div className="mx-auto max-w-6xl px-5 pb-28 sm:px-6 lg:pb-20">
-        <div className="mt-8 rounded-[30px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mt-8 rounded-[30px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-black text-lg font-semibold text-white">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-lg font-semibold text-white">
                 {companyName.charAt(0).toUpperCase()}
               </div>
 
@@ -117,7 +117,7 @@ export default function CompanyProfile() {
           </h2>
 
           {companyPosts.length === 0 ? (
-            <div className="mt-5 rounded-[26px] border border-neutral-200 bg-white p-8 text-center">
+            <div className="mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white p-8 text-center">
               <p className="font-medium">No active posts.</p>
               <p className="mt-2 text-sm text-neutral-500">
                 This company has no active opportunities right now.
@@ -129,10 +129,10 @@ export default function CompanyProfile() {
                 <Link
                   key={post.id}
                   to={`/explore?post=${post.id}`}
-                  className="rounded-[26px] border border-neutral-200 bg-white p-5 transition hover:-translate-y-1 hover:shadow-sm"
+                  className="rounded-[26px] border border-[var(--forsa-border)] bg-white p-5 transition hover:-translate-y-1 hover:shadow-sm"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
                       <FaBriefcase />
                     </div>
 

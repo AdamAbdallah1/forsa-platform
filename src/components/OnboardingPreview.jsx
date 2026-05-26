@@ -19,7 +19,7 @@ export default function OnboardingPreview() {
         </p>
       </div>
 
-      <div className="mx-auto w-full max-w-md rounded-[30px] border border-neutral-200 bg-white p-3 shadow-[0_20px_60px_rgba(0,0,0,0.06)] lg:max-w-none">
+      <div className="mx-auto w-full max-w-md rounded-[30px] border border-[var(--forsa-border)] bg-white p-3 shadow-[0_20px_60px_rgba(0,0,0,0.06)] lg:max-w-none">
         <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <div>
@@ -27,7 +27,7 @@ export default function OnboardingPreview() {
               <p className="mt-1 text-xs text-neutral-500">Ready to apply</p>
             </div>
 
-            <span className="rounded-full bg-black px-3 py-1 text-xs text-white">
+            <span className="rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs text-white">
               82%
             </span>
           </div>
@@ -39,7 +39,7 @@ export default function OnboardingPreview() {
             <ChipGroup title="Looking for" items={lookingFor} />
           </div>
 
-          <button className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white">
+          <button className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white">
             <FaCheck className="text-xs" />
             Profile ready
           </button>
@@ -52,7 +52,7 @@ export default function OnboardingPreview() {
 function Row({ icon, title, text }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-white p-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-sm text-white">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--forsa-green)] text-sm text-white">
         {icon}
       </div>
 
@@ -72,7 +72,7 @@ function ChipGroup({ title, items }) {
         {items.map((item) => (
           <span
             key={item}
-            className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs"
+            className="rounded-full border border-[var(--forsa-border)] bg-white px-3 py-1.5 text-xs"
           >
             {item}
           </span>

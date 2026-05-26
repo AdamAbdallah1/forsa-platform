@@ -119,7 +119,7 @@ export default function Onboarding() {
               so your matches feel more relevant.
             </p>
 
-            <div className="mt-6 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm sm:mt-8 sm:rounded-[28px] sm:p-5">
+            <div className="mt-6 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:mt-8 sm:rounded-[28px] sm:p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium">Profile strength</p>
@@ -128,14 +128,14 @@ export default function Onboarding() {
                   </p>
                 </div>
 
-                <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
+                <span className="rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs font-medium text-white">
                   {progress}%
                 </span>
               </div>
 
               <div className="mt-4 h-2 rounded-full bg-[#f7f7f5]">
                 <div
-                  className="h-2 rounded-full bg-black transition-all"
+                  className="h-2 rounded-full bg-[var(--forsa-green)] transition-all"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -148,7 +148,7 @@ export default function Onboarding() {
             </div>
           </aside>
 
-          <div className="rounded-[28px] border border-neutral-200 bg-white p-4 shadow-sm sm:rounded-[32px] sm:p-6">
+          <div className="rounded-[28px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:rounded-[32px] sm:p-6">
             <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:p-5">
               <p className="text-xs font-medium text-neutral-500">Step 1 of 1</p>
 
@@ -182,7 +182,7 @@ export default function Onboarding() {
 
             <div className="mt-6">
               <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
                   <FaMapMarkerAlt className="text-sm" />
                 </div>
 
@@ -198,7 +198,7 @@ export default function Onboarding() {
                 value={cityPreference}
                 onChange={(e) => setCityPreference(e.target.value)}
                 placeholder="Beirut, Tripoli, Saida, Remote..."
-                className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
+                className="w-full rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
               />
             </div>
 
@@ -208,7 +208,7 @@ export default function Onboarding() {
                 onClick={saveProfile}
                 className={`flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${
                   canContinue
-                    ? "bg-black text-white hover:bg-neutral-800"
+                    ? "bg-[var(--forsa-green)] text-white hover:bg-[var(--forsa-green-light)]"
                     : "cursor-not-allowed bg-neutral-200 text-neutral-400"
                 }`}
               >
@@ -233,7 +233,7 @@ function OptionSection({ icon, title, subtitle, options, selected, onToggle }) {
   return (
     <div className="mt-6">
       <div className="mb-3 flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
           {icon}
         </div>
 
@@ -254,7 +254,7 @@ function OptionSection({ icon, title, subtitle, options, selected, onToggle }) {
               onClick={() => onToggle(item)}
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition sm:px-4 ${
                 active
-                  ? "border-black bg-black text-white"
+                  ? "border-black bg-[var(--forsa-green)] text-white"
                   : "border-neutral-300 bg-white hover:border-neutral-500"
               }`}
             >
@@ -273,7 +273,7 @@ function StepDone({ done, text }) {
     <div className="flex items-center gap-3 rounded-2xl bg-[#f7f7f5] px-4 py-3">
       <div
         className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
-          done ? "bg-black text-white" : "bg-white text-neutral-400"
+          done ? "bg-[var(--forsa-green)] text-white" : "bg-white text-neutral-400"
         }`}
       >
         {done ? <FaCheck /> : <FaUser />}

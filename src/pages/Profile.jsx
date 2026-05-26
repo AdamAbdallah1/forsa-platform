@@ -1,8 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom"; 
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
+import {
+  deletePost as deletePostFromFirestore,
+  getPostsByOwner,
+  updatePost,
+} from "../lib/postService";
 import { loadDemoActivity, clearDemoActivity } from "../lib/demoData";
+import { createVerificationRequest } from "../lib/verificationService";
 import {
   FaBriefcase,
   FaBookmark,
@@ -21,6 +27,9 @@ import {
   FaClock,
   FaEye,
   FaArrowRight,
+  FaExternalLinkAlt,
+  FaLink,
+  FaShieldAlt,
 } from "react-icons/fa";
 
 const skillOptions = [
@@ -135,13 +144,48 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingPostId, setEditingPostId] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
+  const [postsLoading, setPostsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!savedAccount || savedAccount.accountType !== "hiring") return;
+
+    let active = true;
+
+    const loadPosts = async () => {
+      setPostsLoading(true);
+
+      try {
+        const remotePosts = await getPostsByOwner({
+          uid: savedAccount.uid,
+          email: savedAccount.email,
+          name: savedAccount.name,
+        });
+
+        if (!active) return;
+
+        setPosts(remotePosts);
+      } catch (error) {
+        console.error("Profile posts load error:", error);
+        showToast("Could not refresh your posts. Showing saved data.", "info");
+      } finally {
+        if (active) setPostsLoading(false);
+      }
+    };
+
+    loadPosts();
+
+    return () => {
+      active = false;
+    };
+  }, [savedAccount?.uid, savedAccount?.email, savedAccount?.name]);
+
   if (!account) {
     return (
       <section>
         <AppHeader />
           
         <div className="mx-auto max-w-3xl px-5 py-14 pb-28 sm:px-6 sm:py-20">
-          <div className="rounded-[26px] border border-neutral-200 bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-8">
+          <div className="rounded-[26px] border border-[var(--forsa-border)] bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-8">
             <h1 className="text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
               Create your Forsa profile first.
             </h1>
@@ -153,7 +197,7 @@ export default function Profile() {
 
             <Link
               to="/auth"
-              className="mt-7 inline-flex rounded-full bg-black px-6 py-3 text-sm font-medium text-white"
+              className="mt-7 inline-flex rounded-full bg-[var(--forsa-green)] px-6 py-3 text-sm font-medium text-white"
             >
               Create account
             </Link>
@@ -192,7 +236,7 @@ const displayEmail =
           Boolean(account.city),
           profile.skills.length > 0,
           profile.lookingFor.length > 0,
-          Boolean(profile.cv),
+          Boolean(profile.cv?.url || profile.cv?.name),
         ];
 
     const completed = checks.filter(Boolean).length;
@@ -211,14 +255,17 @@ const displayEmail =
       (post) =>
         !(
           post.ownerEmail === account.email ||
+          post.ownerUid === account.uid ||
           (!post.ownerEmail && post.ownerName === account.name) ||
           (!post.ownerEmail && !post.ownerName)
         )
     );
 
     const nextPosts = [...updatedOwnPosts, ...otherPosts];
+
     setPosts(updatedOwnPosts);
     localStorage.setItem("forsaPosts", JSON.stringify(nextPosts));
+    localStorage.setItem("forsaPostsCache", JSON.stringify(nextPosts));
   };
 
   const syncUserRecord = (nextAccount) => {
@@ -283,29 +330,37 @@ const displayEmail =
     });
   };
 
-  const handleCvUpload = (file) => {
-    if (!file) return;
+  const handleCvLinkSave = (url) => {
+    const cleanUrl = String(url || "").trim();
 
-    if (file.type !== "application/pdf") {
-      showToast("Please upload a PDF CV only.");
+    if (!cleanUrl) {
+      showToast("Paste your CV link first.");
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      showToast("CV must be less than 5MB.");
+    try {
+      const parsed = new URL(cleanUrl);
+
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        showToast("Please use a valid CV link.");
+        return;
+      }
+    } catch {
+      showToast("Please use a valid CV link.");
       return;
     }
 
     setProfile((prev) => ({
       ...prev,
       cv: {
-        name: file.name,
-        size: file.size,
-        type: file.type,
+        name: "CV / Resume link",
+        url: cleanUrl,
+        type: "link",
         uploadedAt: new Date().toISOString(),
       },
     }));
-    showToast("CV added to profile");
+
+    showToast("CV link added to profile");
   };
 
   const removeCv = () => {
@@ -334,25 +389,42 @@ const displayEmail =
     showToast("Saved job removed");
   };
 
-  const deletePost = (postId) => {
+  const deletePost = async (postId) => {
     const confirmed = window.confirm("Delete this opportunity?");
     if (!confirmed) return;
 
-    const updatedPosts = posts.filter((post) => post.id !== postId);
-    persistOwnPosts(updatedPosts);
-    showToast("Post deleted");
+    try {
+      await deletePostFromFirestore(postId);
+
+      const updatedPosts = posts.filter((post) => post.id !== postId);
+      persistOwnPosts(updatedPosts);
+
+      showToast("Post deleted");
+    } catch (error) {
+      console.error("Delete post error:", error);
+      showToast("Could not delete post. Try again.", "error");
+    }
   };
 
-  const togglePostStatus = (postId) => {
-    const updatedPosts = posts.map((post) =>
-      post.id === postId
-        ? { ...post, status: post.status === "closed" ? "active" : "closed" }
-        : post
-    );
-
-    persistOwnPosts(updatedPosts);
+  const togglePostStatus = async (postId) => {
     const post = posts.find((item) => item.id === postId);
-    showToast(post?.status === "closed" ? "Post reopened" : "Post closed");
+    if (!post) return;
+
+    const nextStatus = post.status === "closed" ? "active" : "closed";
+
+    try {
+      await updatePost(postId, { status: nextStatus });
+
+      const updatedPosts = posts.map((item) =>
+        item.id === postId ? { ...item, status: nextStatus } : item
+      );
+
+      persistOwnPosts(updatedPosts);
+      showToast(nextStatus === "active" ? "Post reopened" : "Post closed");
+    } catch (error) {
+      console.error("Update post status error:", error);
+      showToast("Could not update post status. Try again.", "error");
+    }
   };
 
   const startEditPost = (post) => {
@@ -364,15 +436,37 @@ const displayEmail =
     setEditingPost((prev) => ({ ...prev, [field]: value }));
   };
 
-  const savePostEdit = () => {
-    const updatedPosts = posts.map((post) =>
-      post.id === editingPostId ? { ...post, ...editingPost } : post
-    );
+  const savePostEdit = async () => {
+    if (!editingPostId || !editingPost) return;
 
-    persistOwnPosts(updatedPosts);
-    setEditingPostId(null);
-    setEditingPost(null);
-    showToast("Post updated");
+    const updatePayload = {
+      title: editingPost.title || "",
+      location: editingPost.location || "",
+      pay: editingPost.pay || "",
+      contact: editingPost.contact || "",
+      description: editingPost.description || "",
+      type: editingPost.type || "Project",
+      tags: editingPost.tags || [],
+      questions: editingPost.questions || [],
+    };
+
+    try {
+      await updatePost(editingPostId, updatePayload);
+
+      const updatedPosts = posts.map((post) =>
+        post.id === editingPostId
+          ? { ...post, ...editingPost, updatedAt: new Date().toISOString() }
+          : post
+      );
+
+      persistOwnPosts(updatedPosts);
+      setEditingPostId(null);
+      setEditingPost(null);
+      showToast("Post updated");
+    } catch (error) {
+      console.error("Edit post error:", error);
+      showToast("Could not update post. Try again.", "error");
+    }
   };
 
   const cancelPostEdit = () => {
@@ -459,15 +553,46 @@ const displayEmail =
   };
 
 
+  const requestVerification = async () => {
+    if (!isHiring) return;
+
+    const proof = window.prompt(
+      "Tell us why this company should be verified. Example: official website, Instagram, registration info, or business proof."
+    );
+
+    if (!proof?.trim()) return;
+
+    try {
+      await createVerificationRequest({
+        uid: account.uid || null,
+        companyName: account.companyName || account.name,
+        companyEmail: account.companyEmail || account.email,
+        contactPerson: account.contactPerson || "",
+        city: account.city || "",
+        website: account.website || "",
+        instagram: account.instagram || "",
+        proof: proof.trim(),
+        requestedByEmail: account.email,
+      });
+
+      showToast("Verification request sent");
+    } catch (error) {
+      console.error("Verification request error:", error);
+      showToast("Could not send verification request.", "error");
+    }
+  };
+
+
+
   return (
     <section>
       <AppHeader />
 
       <div className="mx-auto max-w-6xl px-5 pb-28 sm:px-6 lg:pb-20">
-        <div className="mt-5 rounded-[26px] border border-neutral-200 bg-white p-4 shadow-sm sm:mt-8 sm:rounded-[32px] sm:p-5 md:p-6">
+        <div className="mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:mt-8 sm:rounded-[32px] sm:p-5 md:p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="flex min-w-0 items-start gap-4 sm:gap-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-black text-lg font-semibold text-white sm:h-14 sm:w-14 sm:text-lg">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-lg font-semibold text-white sm:h-14 sm:w-14 sm:text-lg">
                 {initial}
               </div>
 
@@ -477,7 +602,7 @@ const displayEmail =
   {displayName}
 </h1>
 
-                  <span className="rounded-full bg-[#f7f7f5] px-3 py-1 text-xs text-neutral-600">
+                  <span className="rounded-full bg-[var(--forsa-bg)] px-3 py-1 text-xs text-neutral-600">
                     {isHiring ? "Hiring account" : "Looking for work"}
                   </span>
                 </div>
@@ -488,7 +613,7 @@ const displayEmail =
     to={`/company/${encodeURIComponent(
       account.companyEmail || account.email
     )}`}
-    className="mt-4 inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-xs font-medium text-white"
+    className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-xs font-medium text-white"
   >
     <FaEye className="text-[10px]" />
     View public company profile
@@ -521,7 +646,7 @@ const displayEmail =
 
                 <button
                   onClick={saveChanges}
-                  className="rounded-full bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
+                  className="rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
                 >
                   Save changes
                 </button>
@@ -529,7 +654,7 @@ const displayEmail =
             )}
           </div>
 
-          <div className="-mx-1 mt-7 flex gap-2 overflow-x-auto border-b border-neutral-200 px-1 pb-4">
+          <div className="-mx-1 mt-7 flex gap-2 overflow-x-auto border-b border-[var(--forsa-border)] px-1 pb-4">
             <TabButton active={tab === "overview"} onClick={() => setTab("overview")} icon={<FaUser />}>
               Overview
             </TabButton>
@@ -566,7 +691,7 @@ const displayEmail =
               isHiring={isHiring}
               updateAccount={updateAccount}
               toggleProfileItem={toggleProfileItem}
-              handleCvUpload={handleCvUpload}
+              handleCvLinkSave={handleCvLinkSave}
               removeCv={removeCv}
             />
           ) : (
@@ -580,12 +705,15 @@ const displayEmail =
                   completionScore={completionScore}
                   seekerApplications={seekerApplications}
                   recentlyViewed={recentlyViewed}
+                  account={account}
+                  onRequestVerification={requestVerification}
                 />
               )}
 
               {tab === "posts" && isHiring && (
                 <PostsTab
                   posts={posts}
+                  postsLoading={postsLoading}
                   deletePost={deletePost}
                   togglePostStatus={togglePostStatus}
                   startEditPost={startEditPost}
@@ -619,7 +747,7 @@ const displayEmail =
               )}
 
               {tab === "settings" && (
-                <SettingsTab logout={logout} resetDemoAccount={resetDemoAccount} loadDemo={loadDemo} clearDemo={clearDemo} />
+                <SettingsTab logout={logout} resetDemoAccount={resetDemoAccount} loadDemo={loadDemo} clearDemo={clearDemo} isHiring={isHiring} account={account} onRequestVerification={requestVerification} />
               )}
             </>
           )}
@@ -647,6 +775,8 @@ function OverviewTab({
   completionScore,
   seekerApplications = [],
   recentlyViewed = [],
+  account,
+  onRequestVerification,
 }) {
   return (
     <div className="mt-6 sm:mt-8">
@@ -673,7 +803,7 @@ function OverviewTab({
         />
       </div>
 
-      <div className="mt-5 rounded-[24px] bg-[#f7f7f5] p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
+      <div className="mt-5 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
         <p className="text-sm font-medium">About</p>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-neutral-600 sm:text-base">
           {isHiring
@@ -696,7 +826,14 @@ function OverviewTab({
       )}
 
       {isHiring && (
-        <div className="mt-5 rounded-[24px] bg-[#f7f7f5] p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
+        <VerificationCard
+          account={account}
+          onRequestVerification={onRequestVerification}
+        />
+      )}
+
+      {isHiring && (
+        <div className="mt-5 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-medium">Post a new opportunity</p>
@@ -707,7 +844,7 @@ function OverviewTab({
 
             <Link
               to="/post"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white sm:w-fit"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white sm:w-fit"
             >
               <FaPlus className="text-xs" />
               Post
@@ -719,9 +856,52 @@ function OverviewTab({
   );
 }
 
+function VerificationCard({ account, onRequestVerification }) {
+  const verified = Boolean(account?.verified);
+
+  return (
+    <div className="mt-5 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:mt-6 sm:rounded-[26px] sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+              verified
+                ? "bg-[var(--forsa-gold)] text-black"
+                : "bg-[var(--forsa-green)] text-white"
+            }`}
+          >
+            <FaShieldAlt />
+          </div>
+
+          <div>
+            <p className="font-medium">
+              {verified ? "Verified company" : "Company verification"}
+            </p>
+            <p className="mt-1 text-sm leading-6 text-neutral-600">
+              {verified
+                ? "Your company is marked as trusted on Forsa."
+                : "Request verification so seekers can trust your posts and company profile."}
+            </p>
+          </div>
+        </div>
+
+        {!verified && (
+          <button
+            onClick={onRequestVerification}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)] sm:w-fit"
+          >
+            <FaShieldAlt className="text-xs" />
+            Request verification
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CompletionCard({ completionScore, isHiring }) {
   return (
-    <div className="mb-5 rounded-[24px] border border-neutral-200 bg-white p-4 sm:mb-6 sm:rounded-[26px] sm:p-5">
+    <div className="mb-5 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 sm:mb-6 sm:rounded-[26px] sm:p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-xs text-neutral-500 sm:text-sm">Profile completion</p>
@@ -730,13 +910,13 @@ function CompletionCard({ completionScore, isHiring }) {
           </h3>
         </div>
 
-        <span className="shrink-0 rounded-full bg-black px-3 py-1 text-xs font-medium text-white sm:text-sm">
+        <span className="shrink-0 rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs font-medium text-white sm:text-sm">
           {completionScore >= 80 ? "Strong" : completionScore >= 50 ? "Good" : "Start"}
         </span>
       </div>
 
-      <div className="mt-5 h-2 rounded-full bg-[#f7f7f5]">
-        <div className="h-2 rounded-full bg-black transition-all" style={{ width: `${completionScore}%` }} />
+      <div className="mt-5 h-2 rounded-full bg-[var(--forsa-bg)]">
+        <div className="h-2 rounded-full bg-[var(--forsa-green)] transition-all" style={{ width: `${completionScore}%` }} />
       </div>
 
       <p className="mt-4 text-sm leading-6 text-neutral-600">
@@ -758,18 +938,18 @@ function CompletionTips({ isHiring, profile, posts }) {
     : [
         profile.skills.length === 0 && "Add at least 3 skills.",
         profile.lookingFor.length === 0 && "Choose what kind of work you want.",
-        !profile.cv && "Upload a PDF CV.",
+        !(profile.cv?.url || profile.cv?.name) && "Add your CV link.",
       ].filter(Boolean);
 
   if (tips.length === 0) return null;
 
   return (
-    <div className="mb-5 rounded-[24px] border border-neutral-200 bg-white p-4 sm:mb-6 sm:rounded-[26px] sm:p-5">
+    <div className="mb-5 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 sm:mb-6 sm:rounded-[26px] sm:p-5">
       <p className="text-sm font-medium">Recommended next steps</p>
 
       <div className="mt-4 grid gap-2">
         {tips.map((tip) => (
-          <div key={tip} className="rounded-2xl bg-[#f7f7f5] px-4 py-3 text-sm text-neutral-700">
+          <div key={tip} className="rounded-2xl bg-[var(--forsa-bg)] px-4 py-3 text-sm text-neutral-700">
             {tip}
           </div>
         ))}
@@ -780,6 +960,7 @@ function CompletionTips({ isHiring, profile, posts }) {
 
 function PostsTab({
   posts,
+  postsLoading,
   deletePost,
   togglePostStatus,
   startEditPost,
@@ -803,15 +984,22 @@ function PostsTab({
 
         <Link
           to="/post"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white sm:w-fit"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white sm:w-fit"
         >
           <FaPlus className="text-xs" />
           New post
         </Link>
       </div>
 
-      {posts.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[26px] sm:p-8">
+      {postsLoading ? (
+        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
+          <p className="text-xl font-semibold">Loading your posts...</p>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
+            Fetching your latest Firestore posts.
+          </p>
+        </div>
+      ) : posts.length === 0 ? (
+        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
           <p className="text-xl font-semibold">No posts yet.</p>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
             Once you post an opportunity, it will appear here and in Explore.
@@ -854,7 +1042,7 @@ function EditPostCard({
   cancelPostEdit,
 }) {
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+    <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
       <div className="grid gap-3">
         <Field label="Title" value={editingPost.title} onChange={(value) => updateEditingPost("title", value)} />
         <Field label="Location" value={editingPost.location} onChange={(value) => updateEditingPost("location", value)} />
@@ -866,7 +1054,7 @@ function EditPostCard({
           <textarea
             value={editingPost.description}
             onChange={(e) => updateEditingPost("description", e.target.value)}
-            className="mt-2 min-h-28 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-black"
+            className="mt-2 min-h-28 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--forsa-green)]"
           />
         </div>
       </div>
@@ -875,7 +1063,7 @@ function EditPostCard({
         <button onClick={cancelPostEdit} className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium">
           Cancel
         </button>
-        <button onClick={savePostEdit} className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white">
+        <button onClick={savePostEdit} className="rounded-full bg-[var(--forsa-green)] px-4 py-2 text-sm font-medium text-white">
           Save
         </button>
       </div>
@@ -895,7 +1083,7 @@ function PostCard({
   const applicantsCount = getApplicantsCount(post.id);
 
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+    <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="line-clamp-2 font-semibold">{post.title}</h3>
@@ -947,7 +1135,7 @@ function PostCard({
 
           <button
             onClick={() => openApplicants(post)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-xs font-medium text-white sm:w-fit"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-xs font-medium text-white sm:w-fit"
           >
             <FaUsers className="text-xs" />
             View
@@ -1022,14 +1210,14 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
         </div>
 
         {jobs.length > 0 && (
-          <span className="w-fit rounded-full bg-[#f7f7f5] px-4 py-2 text-sm text-neutral-600">
+          <span className="w-fit rounded-full bg-[var(--forsa-bg)] px-4 py-2 text-sm text-neutral-600">
             {jobs.length} saved
           </span>
         )}
       </div>
 
       {jobs.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[26px] sm:p-8">
+        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
           <p className="text-xl font-semibold">No saved jobs yet.</p>
 
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
@@ -1038,7 +1226,7 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
 
           <Link
             to="/explore"
-            className="mt-6 inline-flex rounded-full bg-black px-5 py-3 text-sm font-medium text-white"
+            className="mt-6 inline-flex rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
           >
             Explore opportunities
           </Link>
@@ -1048,7 +1236,7 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
           {jobs.map((job) => (
             <div
               key={job.id}
-              className="rounded-[24px] border border-neutral-200 bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5"
+              className="rounded-[24px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1088,7 +1276,7 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
                   value={notes[job.id] || ""}
                   onChange={(e) => updateNote(job.id, e.target.value)}
                   placeholder="Example: Ask about schedule, pay, or portfolio..."
-                  className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-black"
+                  className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
                 />
 
                 <p className="mt-2 text-xs text-neutral-500">
@@ -1099,7 +1287,7 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
               <div className="mt-5 grid grid-cols-2 gap-2">
                 <Link
                   to={`/explore?post=${job.id}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2.5 text-sm font-medium text-white"
                 >
                   Open
                   <FaArrowRight className="text-xs" />
@@ -1142,7 +1330,7 @@ function ApplicationsTab({ applications }) {
 
         <Link
           to="/explore"
-          className="inline-flex w-full items-center justify-center rounded-full bg-black px-5 py-3 text-sm font-medium text-white sm:w-fit"
+          className="inline-flex w-full items-center justify-center rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white sm:w-fit"
         >
           Find more
         </Link>
@@ -1156,7 +1344,7 @@ function ApplicationsTab({ applications }) {
       </div>
 
       {applications.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[26px] sm:p-8">
+        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white">
             <FaPaperPlane />
           </div>
@@ -1171,7 +1359,7 @@ function ApplicationsTab({ applications }) {
           {applications.map((application) => (
             <div
               key={application.id}
-              className="rounded-[24px] border border-neutral-200 bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5"
+              className="rounded-[24px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5"
             >
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0">
@@ -1197,7 +1385,19 @@ function ApplicationsTab({ applications }) {
                 <div className="rounded-2xl bg-white p-4">
                   <p className="text-xs text-neutral-500">CV</p>
                   {application.cv ? (
-                    <p className="mt-2 truncate text-sm font-medium">{application.cv.name}</p>
+                    application.cv.url ? (
+                      <a
+                        href={application.cv.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-[var(--forsa-green)]"
+                      >
+                        <FaExternalLinkAlt className="text-xs" />
+                        Open CV
+                      </a>
+                    ) : (
+                      <p className="mt-2 truncate text-sm font-medium">{application.cv.name}</p>
+                    )
                   ) : (
                     <p className="mt-2 text-sm text-neutral-500">No CV attached.</p>
                   )}
@@ -1213,7 +1413,7 @@ function ApplicationsTab({ applications }) {
 
               <Link
                 to="/messages"
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-black px-4 py-2.5 text-sm font-medium text-white sm:w-fit"
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2.5 text-sm font-medium text-white sm:w-fit"
               >
                 <FaEnvelope className="text-xs" />
                 Open conversation
@@ -1250,7 +1450,7 @@ function ApplicationTimeline({ status }) {
           <div
             key={step}
             className={`h-2 flex-1 rounded-full ${
-              index <= stepIndex ? "bg-black" : "bg-neutral-200"
+              index <= stepIndex ? "bg-[var(--forsa-green)]" : "bg-neutral-200"
             }`}
           />
         ))}
@@ -1269,7 +1469,7 @@ function ApplicationTimeline({ status }) {
 function StatusPill({ status }) {
   const styles =
     status === "shortlisted"
-      ? "bg-black text-white"
+      ? "bg-[var(--forsa-green)] text-white"
       : status === "accepted"
       ? "bg-green-100 text-green-700"
       : status === "rejected"
@@ -1285,7 +1485,7 @@ function StatusPill({ status }) {
 
 function ApplicationsSentBox({ applications }) {
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5 md:col-span-2">
+    <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5 md:col-span-2">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm text-neutral-500">Applications sent</p>
@@ -1296,7 +1496,7 @@ function ApplicationsSentBox({ applications }) {
 
         <Link
           to="/messages"
-          className="shrink-0 rounded-full bg-black px-4 py-2 text-xs font-medium text-white"
+          className="shrink-0 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-xs font-medium text-white"
         >
           View
         </Link>
@@ -1324,7 +1524,7 @@ function ProfileEdit({
   isHiring,
   updateAccount,
   toggleProfileItem,
-  handleCvUpload,
+  handleCvLinkSave,
   removeCv,
 }) {
   return (
@@ -1375,14 +1575,14 @@ function ProfileEdit({
             />
           </div>
 
-          <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+          <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
             <label className="text-sm font-medium">Company bio</label>
 
             <textarea
               value={account.companyBio || ""}
               onChange={(e) => updateAccount("companyBio", e.target.value)}
               placeholder="Write a short description about your company, what you do, and what kind of people you hire."
-              className="mt-2 min-h-32 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-black"
+              className="mt-2 min-h-32 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
             />
 
             <p className="mt-2 text-xs text-neutral-500">
@@ -1390,7 +1590,7 @@ function ProfileEdit({
             </p>
           </div>
 
-          <div className="mt-6 rounded-[24px] border border-neutral-200 bg-white p-4 sm:rounded-[26px] sm:p-5">
+          <div className="mt-6 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 sm:rounded-[26px] sm:p-5">
             <p className="font-medium">Public company profile</p>
 
             <p className="mt-2 text-sm leading-6 text-neutral-600">
@@ -1402,7 +1602,7 @@ function ProfileEdit({
               to={`/company/${encodeURIComponent(
                 account.companyEmail || account.email
               )}`}
-              className="mt-4 inline-flex rounded-full bg-black px-5 py-3 text-sm font-medium text-white"
+              className="mt-4 inline-flex rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
             >
               View public profile
             </Link>
@@ -1451,47 +1651,11 @@ function ProfileEdit({
             toggleProfileItem={toggleProfileItem}
           />
 
-          <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
-            <p className="font-medium">CV / Resume</p>
-
-            <p className="mt-2 text-sm leading-6 text-neutral-600">
-              Upload your PDF CV. MVP mode stores file metadata only.
-            </p>
-
-            {profile.cv ? (
-              <div className="mt-4 flex flex-col justify-between gap-3 rounded-2xl bg-white p-4 md:flex-row md:items-center">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{profile.cv.name}</p>
-
-                  <p className="mt-1 text-sm text-neutral-500">
-                    {(profile.cv.size / 1024 / 1024).toFixed(2)} MB · PDF
-                  </p>
-                </div>
-
-                <button
-                  onClick={removeCv}
-                  className="rounded-full border border-red-200 px-4 py-2 text-sm text-red-600"
-                >
-                  Remove CV
-                </button>
-              </div>
-            ) : (
-              <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white p-6 text-center">
-                <FaFileAlt />
-
-                <span className="mt-3 text-sm font-medium">Upload PDF CV</span>
-
-                <span className="mt-1 text-xs text-neutral-500">Max 5MB</span>
-
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  className="hidden"
-                  onChange={(e) => handleCvUpload(e.target.files?.[0])}
-                />
-              </label>
-            )}
-          </div>
+          <CvLinkEditor
+            cv={profile.cv}
+            onSave={handleCvLinkSave}
+            onRemove={removeCv}
+          />
         </>
       )}
     </div>
@@ -1543,7 +1707,7 @@ function SmartCvAutofill({ profile, toggleProfileItem }) {
   const hasSuggestions = suggestedSkills.length > 0 || suggestedLooking.length > 0;
 
   return (
-    <div className="mt-6 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm sm:rounded-[26px] sm:p-5">
+    <div className="mt-6 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:rounded-[26px] sm:p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="font-medium">Smart CV Autofill</p>
@@ -1552,7 +1716,7 @@ function SmartCvAutofill({ profile, toggleProfileItem }) {
           </p>
         </div>
 
-        <span className="w-fit rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
+        <span className="w-fit rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs font-medium text-white">
           Beta
         </span>
       </div>
@@ -1561,7 +1725,7 @@ function SmartCvAutofill({ profile, toggleProfileItem }) {
         value={cvText}
         onChange={(e) => setCvText(e.target.value)}
         placeholder="Paste CV text here..."
-        className="mt-4 min-h-32 w-full resize-none rounded-2xl border border-neutral-200 bg-[#f7f7f5] px-4 py-3 text-sm outline-none transition focus:border-black"
+        className="mt-4 min-h-32 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-[var(--forsa-bg)] px-4 py-3 text-sm outline-none transition focus:border-[var(--forsa-green)]"
       />
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
@@ -1571,7 +1735,7 @@ function SmartCvAutofill({ profile, toggleProfileItem }) {
           disabled={!cvText.trim()}
           className={`rounded-full px-5 py-3 text-sm font-medium ${
             cvText.trim()
-              ? "bg-black text-white"
+              ? "bg-[var(--forsa-green)] text-white"
               : "cursor-not-allowed bg-neutral-200 text-neutral-400"
           }`}
         >
@@ -1601,7 +1765,7 @@ function SmartCvAutofill({ profile, toggleProfileItem }) {
 
 function SuggestionBox({ title, items }) {
   return (
-    <div className="rounded-2xl bg-[#f7f7f5] p-4">
+    <div className="rounded-2xl bg-[var(--forsa-bg)] p-4">
       <p className="text-sm font-medium">{title}</p>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -1621,7 +1785,7 @@ function SuggestionBox({ title, items }) {
 
 function RecentlyViewedPreview({ jobs }) {
   return (
-    <div className="mt-5 rounded-[24px] bg-[#f7f7f5] p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
+    <div className="mt-5 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="font-medium">Recently viewed</p>
@@ -1681,7 +1845,7 @@ function RecentlyViewedTab({ jobs, onClear }) {
       </div>
 
       {jobs.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[26px] sm:p-8">
+        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white">
             <FaEye />
           </div>
@@ -1693,7 +1857,7 @@ function RecentlyViewedTab({ jobs, onClear }) {
 
           <Link
             to="/explore"
-            className="mt-6 inline-flex rounded-full bg-black px-5 py-3 text-sm font-medium text-white"
+            className="mt-6 inline-flex rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
           >
             Explore opportunities
           </Link>
@@ -1704,7 +1868,7 @@ function RecentlyViewedTab({ jobs, onClear }) {
             <Link
               key={job.id}
               to={`/explore?post=${job.id}`}
-              className="rounded-[24px] border border-neutral-200 bg-[#f7f7f5] p-4 transition hover:border-black sm:rounded-[26px] sm:p-5"
+              className="rounded-[24px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4 transition hover:border-[var(--forsa-green)] sm:rounded-[26px] sm:p-5"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1735,10 +1899,30 @@ function RecentlyViewedTab({ jobs, onClear }) {
 }
 
 
-function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo }) {
+function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo, isHiring, account, onRequestVerification }) {
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-2">
-      <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+      {isHiring && (
+        <div className="rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 sm:rounded-[26px] sm:p-5 md:col-span-2">
+          <p className="font-medium">Company trust</p>
+          <p className="mt-2 text-sm leading-6 text-neutral-600">
+            {account?.verified
+              ? "Your company is verified."
+              : "Submit your company for verification to increase trust with applicants."}
+          </p>
+
+          {!account?.verified && (
+            <button
+              onClick={onRequestVerification}
+              className="mt-5 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
+            >
+              Request verification
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
         <p className="font-medium">Demo activity</p>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
           Fill Forsa with realistic posts, messages, applications, and notifications so the MVP feels alive during demos.
@@ -1747,7 +1931,7 @@ function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo }) {
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
           <button
             onClick={loadDemo}
-            className="rounded-full bg-black px-5 py-3 text-sm font-medium text-white"
+            className="rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
           >
             Load demo activity
           </button>
@@ -1761,13 +1945,13 @@ function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo }) {
         </div>
       </div>
 
-      <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+      <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
         <p className="font-medium">Session</p>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
           Login/logout is simulated with localStorage for now.
         </p>
 
-        <button onClick={logout} className="mt-5 w-full rounded-full bg-black px-5 py-3 text-sm font-medium text-white sm:w-fit">
+        <button onClick={logout} className="mt-5 w-full rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white sm:w-fit">
           Log out
         </button>
       </div>
@@ -1788,26 +1972,111 @@ function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo }) {
 
 function CvBox({ cv }) {
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+    <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
       <p className="text-sm text-neutral-500">CV</p>
 
       {cv ? (
         <div className="mt-4 rounded-2xl bg-white p-4">
-          <p className="truncate font-medium">{cv.name}</p>
-          <p className="mt-1 text-sm text-neutral-500">
-            {(cv.size / 1024 / 1024).toFixed(2)} MB · PDF
-          </p>
+          <p className="truncate font-medium">{cv.name || "CV / Resume link"}</p>
+
+          {cv.url ? (
+            <a
+              href={cv.url}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-xs font-medium text-white"
+            >
+              <FaExternalLinkAlt className="text-[10px]" />
+              Open CV
+            </a>
+          ) : (
+            <p className="mt-1 text-sm text-neutral-500">
+              {cv.size ? `${(cv.size / 1024 / 1024).toFixed(2)} MB · PDF metadata` : "CV saved"}
+            </p>
+          )}
         </div>
       ) : (
-        <p className="mt-4 text-sm text-neutral-500">No CV uploaded yet.</p>
+        <p className="mt-4 text-sm text-neutral-500">No CV link added yet.</p>
       )}
     </div>
   );
 }
 
+function CvLinkEditor({ cv, onSave, onRemove }) {
+  const [url, setUrl] = useState(cv?.url || "");
+
+  return (
+    <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+          <FaLink />
+        </div>
+
+        <div>
+          <p className="font-medium">CV / Resume link</p>
+          <p className="mt-2 text-sm leading-6 text-neutral-600">
+            Paste a public Google Drive, Dropbox, OneDrive, Notion, or portfolio CV link.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-white p-4">
+        <label className="text-sm font-medium">Public CV link</label>
+
+        <input
+          value={url}
+          onChange={(event) => setUrl(event.target.value)}
+          placeholder="https://drive.google.com/..."
+          className="mt-2 w-full rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--forsa-green)]"
+        />
+
+        <p className="mt-2 text-xs leading-5 text-neutral-500">
+          Make sure the link is public or anyone with the link can view it.
+        </p>
+
+        {cv?.url && (
+          <a
+            href={cv.url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-sm font-medium text-[var(--forsa-green)]"
+          >
+            <FaExternalLinkAlt className="text-xs" />
+            Open current CV
+          </a>
+        )}
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => onSave(url)}
+            className="rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
+          >
+            Save CV link
+          </button>
+
+          {cv && (
+            <button
+              type="button"
+              onClick={() => {
+                setUrl("");
+                onRemove();
+              }}
+              className="rounded-full border border-red-200 bg-white px-5 py-3 text-sm font-medium text-red-600"
+            >
+              Remove CV
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function ApplicantsModal({ post, applicants, onClose, onStatusChange, onOpenMessage }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--forsa-green)]/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
       <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-[26px] bg-white p-4 shadow-xl sm:rounded-[32px] sm:p-6">
         <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-5">
           <div className="min-w-0">
@@ -1820,13 +2089,13 @@ function ApplicantsModal({ post, applicants, onClose, onStatusChange, onOpenMess
             </p>
           </div>
 
-          <button onClick={onClose} className="shrink-0 rounded-full bg-[#f7f7f5] px-4 py-2 text-sm font-medium">
+          <button onClick={onClose} className="shrink-0 rounded-full bg-[var(--forsa-bg)] px-4 py-2 text-sm font-medium">
             Close
           </button>
         </div>
 
         {applicants.length === 0 ? (
-          <div className="mt-6 rounded-[24px] bg-[#f7f7f5] p-6 text-center sm:rounded-[26px] sm:p-8">
+          <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white">
               <FaUsers />
             </div>
@@ -1860,11 +2129,11 @@ function ApplicantCard({ applicant, onStatusChange, onOpenMessage }) {
   const status = applicant.status || "pending";
 
   return (
-    <div className="rounded-[24px] border border-neutral-200 bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+    <div className="rounded-[24px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black text-white">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
               {(seeker.name || "A").charAt(0).toUpperCase()}
             </div>
 
@@ -1884,7 +2153,7 @@ function ApplicantCard({ applicant, onStatusChange, onOpenMessage }) {
         <span
           className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${
             status === "shortlisted"
-              ? "bg-black text-white"
+              ? "bg-[var(--forsa-green)] text-white"
               : status === "rejected"
               ? "bg-red-100 text-red-700"
               : "bg-white text-neutral-600"
@@ -1916,7 +2185,7 @@ function ApplicantCard({ applicant, onStatusChange, onOpenMessage }) {
       <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         <button
           onClick={() => onStatusChange(applicant.id, "shortlisted")}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium text-white"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-sm font-medium text-white"
         >
           <FaCheckCircle className="text-xs" />
           Shortlist
@@ -1956,7 +2225,7 @@ function TabButton({ active, onClick, icon, children }) {
     <button
       onClick={onClick}
       className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
-        active ? "bg-black text-white" : "bg-[#f7f7f5] text-neutral-600 hover:bg-white"
+        active ? "bg-[var(--forsa-green)] text-white" : "bg-[var(--forsa-bg)] text-neutral-600 hover:bg-white"
       }`}
     >
       {icon}
@@ -1967,7 +2236,7 @@ function TabButton({ active, onClick, icon, children }) {
 
 function StatCard({ label, value }) {
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+    <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
       <p className="text-sm text-neutral-500">{label}</p>
       <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
         {value}
@@ -1983,7 +2252,7 @@ function Field({ label, value, onChange }) {
       <input
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-2 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
+        className="mt-2 w-full rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--forsa-green)]"
       />
     </div>
   );
@@ -1991,7 +2260,7 @@ function Field({ label, value, onChange }) {
 
 function EditBox({ title, options, selected, onToggle }) {
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+    <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
       <p className="text-sm font-medium">{title}</p>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -2001,7 +2270,7 @@ function EditBox({ title, options, selected, onToggle }) {
             onClick={() => onToggle(item)}
             className={`rounded-full border px-3 py-1.5 text-sm transition ${
               selected.includes(item)
-                ? "border-black bg-black text-white"
+                ? "border-black bg-[var(--forsa-green)] text-white"
                 : "border-neutral-300 bg-white"
             }`}
           >
@@ -2015,7 +2284,7 @@ function EditBox({ title, options, selected, onToggle }) {
 
 function InfoBox({ title, items, empty }) {
   return (
-    <div className="rounded-[24px] bg-[#f7f7f5] p-4 sm:rounded-[26px] sm:p-5">
+    <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
       <p className="text-sm text-neutral-500">{title}</p>
 
       <div className="mt-4 flex flex-wrap gap-2">

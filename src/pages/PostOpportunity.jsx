@@ -433,7 +433,7 @@ export default function PostOpportunity() {
       <div className="mx-auto max-w-[1180px] px-4 pb-28 sm:px-6 lg:pb-20">
         <div className="mt-5 grid gap-5 sm:mt-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-6">
           <aside className="lg:sticky lg:top-20 lg:self-start">
-            <div className="rounded-[26px] border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+            <div className="rounded-[26px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
               <p className="text-sm font-medium text-neutral-500">Post</p>
 
               <h1 className="mt-3 max-w-xl text-3xl font-semibold leading-[1] tracking-[-0.045em] sm:text-4xl">
@@ -460,7 +460,7 @@ export default function PostOpportunity() {
             </div>
           </aside>
 
-          <div className="rounded-[26px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-5">
+          <div className="rounded-[26px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-5">
             {showRestoreDraft && (
               <RestoreDraftBanner
                 draftSavedAt={draftSavedAt}
@@ -529,7 +529,7 @@ export default function PostOpportunity() {
                 <button
                   type="button"
                   onClick={() => setTagsOpen(!tagsOpen)}
-                  className="flex w-full items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left text-sm outline-none transition hover:border-neutral-400"
+                  className="flex w-full items-center justify-between rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-left text-sm outline-none transition hover:border-neutral-400"
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <FaTag className="shrink-0 text-xs text-neutral-400" />
@@ -544,8 +544,8 @@ export default function PostOpportunity() {
                 </button>
 
                 {tagsOpen && (
-                  <div className="absolute z-30 mt-2 w-full rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl">
-                    <div className="flex items-center gap-2 rounded-xl border border-neutral-200 px-3 py-2">
+                  <div className="absolute z-30 mt-2 w-full rounded-2xl border border-[var(--forsa-border)] bg-white p-3 shadow-xl">
+                    <div className="flex items-center gap-2 rounded-xl border border-[var(--forsa-border)] px-3 py-2">
                       <FaSearch className="text-xs text-neutral-400" />
                       <input
                         value={tagSearch}
@@ -587,7 +587,7 @@ export default function PostOpportunity() {
                       type="button"
                       key={tag}
                       onClick={() => toggleTag(tag)}
-                      className="inline-flex items-center gap-2 rounded-full bg-black px-3 py-1.5 text-xs text-white"
+                      className="inline-flex items-center gap-2 rounded-full bg-[var(--forsa-green)] px-3 py-1.5 text-xs text-white"
                     >
                       {tag}
                       <FaTimes className="text-[10px]" />
@@ -604,7 +604,7 @@ export default function PostOpportunity() {
                 value={form.description}
                 onChange={(e) => updateForm("description", e.target.value)}
                 placeholder="Explain the role, requirements, schedule, and who this opportunity fits."
-                className="mt-2 min-h-36 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-black"
+                className="mt-2 min-h-36 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-black"
               />
 
               <p className="mt-2 text-xs text-neutral-500">
@@ -618,7 +618,7 @@ export default function PostOpportunity() {
               value={form.contact}
               onChange={(value) => updateForm("contact", value)}
             />
-<div className="mt-5 rounded-[24px] border border-neutral-200 bg-[#fafaf8] p-4">
+<div className="mt-5 rounded-[24px] border border-[var(--forsa-border)] bg-[#fafaf8] p-4">
   <div className="flex items-center justify-between gap-3">
     <div>
       <p className="text-sm font-medium">
@@ -633,7 +633,7 @@ export default function PostOpportunity() {
     <button
       type="button"
       onClick={addQuestion}
-      className="rounded-full bg-black px-4 py-2 text-xs font-medium text-white"
+      className="rounded-full bg-[var(--forsa-green)] px-4 py-2 text-xs font-medium text-white"
     >
       Add question
     </button>
@@ -651,7 +651,7 @@ export default function PostOpportunity() {
             updateQuestion(index, e.target.value)
           }
           placeholder={`Question ${index + 1}`}
-          className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
+          className="w-full rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
         />
 
         {form.questions.length > 1 && (
@@ -695,7 +695,7 @@ export default function PostOpportunity() {
                 onClick={handleSubmit}
                 className={`w-full rounded-full px-5 py-3 text-sm font-medium transition ${
                   canPost && !posting
-                    ? "bg-black text-white hover:bg-neutral-800"
+                    ? "bg-[var(--forsa-green)] text-white hover:bg-[var(--forsa-green-light)]"
                     : "cursor-not-allowed bg-neutral-200 text-neutral-400"
                 }`}
               >
@@ -717,7 +717,7 @@ export default function PostOpportunity() {
 
 function RestoreDraftBanner({ draftSavedAt, onRestore, onDismiss }) {
   return (
-    <div className="mb-5 rounded-[22px] border border-neutral-200 bg-[#f7f7f5] p-4">
+    <div className="mb-5 rounded-[22px] border border-[var(--forsa-border)] bg-[#f7f7f5] p-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white">
@@ -744,7 +744,7 @@ function RestoreDraftBanner({ draftSavedAt, onRestore, onDismiss }) {
           <button
             type="button"
             onClick={onRestore}
-            className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white"
+            className="rounded-full bg-[var(--forsa-green)] px-4 py-2 text-sm font-medium text-white"
           >
             Restore
           </button>
@@ -756,7 +756,7 @@ function RestoreDraftBanner({ draftSavedAt, onRestore, onDismiss }) {
 
 function DraftStatusCard({ draftSavedAt, onClearDraft }) {
   return (
-    <div className="mt-4 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="mt-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium">Draft autosave</p>
@@ -788,7 +788,7 @@ function DraftStatusCard({ draftSavedAt, onClearDraft }) {
 
 function TemplatesCard({ onApply }) {
   return (
-    <div className="mt-4 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="mt-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <p className="text-sm font-medium">Quick templates</p>
       <p className="mt-1 text-sm leading-6 text-neutral-600">
         Start faster with common local opportunity formats.
@@ -800,7 +800,7 @@ function TemplatesCard({ onApply }) {
             key={template.label}
             type="button"
             onClick={() => onApply(template)}
-            className="rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-sm transition hover:border-black"
+            className="rounded-full border border-[var(--forsa-border)] bg-white px-3.5 py-2 text-sm transition hover:border-black"
           >
             {template.label}
           </button>
@@ -812,17 +812,17 @@ function TemplatesCard({ onApply }) {
 
 function QualityCard({ qualityScore }) {
   return (
-    <div className="mt-4 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="mt-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Post quality</p>
-        <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
+        <span className="rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs font-medium text-white">
           {qualityScore}%
         </span>
       </div>
 
       <div className="mt-4 h-2 rounded-full bg-[#f7f7f5]">
         <div
-          className="h-2 rounded-full bg-black transition-all"
+          className="h-2 rounded-full bg-[var(--forsa-green)] transition-all"
           style={{ width: `${qualityScore}%` }}
         />
       </div>
@@ -840,7 +840,7 @@ function QualityCard({ qualityScore }) {
 function QualityItem({ active, text }) {
   return (
     <div className="flex items-center gap-2">
-      <div className={`h-2 w-2 rounded-full ${active ? "bg-black" : "bg-neutral-300"}`} />
+      <div className={`h-2 w-2 rounded-full ${active ? "bg-[var(--forsa-green)]" : "bg-neutral-300"}`} />
       <p className={`text-sm ${active ? "text-black" : "text-neutral-500"}`}>
         {text}
       </p>
@@ -857,14 +857,14 @@ function Dropdown({ refEl, label, value, open, setOpen, children }) {
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="flex w-full items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left text-sm outline-none transition hover:border-neutral-400"
+          className="flex w-full items-center justify-between rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-left text-sm outline-none transition hover:border-neutral-400"
         >
           {value}
           <FaChevronDown className="text-xs text-neutral-400" />
         </button>
 
         {open && (
-          <div className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-2xl border border-neutral-200 bg-white p-2 shadow-xl">
+          <div className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-2xl border border-[var(--forsa-border)] bg-white p-2 shadow-xl">
             {children}
           </div>
         )}
@@ -882,7 +882,7 @@ function Field({ label, placeholder, value, onChange }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
+        className="mt-2 w-full rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
       />
     </div>
   );
@@ -890,7 +890,7 @@ function Field({ label, placeholder, value, onChange }) {
 
 function PreviewCard({ form, qualityScore }) {
   return (
-    <div className="mt-4 rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="mt-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-neutral-500">Live preview</p>
 
@@ -900,7 +900,7 @@ function PreviewCard({ form, qualityScore }) {
       </div>
 
       <div className="mt-5 flex gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black text-white">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
           <FaBriefcase />
         </div>
 
@@ -935,7 +935,7 @@ function PreviewCard({ form, qualityScore }) {
           form.tags.slice(0, 6).map((tag) => (
             <span
               key={tag}
-              className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs"
+              className="rounded-full border border-[var(--forsa-border)] bg-white px-3 py-1 text-xs"
             >
               {tag}
             </span>
@@ -971,8 +971,8 @@ function ToggleCard({ active, icon, title, text, onClick }) {
       onClick={onClick}
       className={`rounded-2xl border p-4 text-left transition ${
         active
-          ? "border-black bg-black text-white"
-          : "border-neutral-200 bg-white hover:border-neutral-400"
+          ? "border-black bg-[var(--forsa-green)] text-white"
+          : "border-[var(--forsa-border)] bg-white hover:border-neutral-400"
       }`}
     >
       <div

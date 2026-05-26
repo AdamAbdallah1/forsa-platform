@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+:root {
+  --forsa-green: #123C2F;
+  --forsa-green-light: #1B5A47;
+
+  --forsa-gold: #C79A3B;
+  --forsa-gold-soft: #E7C98A;
+
+  --forsa-bg: #F8F7F2;
+  --forsa-surface: #FFFFFF;
+
+  --forsa-text: #111111;
+  --forsa-muted: #6B6B6B;
+  --forsa-border: #E8E3DA;
+
+  --forsa-red: #B3261E;
+}
 html {
   scroll-behavior: smooth;
 }

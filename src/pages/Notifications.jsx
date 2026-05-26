@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { showToast } from "../lib/Toast";
 import {
@@ -9,6 +9,11 @@ import {
   FaTrash,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
+import {
+  deleteNotification,
+  getUserNotifications,
+  markNotificationRead,
+} from "../lib/notificationService";
 
 const safeJson = (key, fallback) => {
   try {
@@ -21,8 +26,34 @@ const safeJson = (key, fallback) => {
 export default function Notifications() {
   const account = safeJson("forsaAccount", null);
   const [notifications, setNotifications] = useState(
-    safeJson("forsaNotifications", [])
+    safeJson("forsaNotificationsCache", [])
   );
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!account?.email) {
+      setLoading(false);
+      return;
+    }
+
+    const loadNotifications = async () => {
+      setLoading(true);
+
+      try {
+        const data = await getUserNotifications(account.email);
+        setNotifications(data);
+        localStorage.setItem("forsaNotificationsCache", JSON.stringify(data));
+      } catch (error) {
+        console.error("Load notifications error:", error);
+        setNotifications(safeJson("forsaNotificationsCache", []));
+        showToast("Could not refresh notifications. Showing saved data.", "info");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadNotifications();
+  }, [account?.email]);
 
   const filteredNotifications = useMemo(() => {
     if (!account?.email) return [];
@@ -34,34 +65,56 @@ export default function Notifications() {
 
   const unreadCount = filteredNotifications.filter((item) => !item.read).length;
 
-  const saveNotifications = (updated) => {
-    setNotifications(updated);
-    localStorage.setItem("forsaNotifications", JSON.stringify(updated));
-  };
+  const markAsRead = async (id) => {
+    try {
+      await markNotificationRead(id);
 
-  const markAsRead = (id) => {
-    saveNotifications(
-      notifications.map((item) =>
+      const updated = notifications.map((item) =>
         item.id === id ? { ...item, read: true } : item
-      )
-    );
-    showToast("Notification marked as read");
+      );
+
+      setNotifications(updated);
+      localStorage.setItem("forsaNotificationsCache", JSON.stringify(updated));
+      showToast("Notification marked as read");
+    } catch (error) {
+      console.error("Mark notification error:", error);
+      showToast("Could not update notification.", "error");
+    }
   };
 
-  const markAllAsRead = () => {
-    saveNotifications(
-      notifications.map((item) =>
+  const markAllAsRead = async () => {
+    const unread = filteredNotifications.filter((item) => !item.read);
+
+    try {
+      await Promise.all(unread.map((item) => markNotificationRead(item.id)));
+
+      const updated = notifications.map((item) =>
         !item.targetEmail || item.targetEmail === account.email
           ? { ...item, read: true }
           : item
-      )
-    );
-    showToast("All notifications marked as read");
+      );
+
+      setNotifications(updated);
+      localStorage.setItem("forsaNotificationsCache", JSON.stringify(updated));
+      showToast("All notifications marked as read");
+    } catch (error) {
+      console.error("Mark all notifications error:", error);
+      showToast("Could not update notifications.", "error");
+    }
   };
 
-  const deleteNotification = (id) => {
-    saveNotifications(notifications.filter((item) => item.id !== id));
-    showToast("Notification deleted");
+  const handleDeleteNotification = async (id) => {
+    try {
+      await deleteNotification(id);
+
+      const updated = notifications.filter((item) => item.id !== id);
+      setNotifications(updated);
+      localStorage.setItem("forsaNotificationsCache", JSON.stringify(updated));
+      showToast("Notification deleted");
+    } catch (error) {
+      console.error("Delete notification error:", error);
+      showToast("Could not delete notification.", "error");
+    }
   };
 
   if (!account) {
@@ -70,8 +123,8 @@ export default function Notifications() {
         <AppHeader />
 
         <div className="mx-auto max-w-3xl px-5 py-14 pb-28 sm:px-6 sm:py-20">
-          <div className="rounded-[28px] border border-neutral-200 bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-10">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-black text-white">
+          <div className="rounded-[28px] border border-[var(--forsa-border)] bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-10">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
               <FaBell />
             </div>
 
@@ -80,13 +133,12 @@ export default function Notifications() {
             </h1>
 
             <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-neutral-600 sm:text-base">
-              Notifications help you track applications, updates, and
-              opportunity activity.
+              Notifications help you track applications, updates, and opportunity activity.
             </p>
 
             <Link
               to="/auth"
-              className="mt-7 inline-flex rounded-full bg-black px-6 py-3 text-sm font-medium text-white"
+              className="mt-7 inline-flex rounded-full bg-[var(--forsa-green)] px-6 py-3 text-sm font-medium text-white"
             >
               Create account
             </Link>
@@ -103,17 +155,14 @@ export default function Notifications() {
       <div className="mx-auto max-w-5xl px-5 pb-28 sm:px-6 lg:pb-20">
         <div className="mt-6 flex flex-col gap-4 sm:mt-10 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm font-medium text-neutral-500">
-              Notifications
-            </p>
+            <p className="text-sm font-medium text-neutral-500">Notifications</p>
 
             <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl md:text-5xl">
               Updates and activity
             </h1>
 
             <p className="mt-4 max-w-xl text-sm leading-7 text-neutral-600 sm:text-base">
-              Track applications, status changes, and Forsa activity in one
-              clean inbox.
+              Track applications, status changes, and Forsa activity in one clean inbox.
             </p>
           </div>
 
@@ -130,14 +179,13 @@ export default function Notifications() {
         <div className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-3">
           <StatCard label="All alerts" value={filteredNotifications.length} />
           <StatCard label="Unread" value={unreadCount} />
-          <StatCard
-            label="Read"
-            value={filteredNotifications.length - unreadCount}
-          />
+          <StatCard label="Read" value={filteredNotifications.length - unreadCount} />
         </div>
 
-        <div className="mt-5 rounded-[28px] border border-neutral-200 bg-white p-3 shadow-sm sm:mt-6 sm:rounded-[32px] sm:p-4">
-          {filteredNotifications.length === 0 ? (
+        <div className="mt-5 rounded-[28px] border border-[var(--forsa-border)] bg-white p-3 shadow-sm sm:mt-6 sm:rounded-[32px] sm:p-4">
+          {loading ? (
+            <LoadingNotifications />
+          ) : filteredNotifications.length === 0 ? (
             <EmptyNotifications />
           ) : (
             <div className="grid gap-3">
@@ -146,7 +194,7 @@ export default function Notifications() {
                   key={item.id}
                   item={item}
                   onRead={() => markAsRead(item.id)}
-                  onDelete={() => deleteNotification(item.id)}
+                  onDelete={() => handleDeleteNotification(item.id)}
                 />
               ))}
             </div>
@@ -164,13 +212,13 @@ function NotificationCard({ item, onRead, onDelete }) {
   return (
     <article
       className={`rounded-[24px] border p-4 transition sm:rounded-[26px] sm:p-5 ${
-        unread ? "border-black bg-[#fafafa]" : "border-neutral-200 bg-white"
+        unread ? "border-black bg-[#fafafa]" : "border-[var(--forsa-border)] bg-white"
       }`}
     >
       <div className="flex items-start gap-3 sm:gap-4">
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full sm:h-11 sm:w-11 ${
-            unread ? "bg-black text-white" : "bg-[#f7f7f5] text-neutral-600"
+            unread ? "bg-[var(--forsa-green)] text-white" : "bg-[#f7f7f5] text-neutral-600"
           }`}
         >
           <Icon />
@@ -183,7 +231,7 @@ function NotificationCard({ item, onRead, onDelete }) {
                 <h3 className="font-semibold">{item.title}</h3>
 
                 {unread && (
-                  <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-medium text-white">
+                  <span className="rounded-full bg-[var(--forsa-green)] px-2 py-0.5 text-[10px] font-medium text-white">
                     New
                   </span>
                 )}
@@ -194,9 +242,7 @@ function NotificationCard({ item, onRead, onDelete }) {
               </p>
 
               <p className="mt-3 text-xs text-neutral-400">
-                {item.createdAt
-                  ? new Date(item.createdAt).toLocaleString()
-                  : "Just now"}
+                {item.createdAt ? new Date(item.createdAt).toLocaleString() : "Just now"}
               </p>
             </div>
 
@@ -226,6 +272,18 @@ function NotificationCard({ item, onRead, onDelete }) {
   );
 }
 
+function LoadingNotifications() {
+  return (
+    <div className="flex flex-col items-center justify-center px-4 py-16 text-center sm:py-20">
+      <div className="h-14 w-14 animate-pulse rounded-full bg-[#f7f7f5]" />
+      <h2 className="mt-5 text-2xl font-semibold">Loading notifications</h2>
+      <p className="mt-3 max-w-md text-sm leading-7 text-neutral-600 sm:text-base">
+        Fetching your latest activity.
+      </p>
+    </div>
+  );
+}
+
 function EmptyNotifications() {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-16 text-center sm:py-20">
@@ -244,7 +302,7 @@ function EmptyNotifications() {
 
 function StatCard({ label, value }) {
   return (
-    <div className="rounded-[22px] border border-neutral-200 bg-white p-4 shadow-sm sm:rounded-[26px]">
+    <div className="rounded-[22px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:rounded-[26px]">
       <p className="text-xs text-neutral-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold tracking-[-0.03em]">{value}</p>
     </div>
