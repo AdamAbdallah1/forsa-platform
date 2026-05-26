@@ -23,7 +23,7 @@ export default function MatchPreview() {
             </p>
           </div>
 
-          <span className="shrink-0 rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs text-white">
+          <span className="shrink-0 rounded-full bg-[var(--forsa-primary)] px-3 py-1 text-xs text-white">
             Lebanon
           </span>
         </div>
@@ -38,7 +38,7 @@ export default function MatchPreview() {
                 className="rounded-[22px] border border-[var(--forsa-border)] bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
               >
                 <div className="flex gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-white">
                     <Icon />
                   </div>
 
@@ -70,7 +70,7 @@ export default function MatchPreview() {
                         {item.pay || "Paid"}
                       </span>
                       {index === 0 && (
-                        <span className="rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs text-white">
+                        <span className="rounded-full bg-[var(--forsa-primary)] px-3 py-1 text-xs text-white">
                           Best fit
                         </span>
                       )}
@@ -82,7 +82,7 @@ export default function MatchPreview() {
           })}
         </div>
 
-        <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white">
+        <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-medium text-white">
           <FaPaperPlane className="text-xs" />
           Apply in one message
         </button>

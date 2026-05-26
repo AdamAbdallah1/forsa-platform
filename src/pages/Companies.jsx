@@ -90,7 +90,7 @@ export default function Companies() {
       <div className="mx-auto max-w-7xl px-5 pb-28 sm:px-6 lg:pb-20">
         <div className="relative mt-8 overflow-hidden rounded-[32px] border border-[var(--forsa-border)] bg-white p-6 shadow-sm sm:p-8">
           <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[var(--forsa-gold-soft)]/40 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-[var(--forsa-green)]/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
 
           <div className="relative">
             <p className="text-sm font-medium text-neutral-500">
@@ -168,7 +168,7 @@ function CompanyCard({ company, postsCount }) {
               </h2>
 
               {company.verified && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--forsa-green)] px-2.5 py-1 text-[11px] font-medium text-white">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--forsa-primary)] px-2.5 py-1 text-[11px] font-medium text-white">
                   <FaCheckCircle className="text-[10px]" />
                   Verified
                 </span>
@@ -180,7 +180,7 @@ function CompanyCard({ company, postsCount }) {
             </p>
           </div>
 
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--forsa-bg)] text-[var(--forsa-green)]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--forsa-bg)] text-[var(--forsa-primary)]">
             <FaBriefcase />
           </div>
         </div>
@@ -216,7 +216,7 @@ function CompanyCard({ company, postsCount }) {
 
           <Link
             to={`/company/${encodeURIComponent(company.email)}`}
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--forsa-primary-light)]"
           >
             View
           </Link>

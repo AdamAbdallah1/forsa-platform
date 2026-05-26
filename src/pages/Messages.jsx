@@ -357,7 +357,7 @@ export default function Messages() {
 
         <div className="mx-auto max-w-3xl px-5 py-14 pb-28 sm:px-6 sm:py-20">
           <div className="rounded-[28px] border border-[var(--forsa-border)] bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-8">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full forsa-button text-white">
               <FaPaperPlane />
             </div>
 
@@ -372,7 +372,7 @@ export default function Messages() {
 
             <Link
               to="/auth"
-              className="mt-7 inline-flex rounded-full bg-[var(--forsa-green)] px-6 py-3 text-sm font-medium text-white"
+              className="mt-7 inline-flex rounded-full forsa-button px-6 py-3 text-sm font-medium text-white"
             >
               Create account
             </Link>
@@ -389,7 +389,7 @@ export default function Messages() {
       <div className="mx-auto max-w-[1180px] px-5 pb-28 sm:px-6 lg:pb-20">
         <div className="relative mt-6 overflow-hidden rounded-[30px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:mt-8 sm:p-6">
           <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-[var(--forsa-gold-soft)]/35 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-28 -left-28 h-64 w-64 rounded-full bg-[var(--forsa-green)]/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 -left-28 h-64 w-64 rounded-full forsa-button/10 blur-3xl" />
 
           <div className="relative">
             <p className="text-sm font-medium text-neutral-500">Messages</p>
@@ -482,7 +482,7 @@ function MessageToolbar({ search, setSearch, statusFilter, setStatusFilter }) {
               onClick={() => setStatusFilter(filter.value)}
               className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
                 statusFilter === filter.value
-                  ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white shadow-sm"
+                  ? "border-[var(--forsa-green)] forsa-button text-white shadow-sm"
                   : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-[var(--forsa-green)]"
               }`}
             >
@@ -523,7 +523,7 @@ function LoadingMessages() {
 function EmptyMessages() {
   return (
     <div className="mt-8 rounded-[28px] border border-[var(--forsa-border)] bg-white p-8 text-center shadow-sm sm:rounded-[32px] sm:p-10">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full forsa-button text-white">
         <FaPaperPlane />
       </div>
 
@@ -537,7 +537,7 @@ function EmptyMessages() {
 
       <Link
         to="/explore"
-        className="mt-6 inline-flex rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
+        className="mt-6 inline-flex rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
       >
         Explore opportunities
       </Link>
@@ -586,7 +586,7 @@ function ThreadButton({ message, active, onClick, account, presence }) {
     <button
       onClick={onClick}
       className={`rounded-2xl p-4 text-left transition ${
-        active ? "bg-[var(--forsa-green)] text-white shadow-[0_14px_30px_rgba(18,60,47,0.18)]" : "bg-[var(--forsa-bg)] text-black hover:bg-white hover:shadow-sm"
+        active ? "forsa-button text-white shadow-[0_14px_30px_rgba(18,60,47,0.18)]" : "bg-[var(--forsa-bg)] text-black hover:bg-white hover:shadow-sm"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -621,7 +621,7 @@ function ThreadButton({ message, active, onClick, account, presence }) {
         }`}
       >
         <span>{getPresenceText(lastSeen || message.updatedAt || message.createdAt)}</span>
-        {unread && <span className="h-2 w-2 rounded-full bg-[var(--forsa-green)]" />}
+        {unread && <span className="h-2 w-2 rounded-full forsa-button" />}
       </div>
     </button>
   );
@@ -779,7 +779,7 @@ function StatusTimeline({ status }) {
           <div
             key={step}
             className={`h-2 flex-1 rounded-full ${
-              index <= currentIndex ? "bg-[var(--forsa-green)]" : "bg-neutral-200"
+              index <= currentIndex ? "forsa-button" : "bg-neutral-200"
             }`}
           />
         ))}
@@ -813,7 +813,7 @@ function StatusControl({ status, onChange }) {
               onClick={() => onChange(option.value)}
               className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
                 active
-                  ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white"
+                  ? "border-[var(--forsa-green)] forsa-button text-white"
                   : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-neutral-400"
               }`}
             >
@@ -876,13 +876,13 @@ function ConversationList({ account, thread }) {
             >
               <div
                 className={`max-w-[92%] rounded-2xl p-4 sm:max-w-[75%] ${
-                  isMine ? "bg-[var(--forsa-green)] text-white" : "bg-white text-black"
+                  isMine ? "forsa-button text-white" : "bg-white text-black"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <div
                     className={`flex h-7 w-7 items-center justify-center rounded-full text-xs ${
-                      isMine ? "bg-white text-black" : "bg-[var(--forsa-green)] text-white"
+                      isMine ? "bg-white text-black" : "forsa-button text-white"
                     }`}
                   >
                     <FaUser />
@@ -980,7 +980,7 @@ function ReplyBox({ reply, setReply, sendReply }) {
         disabled={!reply.trim()}
         className={`mt-3 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium sm:w-fit ${
           reply.trim()
-            ? "bg-[var(--forsa-green)] text-white"
+            ? "forsa-button text-white"
             : "cursor-not-allowed bg-neutral-200 text-neutral-400"
         }`}
       >
@@ -1008,7 +1008,7 @@ function ApplicationCard({ account, profile, thread, isHiringThread }) {
   );
 
   return (
-    <div className="rounded-[24px] bg-[var(--forsa-green)] p-4 text-white sm:rounded-[28px] sm:p-5">
+    <div className="rounded-[24px] forsa-button p-4 text-white sm:rounded-[28px] sm:p-5">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black">
           <FaBriefcase />
@@ -1089,7 +1089,7 @@ function StatusPill({ status, active }) {
     status === "shortlisted"
       ? active
         ? "bg-white text-black"
-        : "bg-[var(--forsa-green)] text-white"
+        : "forsa-button text-white"
       : status === "accepted"
       ? "bg-green-100 text-green-700"
       : status === "rejected"

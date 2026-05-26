@@ -127,7 +127,7 @@ export default function Applicants() {
             <h1 className="text-2xl font-semibold">Login required</h1>
             <Link
               to="/auth"
-              className="mt-6 inline-flex rounded-full bg-[var(--forsa-green)] px-6 py-3 text-sm font-medium text-white"
+              className="mt-6 inline-flex rounded-full bg-[var(--forsa-primary)] px-6 py-3 text-sm font-medium text-white"
             >
               Login
             </Link>
@@ -150,7 +150,7 @@ export default function Applicants() {
             </p>
             <Link
               to="/explore"
-              className="mt-6 inline-flex rounded-full bg-[var(--forsa-green)] px-6 py-3 text-sm font-medium text-white"
+              className="mt-6 inline-flex rounded-full bg-[var(--forsa-primary)] px-6 py-3 text-sm font-medium text-white"
             >
               Back to explore
             </Link>
@@ -203,8 +203,8 @@ export default function Applicants() {
                   onClick={() => setStatusFilter(status)}
                   className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
                     statusFilter === status
-                      ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white"
-                      : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-[var(--forsa-green)]"
+                      ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white"
+                      : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-[var(--forsa-primary)]"
                   }`}
                 >
                   {status === "all" ? "All" : getStatusLabel(status)}
@@ -258,7 +258,7 @@ function ApplicantCard({ thread, onMessage, onStatus }) {
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-white">
               <FaUser />
             </div>
 
@@ -326,7 +326,7 @@ function ApplicantCard({ thread, onMessage, onStatus }) {
             <div className="mt-4 grid gap-2">
               <button
                 onClick={onMessage}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-3 text-sm font-medium text-white"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-4 py-3 text-sm font-medium text-white"
               >
                 <FaEnvelope className="text-xs" />
                 Open messages
@@ -336,7 +336,7 @@ function ApplicantCard({ thread, onMessage, onStatus }) {
                 onClick={() => onStatus("shortlisted")}
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm font-medium"
               >
-                <FaCheckCircle className="text-xs text-[var(--forsa-green)]" />
+                <FaCheckCircle className="text-xs text-[var(--forsa-primary)]" />
                 Shortlist
               </button>
 
@@ -366,7 +366,7 @@ function ApplicantCard({ thread, onMessage, onStatus }) {
 function StatusPill({ status }) {
   const styles = {
     pending: "bg-[var(--forsa-bg)] text-neutral-600",
-    shortlisted: "bg-[var(--forsa-green)] text-white",
+    shortlisted: "bg-[var(--forsa-primary)] text-white",
     accepted: "bg-[var(--forsa-gold)] text-black",
     rejected: "bg-red-50 text-red-600",
   };

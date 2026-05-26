@@ -6,7 +6,7 @@ export default function CTASection() {
 
   return (
     <section className="mx-auto max-w-6xl px-5 py-16 pb-28 sm:px-6 sm:py-20 lg:pb-20">
-      <div className="overflow-hidden rounded-[32px] border border-[var(--forsa-border)] bg-[var(--forsa-green)] p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.10)] sm:p-8 md:p-12">
+      <div className="overflow-hidden rounded-[32px] border border-[var(--forsa-border)] bg-[var(--forsa-primary)] p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.10)] sm:p-8 md:p-12">
         <div className="relative">
           <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
 

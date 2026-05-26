@@ -72,7 +72,7 @@ export default function SavedJobs() {
 
         <div className="mx-auto max-w-3xl px-5 py-14 pb-28 sm:px-6 sm:py-20">
           <div className="rounded-[28px] border border-[var(--forsa-border)] bg-white p-8 text-center shadow-sm">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full forsa-button text-white">
               <FaBookmark />
             </div>
 
@@ -82,7 +82,7 @@ export default function SavedJobs() {
 
             <Link
               to="/auth"
-              className="mt-6 inline-flex rounded-full bg-[var(--forsa-green)] px-6 py-3 text-sm font-medium text-white"
+              className="mt-6 inline-flex rounded-full forsa-button px-6 py-3 text-sm font-medium text-white"
             >
               Create account
             </Link>
@@ -127,7 +127,7 @@ export default function SavedJobs() {
 
             <button
               onClick={() => navigate("/explore")}
-              className="mt-6 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
+              className="mt-6 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
             >
               Explore jobs
             </button>
@@ -140,7 +140,7 @@ export default function SavedJobs() {
                 className="rounded-[26px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_14px_35px_rgba(18,60,47,0.08)]"
               >
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full forsa-button text-white">
                     <FaBriefcase />
                   </div>
 
@@ -175,7 +175,7 @@ export default function SavedJobs() {
                 <div className="mt-5 grid grid-cols-2 gap-2">
                   <button
                     onClick={() => navigate(`/explore?post=${job.id}`)}
-                    className="rounded-full bg-[var(--forsa-green)] px-4 py-3 text-sm font-medium text-white"
+                    className="rounded-full forsa-button px-4 py-3 text-sm font-medium text-white"
                   >
                     View
                   </button>

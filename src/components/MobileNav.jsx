@@ -64,8 +64,8 @@ export default function MobileNav() {
                 className={({ isActive }) =>
                   `relative flex min-h-[54px] flex-col items-center justify-center rounded-[18px] px-2 py-2 text-[11px] font-medium transition-all duration-200 ${
                     isActive
-                      ? "bg-[var(--forsa-green)] text-white shadow-sm"
-                      : "text-neutral-500 hover:bg-[var(--forsa-bg)] hover:text-[var(--forsa-green)]"
+                      ? "bg-[var(--forsa-primary)] text-white shadow-sm"
+                      : "text-neutral-500 hover:bg-[var(--forsa-bg)] hover:text-[var(--forsa-primary)]"
                   }`
                 }
               >

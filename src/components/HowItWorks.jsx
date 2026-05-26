@@ -47,7 +47,7 @@ export default function HowItWorks() {
               className="rounded-[26px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-6"
             >
               <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-white">
                   <Icon className="text-sm" />
                 </div>
 

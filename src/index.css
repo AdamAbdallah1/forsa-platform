@@ -1,67 +1,92 @@
 @import "tailwindcss";
 
 :root {
-  --forsa-green: #123C2F;
-  --forsa-green-light: #1B5A47;
+  --forsa-primary: #6d28d9;
+  --forsa-primary-dark: #5b21b6;
+  --forsa-primary-light: #8b5cf6;
+  --forsa-glow: #8b5cf6;
+  --forsa-soft: #ddd6fe;
+  --forsa-bg-soft: #f5f3ff;
 
-  --forsa-gold: #C79A3B;
-  --forsa-gold-soft: #E7C98A;
-
-  --forsa-bg: #F8F7F2;
-  --forsa-surface: #FFFFFF;
+  --forsa-gold: #e8c56a;
+  --forsa-gold-soft: #fff4c7;
 
   --forsa-text: #111111;
-  --forsa-muted: #6B6B6B;
-  --forsa-border: #E8E3DA;
+  --forsa-bg: #fafafa;
+  --forsa-border: #ece7f5;
 
-  --forsa-red: #B3261E;
+  --forsa-green: var(--forsa-primary);
+  --forsa-green-light: var(--forsa-primary-dark);
+  --forsa-red: #dc2626;
 }
+
 html {
   scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
-  background: #f7f7f5;
-  color: #111111;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(139, 92, 246, 0.12), transparent 32rem),
+    radial-gradient(circle at top right, rgba(232, 197, 106, 0.12), transparent 28rem),
+    var(--forsa-bg);
+  color: var(--forsa-text);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 ::selection {
-  background: #111111;
-  color: white;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  min-height: 100%;
-}
-
-body {
-  overflow-x: hidden;
+  background: var(--forsa-soft);
+  color: var(--forsa-text);
 }
 
 button,
-a,
-input,
-textarea {
+a {
   -webkit-tap-highlight-color: transparent;
 }
 
-.mobile-container {
-  width: 100%;
-  max-width: 72rem;
-  margin-inline: auto;
-  padding-inline: 1.25rem;
+button {
+  cursor: pointer;
 }
 
-@media (min-width: 640px) {
-  .mobile-container {
-    padding-inline: 1.5rem;
+button:disabled {
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+@layer components {
+  .forsa-gradient {
+    background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
+  }
+
+  .forsa-gradient-soft {
+    background:
+      radial-gradient(circle at top left, rgba(139, 92, 246, 0.18), transparent 20rem),
+      linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
+  }
+
+  .forsa-card {
+    border: 1px solid var(--forsa-border);
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 18px 50px rgba(109, 40, 217, 0.08);
+  }
+
+  .forsa-button {
+    background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
+    box-shadow: 0 14px 32px rgba(109, 40, 217, 0.24);
+  }
+
+  .forsa-button:hover {
+    background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
+  }
+
+  .forsa-glow {
+    box-shadow: 0 22px 70px rgba(109, 40, 217, 0.18);
   }
 }
+

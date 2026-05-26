@@ -336,7 +336,7 @@ function ChoiceStep({ accountType, setAccountType, onContinue }) {
 
       <button
         onClick={onContinue}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-primary-light)]"
       >
         Continue
         <FaArrowRight className="text-xs" />
@@ -425,7 +425,7 @@ function FormStep({
           onClick={onSubmit}
           className={`mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${
             canContinue && !loading
-              ? "bg-[var(--forsa-green)] text-white hover:bg-[var(--forsa-green-light)]"
+              ? "bg-[var(--forsa-primary)] text-white hover:bg-[var(--forsa-primary-light)]"
               : "cursor-not-allowed bg-neutral-200 text-neutral-400"
           }`}
         >
@@ -450,7 +450,7 @@ function TypeCard({ active, icon, title, text, onClick }) {
       onClick={onClick}
       className={`rounded-[22px] border p-4 text-left transition ${
         active
-          ? "border-black bg-[var(--forsa-green)] text-white"
+          ? "border-black bg-[var(--forsa-primary)] text-white"
           : "border-[var(--forsa-border)] bg-white hover:border-neutral-400"
       }`}
     >

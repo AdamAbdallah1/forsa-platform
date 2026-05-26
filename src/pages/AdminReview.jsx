@@ -238,7 +238,7 @@ export default function AdminReview() {
         <AppHeader />
         <div className="mx-auto max-w-3xl px-5 py-20">
           <div className="rounded-[28px] border border-[var(--forsa-border)] bg-white p-8 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-white">
               <FaShieldAlt />
             </div>
             <h1 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">Not authorized</h1>
@@ -256,7 +256,7 @@ export default function AdminReview() {
       <div className="mx-auto max-w-6xl px-5 pb-28 sm:px-6 lg:pb-20">
         <div className="relative mt-8 overflow-hidden rounded-[30px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:p-6">
           <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-[var(--forsa-gold-soft)]/35 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-28 -left-28 h-64 w-64 rounded-full bg-[var(--forsa-green)]/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 -left-28 h-64 w-64 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
 
           <div className="relative">
             <p className="text-sm font-medium text-neutral-500">Admin</p>
@@ -301,7 +301,7 @@ export default function AdminReview() {
                       onClick={() => setFilter(item)}
                       className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium capitalize ${
                         filter === item
-                          ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white"
+                          ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white"
                           : "border-[var(--forsa-border)] bg-white text-neutral-600"
                       }`}
                     >
@@ -366,7 +366,7 @@ function VerificationPanel({ requests, approveVerification, rejectVerification }
               </div>
 
               <div className="flex shrink-0 flex-wrap gap-2 md:justify-end">
-                <button onClick={() => approveVerification(request)} className="inline-flex items-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-sm font-medium text-white">
+                <button onClick={() => approveVerification(request)} className="inline-flex items-center gap-2 rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-sm font-medium text-white">
                   <FaCheck className="text-xs" />
                   Approve
                 </button>
@@ -418,7 +418,7 @@ function ReportsPanel({ reports, posts, markReportReviewed, toggleStatus, delete
                     </>
                   )}
 
-                  <button onClick={() => markReportReviewed(report.id)} className="rounded-full bg-[var(--forsa-green)] px-4 py-2 text-sm font-medium text-white">
+                  <button onClick={() => markReportReviewed(report.id)} className="rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-sm font-medium text-white">
                     Mark reviewed
                   </button>
                 </div>

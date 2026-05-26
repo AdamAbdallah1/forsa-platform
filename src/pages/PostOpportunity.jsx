@@ -587,7 +587,7 @@ export default function PostOpportunity() {
                       type="button"
                       key={tag}
                       onClick={() => toggleTag(tag)}
-                      className="inline-flex items-center gap-2 rounded-full bg-[var(--forsa-green)] px-3 py-1.5 text-xs text-white"
+                      className="inline-flex items-center gap-2 rounded-full forsa-button px-3 py-1.5 text-xs text-white"
                     >
                       {tag}
                       <FaTimes className="text-[10px]" />
@@ -633,7 +633,7 @@ export default function PostOpportunity() {
     <button
       type="button"
       onClick={addQuestion}
-      className="rounded-full bg-[var(--forsa-green)] px-4 py-2 text-xs font-medium text-white"
+      className="rounded-full forsa-button px-4 py-2 text-xs font-medium text-white"
     >
       Add question
     </button>
@@ -695,7 +695,7 @@ export default function PostOpportunity() {
                 onClick={handleSubmit}
                 className={`w-full rounded-full px-5 py-3 text-sm font-medium transition ${
                   canPost && !posting
-                    ? "bg-[var(--forsa-green)] text-white hover:bg-[var(--forsa-green-light)]"
+                    ? "forsa-button text-white hover:bg-[var(--forsa-green-light)]"
                     : "cursor-not-allowed bg-neutral-200 text-neutral-400"
                 }`}
               >
@@ -744,7 +744,7 @@ function RestoreDraftBanner({ draftSavedAt, onRestore, onDismiss }) {
           <button
             type="button"
             onClick={onRestore}
-            className="rounded-full bg-[var(--forsa-green)] px-4 py-2 text-sm font-medium text-white"
+            className="rounded-full forsa-button px-4 py-2 text-sm font-medium text-white"
           >
             Restore
           </button>
@@ -815,14 +815,14 @@ function QualityCard({ qualityScore }) {
     <div className="mt-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Post quality</p>
-        <span className="rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs font-medium text-white">
+        <span className="rounded-full forsa-button px-3 py-1 text-xs font-medium text-white">
           {qualityScore}%
         </span>
       </div>
 
       <div className="mt-4 h-2 rounded-full bg-[#f7f7f5]">
         <div
-          className="h-2 rounded-full bg-[var(--forsa-green)] transition-all"
+          className="h-2 rounded-full forsa-button transition-all"
           style={{ width: `${qualityScore}%` }}
         />
       </div>
@@ -840,7 +840,7 @@ function QualityCard({ qualityScore }) {
 function QualityItem({ active, text }) {
   return (
     <div className="flex items-center gap-2">
-      <div className={`h-2 w-2 rounded-full ${active ? "bg-[var(--forsa-green)]" : "bg-neutral-300"}`} />
+      <div className={`h-2 w-2 rounded-full ${active ? "forsa-button" : "bg-neutral-300"}`} />
       <p className={`text-sm ${active ? "text-black" : "text-neutral-500"}`}>
         {text}
       </p>
@@ -900,7 +900,7 @@ function PreviewCard({ form, qualityScore }) {
       </div>
 
       <div className="mt-5 flex gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full forsa-button text-white">
           <FaBriefcase />
         </div>
 
@@ -971,7 +971,7 @@ function ToggleCard({ active, icon, title, text, onClick }) {
       onClick={onClick}
       className={`rounded-2xl border p-4 text-left transition ${
         active
-          ? "border-black bg-[var(--forsa-green)] text-white"
+          ? "border-black forsa-button text-white"
           : "border-[var(--forsa-border)] bg-white hover:border-neutral-400"
       }`}
     >

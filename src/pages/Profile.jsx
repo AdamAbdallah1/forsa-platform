@@ -197,7 +197,7 @@ export default function Profile() {
 
             <Link
               to="/auth"
-              className="mt-7 inline-flex rounded-full bg-[var(--forsa-green)] px-6 py-3 text-sm font-medium text-white"
+              className="mt-7 inline-flex rounded-full forsa-button px-6 py-3 text-sm font-medium text-white"
             >
               Create account
             </Link>
@@ -592,7 +592,7 @@ const displayEmail =
         <div className="mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:mt-8 sm:rounded-[32px] sm:p-5 md:p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="flex min-w-0 items-start gap-4 sm:gap-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-lg font-semibold text-white sm:h-14 sm:w-14 sm:text-lg">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full forsa-button text-lg font-semibold text-white sm:h-14 sm:w-14 sm:text-lg">
                 {initial}
               </div>
 
@@ -613,7 +613,7 @@ const displayEmail =
     to={`/company/${encodeURIComponent(
       account.companyEmail || account.email
     )}`}
-    className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-xs font-medium text-white"
+    className="mt-4 inline-flex items-center gap-2 rounded-full forsa-button px-4 py-2 text-xs font-medium text-white"
   >
     <FaEye className="text-[10px]" />
     View public company profile
@@ -646,7 +646,7 @@ const displayEmail =
 
                 <button
                   onClick={saveChanges}
-                  className="rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
+                  className="rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
                 >
                   Save changes
                 </button>
@@ -844,7 +844,7 @@ function OverviewTab({
 
             <Link
               to="/post"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white sm:w-fit"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
             >
               <FaPlus className="text-xs" />
               Post
@@ -867,7 +867,7 @@ function VerificationCard({ account, onRequestVerification }) {
             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
               verified
                 ? "bg-[var(--forsa-gold)] text-black"
-                : "bg-[var(--forsa-green)] text-white"
+                : "forsa-button text-white"
             }`}
           >
             <FaShieldAlt />
@@ -888,7 +888,7 @@ function VerificationCard({ account, onRequestVerification }) {
         {!verified && (
           <button
             onClick={onRequestVerification}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)] sm:w-fit"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)] sm:w-fit"
           >
             <FaShieldAlt className="text-xs" />
             Request verification
@@ -910,13 +910,13 @@ function CompletionCard({ completionScore, isHiring }) {
           </h3>
         </div>
 
-        <span className="shrink-0 rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs font-medium text-white sm:text-sm">
+        <span className="shrink-0 rounded-full forsa-button px-3 py-1 text-xs font-medium text-white sm:text-sm">
           {completionScore >= 80 ? "Strong" : completionScore >= 50 ? "Good" : "Start"}
         </span>
       </div>
 
       <div className="mt-5 h-2 rounded-full bg-[var(--forsa-bg)]">
-        <div className="h-2 rounded-full bg-[var(--forsa-green)] transition-all" style={{ width: `${completionScore}%` }} />
+        <div className="h-2 rounded-full forsa-button transition-all" style={{ width: `${completionScore}%` }} />
       </div>
 
       <p className="mt-4 text-sm leading-6 text-neutral-600">
@@ -984,7 +984,7 @@ function PostsTab({
 
         <Link
           to="/post"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white sm:w-fit"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
         >
           <FaPlus className="text-xs" />
           New post
@@ -1063,7 +1063,7 @@ function EditPostCard({
         <button onClick={cancelPostEdit} className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium">
           Cancel
         </button>
-        <button onClick={savePostEdit} className="rounded-full bg-[var(--forsa-green)] px-4 py-2 text-sm font-medium text-white">
+        <button onClick={savePostEdit} className="rounded-full forsa-button px-4 py-2 text-sm font-medium text-white">
           Save
         </button>
       </div>
@@ -1135,7 +1135,7 @@ function PostCard({
 
           <button
             onClick={() => openApplicants(post)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-xs font-medium text-white sm:w-fit"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-4 py-2 text-xs font-medium text-white sm:w-fit"
           >
             <FaUsers className="text-xs" />
             View
@@ -1226,7 +1226,7 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
 
           <Link
             to="/explore"
-            className="mt-6 inline-flex rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
+            className="mt-6 inline-flex rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
           >
             Explore opportunities
           </Link>
@@ -1287,7 +1287,7 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
               <div className="mt-5 grid grid-cols-2 gap-2">
                 <Link
                   to={`/explore?post=${job.id}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2.5 text-sm font-medium text-white"
+                  className="inline-flex items-center justify-center gap-2 rounded-full forsa-button px-4 py-2.5 text-sm font-medium text-white"
                 >
                   Open
                   <FaArrowRight className="text-xs" />
@@ -1330,7 +1330,7 @@ function ApplicationsTab({ applications }) {
 
         <Link
           to="/explore"
-          className="inline-flex w-full items-center justify-center rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white sm:w-fit"
+          className="inline-flex w-full items-center justify-center rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
         >
           Find more
         </Link>
@@ -1413,7 +1413,7 @@ function ApplicationsTab({ applications }) {
 
               <Link
                 to="/messages"
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2.5 text-sm font-medium text-white sm:w-fit"
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-4 py-2.5 text-sm font-medium text-white sm:w-fit"
               >
                 <FaEnvelope className="text-xs" />
                 Open conversation
@@ -1450,7 +1450,7 @@ function ApplicationTimeline({ status }) {
           <div
             key={step}
             className={`h-2 flex-1 rounded-full ${
-              index <= stepIndex ? "bg-[var(--forsa-green)]" : "bg-neutral-200"
+              index <= stepIndex ? "forsa-button" : "bg-neutral-200"
             }`}
           />
         ))}
@@ -1469,7 +1469,7 @@ function ApplicationTimeline({ status }) {
 function StatusPill({ status }) {
   const styles =
     status === "shortlisted"
-      ? "bg-[var(--forsa-green)] text-white"
+      ? "forsa-button text-white"
       : status === "accepted"
       ? "bg-green-100 text-green-700"
       : status === "rejected"
@@ -1496,7 +1496,7 @@ function ApplicationsSentBox({ applications }) {
 
         <Link
           to="/messages"
-          className="shrink-0 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-xs font-medium text-white"
+          className="shrink-0 rounded-full forsa-button px-4 py-2 text-xs font-medium text-white"
         >
           View
         </Link>
@@ -1602,7 +1602,7 @@ function ProfileEdit({
               to={`/company/${encodeURIComponent(
                 account.companyEmail || account.email
               )}`}
-              className="mt-4 inline-flex rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
+              className="mt-4 inline-flex rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
             >
               View public profile
             </Link>
@@ -1716,7 +1716,7 @@ function SmartCvAutofill({ profile, toggleProfileItem }) {
           </p>
         </div>
 
-        <span className="w-fit rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs font-medium text-white">
+        <span className="w-fit rounded-full forsa-button px-3 py-1 text-xs font-medium text-white">
           Beta
         </span>
       </div>
@@ -1735,7 +1735,7 @@ function SmartCvAutofill({ profile, toggleProfileItem }) {
           disabled={!cvText.trim()}
           className={`rounded-full px-5 py-3 text-sm font-medium ${
             cvText.trim()
-              ? "bg-[var(--forsa-green)] text-white"
+              ? "forsa-button text-white"
               : "cursor-not-allowed bg-neutral-200 text-neutral-400"
           }`}
         >
@@ -1857,7 +1857,7 @@ function RecentlyViewedTab({ jobs, onClear }) {
 
           <Link
             to="/explore"
-            className="mt-6 inline-flex rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
+            className="mt-6 inline-flex rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
           >
             Explore opportunities
           </Link>
@@ -1914,7 +1914,7 @@ function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo, isHiring, 
           {!account?.verified && (
             <button
               onClick={onRequestVerification}
-              className="mt-5 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
+              className="mt-5 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
             >
               Request verification
             </button>
@@ -1931,7 +1931,7 @@ function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo, isHiring, 
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
           <button
             onClick={loadDemo}
-            className="rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white"
+            className="rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
           >
             Load demo activity
           </button>
@@ -1951,7 +1951,7 @@ function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo, isHiring, 
           Login/logout is simulated with localStorage for now.
         </p>
 
-        <button onClick={logout} className="mt-5 w-full rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white sm:w-fit">
+        <button onClick={logout} className="mt-5 w-full rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit">
           Log out
         </button>
       </div>
@@ -1984,7 +1984,7 @@ function CvBox({ cv }) {
               href={cv.url}
               target="_blank"
               rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-xs font-medium text-white"
+              className="mt-3 inline-flex items-center gap-2 rounded-full forsa-button px-4 py-2 text-xs font-medium text-white"
             >
               <FaExternalLinkAlt className="text-[10px]" />
               Open CV
@@ -2008,7 +2008,7 @@ function CvLinkEditor({ cv, onSave, onRemove }) {
   return (
     <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full forsa-button text-white">
           <FaLink />
         </div>
 
@@ -2050,7 +2050,7 @@ function CvLinkEditor({ cv, onSave, onRemove }) {
           <button
             type="button"
             onClick={() => onSave(url)}
-            className="rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
+            className="rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
           >
             Save CV link
           </button>
@@ -2076,7 +2076,7 @@ function CvLinkEditor({ cv, onSave, onRemove }) {
 
 function ApplicantsModal({ post, applicants, onClose, onStatusChange, onOpenMessage }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--forsa-green)]/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
+    <div className="fixed inset-0 z-50 flex items-end justify-center forsa-button/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
       <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-[26px] bg-white p-4 shadow-xl sm:rounded-[32px] sm:p-6">
         <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-5">
           <div className="min-w-0">
@@ -2133,7 +2133,7 @@ function ApplicantCard({ applicant, onStatusChange, onOpenMessage }) {
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full forsa-button text-white">
               {(seeker.name || "A").charAt(0).toUpperCase()}
             </div>
 
@@ -2153,7 +2153,7 @@ function ApplicantCard({ applicant, onStatusChange, onOpenMessage }) {
         <span
           className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${
             status === "shortlisted"
-              ? "bg-[var(--forsa-green)] text-white"
+              ? "forsa-button text-white"
               : status === "rejected"
               ? "bg-red-100 text-red-700"
               : "bg-white text-neutral-600"
@@ -2185,7 +2185,7 @@ function ApplicantCard({ applicant, onStatusChange, onOpenMessage }) {
       <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         <button
           onClick={() => onStatusChange(applicant.id, "shortlisted")}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-4 py-2 text-sm font-medium text-white"
+          className="inline-flex items-center justify-center gap-2 rounded-full forsa-button px-4 py-2 text-sm font-medium text-white"
         >
           <FaCheckCircle className="text-xs" />
           Shortlist
@@ -2225,7 +2225,7 @@ function TabButton({ active, onClick, icon, children }) {
     <button
       onClick={onClick}
       className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
-        active ? "bg-[var(--forsa-green)] text-white" : "bg-[var(--forsa-bg)] text-neutral-600 hover:bg-white"
+        active ? "forsa-button text-white" : "bg-[var(--forsa-bg)] text-neutral-600 hover:bg-white"
       }`}
     >
       {icon}
@@ -2270,7 +2270,7 @@ function EditBox({ title, options, selected, onToggle }) {
             onClick={() => onToggle(item)}
             className={`rounded-full border px-3 py-1.5 text-sm transition ${
               selected.includes(item)
-                ? "border-black bg-[var(--forsa-green)] text-white"
+                ? "border-black forsa-button text-white"
                 : "border-neutral-300 bg-white"
             }`}
           >

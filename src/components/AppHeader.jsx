@@ -26,13 +26,13 @@ export default function AppHeader() {
   const linkClass = ({ isActive }) =>
     `rounded-full px-3.5 py-2 text-[13px] font-medium transition-all duration-200 ${
       isActive
-        ? "bg-[var(--forsa-green)] text-white shadow-sm"
-        : "text-neutral-500 hover:bg-white/80 hover:text-[var(--forsa-green)]"
+        ? "bg-[var(--forsa-primary)] text-white shadow-sm"
+        : "text-neutral-500 hover:bg-white/80 hover:text-[var(--forsa-primary)]"
     }`;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--forsa-border)]/80 bg-[var(--forsa-bg)]/85 backdrop-blur-2xl">
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-5 py-2.5 sm:px-6">
+    <header className="sticky top-0 z-40 border-[var(--forsa-border)]/80 bg-[var(--forsa-bg)]/85 backdrop-blur-2xl">
+      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-5 py-5 sm:px-6">
         <button
           onClick={() => navigate("/")}
           className="group flex shrink-0 items-center gap-2"
@@ -85,8 +85,8 @@ export default function AppHeader() {
                 className={({ isActive }) =>
                   `relative flex h-9 w-9 items-center justify-center rounded-full border text-sm transition-all duration-200 ${
                     isActive
-                      ? "border-[var(--forsa-green)] bg-[var(--forsa-green)] text-white shadow-sm"
-                      : "border-[var(--forsa-border)] bg-white/80 text-neutral-600 hover:border-[var(--forsa-green)] hover:text-[var(--forsa-green)]"
+                      ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-sm"
+                      : "border-[var(--forsa-border)] bg-white/80 text-neutral-600 hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
                   }`
                 }
               >
@@ -101,7 +101,7 @@ export default function AppHeader() {
 
               <button
                 onClick={() => navigate(isHiring ? "/post" : "/explore")}
-                className="hidden rounded-full bg-[var(--forsa-green)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:bg-[var(--forsa-green-light)] hover:scale-[1.01] sm:block"
+                className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:bg-[var(--forsa-primary-light)] hover:scale-[1.01] sm:block"
               >
                 {isHiring ? "Post" : "Explore"}
               </button>
@@ -109,14 +109,14 @@ export default function AppHeader() {
           ) : !isAuthPage ? (
             <button
               onClick={() => navigate("/auth")}
-              className="rounded-full bg-[var(--forsa-green)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:bg-[var(--forsa-green-light)] hover:scale-[1.01]"
+              className="rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:bg-[var(--forsa-primary-light)] hover:scale-[1.01]"
             >
               Join
             </button>
           ) : (
             <button
               onClick={() => navigate("/explore")}
-              className="rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-[13px] font-medium text-[var(--forsa-green)] transition hover:border-[var(--forsa-green)]"
+              className="rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-[13px] font-medium text-[var(--forsa-primary)] transition hover:border-[var(--forsa-primary)]"
             >
               Explore
             </button>

@@ -128,14 +128,14 @@ export default function Onboarding() {
                   </p>
                 </div>
 
-                <span className="rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs font-medium text-white">
+                <span className="rounded-full forsa-button px-3 py-1 text-xs font-medium text-white">
                   {progress}%
                 </span>
               </div>
 
               <div className="mt-4 h-2 rounded-full bg-[#f7f7f5]">
                 <div
-                  className="h-2 rounded-full bg-[var(--forsa-green)] transition-all"
+                  className="h-2 rounded-full forsa-button transition-all"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -182,7 +182,7 @@ export default function Onboarding() {
 
             <div className="mt-6">
               <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full forsa-button text-white">
                   <FaMapMarkerAlt className="text-sm" />
                 </div>
 
@@ -208,7 +208,7 @@ export default function Onboarding() {
                 onClick={saveProfile}
                 className={`flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${
                   canContinue
-                    ? "bg-[var(--forsa-green)] text-white hover:bg-[var(--forsa-green-light)]"
+                    ? "forsa-button text-white hover:bg-[var(--forsa-green-light)]"
                     : "cursor-not-allowed bg-neutral-200 text-neutral-400"
                 }`}
               >
@@ -233,7 +233,7 @@ function OptionSection({ icon, title, subtitle, options, selected, onToggle }) {
   return (
     <div className="mt-6">
       <div className="mb-3 flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full forsa-button text-white">
           {icon}
         </div>
 
@@ -254,7 +254,7 @@ function OptionSection({ icon, title, subtitle, options, selected, onToggle }) {
               onClick={() => onToggle(item)}
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition sm:px-4 ${
                 active
-                  ? "border-black bg-[var(--forsa-green)] text-white"
+                  ? "border-black forsa-button text-white"
                   : "border-neutral-300 bg-white hover:border-neutral-500"
               }`}
             >
@@ -273,7 +273,7 @@ function StepDone({ done, text }) {
     <div className="flex items-center gap-3 rounded-2xl bg-[#f7f7f5] px-4 py-3">
       <div
         className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
-          done ? "bg-[var(--forsa-green)] text-white" : "bg-white text-neutral-400"
+          done ? "forsa-button text-white" : "bg-white text-neutral-400"
         }`}
       >
         {done ? <FaCheck /> : <FaUser />}

@@ -124,7 +124,7 @@ export default function Notifications() {
 
         <div className="mx-auto max-w-3xl px-5 py-14 pb-28 sm:px-6 sm:py-20">
           <div className="rounded-[28px] border border-[var(--forsa-border)] bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-10">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full forsa-button text-white">
               <FaBell />
             </div>
 
@@ -138,7 +138,7 @@ export default function Notifications() {
 
             <Link
               to="/auth"
-              className="mt-7 inline-flex rounded-full bg-[var(--forsa-green)] px-6 py-3 text-sm font-medium text-white"
+              className="mt-7 inline-flex rounded-full forsa-button px-6 py-3 text-sm font-medium text-white"
             >
               Create account
             </Link>
@@ -218,7 +218,7 @@ function NotificationCard({ item, onRead, onDelete }) {
       <div className="flex items-start gap-3 sm:gap-4">
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full sm:h-11 sm:w-11 ${
-            unread ? "bg-[var(--forsa-green)] text-white" : "bg-[#f7f7f5] text-neutral-600"
+            unread ? "forsa-button text-white" : "bg-[#f7f7f5] text-neutral-600"
           }`}
         >
           <Icon />
@@ -231,7 +231,7 @@ function NotificationCard({ item, onRead, onDelete }) {
                 <h3 className="font-semibold">{item.title}</h3>
 
                 {unread && (
-                  <span className="rounded-full bg-[var(--forsa-green)] px-2 py-0.5 text-[10px] font-medium text-white">
+                  <span className="rounded-full forsa-button px-2 py-0.5 text-[10px] font-medium text-white">
                     New
                   </span>
                 )}

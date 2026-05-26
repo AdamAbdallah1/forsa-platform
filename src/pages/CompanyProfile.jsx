@@ -61,7 +61,7 @@ export default function CompanyProfile() {
         <div className="mt-8 rounded-[30px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-lg font-semibold text-white">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-lg font-semibold text-white">
                 {companyName.charAt(0).toUpperCase()}
               </div>
 
@@ -132,7 +132,7 @@ export default function CompanyProfile() {
                   className="rounded-[26px] border border-[var(--forsa-border)] bg-white p-5 transition hover:-translate-y-1 hover:shadow-sm"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-green)] text-white">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-white">
                       <FaBriefcase />
                     </div>
 

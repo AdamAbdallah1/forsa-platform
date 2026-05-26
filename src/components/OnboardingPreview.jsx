@@ -27,7 +27,7 @@ export default function OnboardingPreview() {
               <p className="mt-1 text-xs text-neutral-500">Ready to apply</p>
             </div>
 
-            <span className="rounded-full bg-[var(--forsa-green)] px-3 py-1 text-xs text-white">
+            <span className="rounded-full bg-[var(--forsa-primary)] px-3 py-1 text-xs text-white">
               82%
             </span>
           </div>
@@ -39,7 +39,7 @@ export default function OnboardingPreview() {
             <ChipGroup title="Looking for" items={lookingFor} />
           </div>
 
-          <button className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-green)] px-5 py-3 text-sm font-medium text-white">
+          <button className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-medium text-white">
             <FaCheck className="text-xs" />
             Profile ready
           </button>
@@ -52,7 +52,7 @@ export default function OnboardingPreview() {
 function Row({ icon, title, text }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-white p-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--forsa-green)] text-sm text-white">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-sm text-white">
         {icon}
       </div>
 

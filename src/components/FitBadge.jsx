@@ -25,7 +25,7 @@ export default function FitBadge({
   }
 
   return (
-    <div className="min-h-[92px] rounded-2xl bg-[var(--forsa-green)] p-3 text-white">
+    <div className="min-h-[92px] rounded-2xl bg-[var(--forsa-primary)] p-3 text-white">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-medium text-neutral-300">Forsa Fit</p>
 
