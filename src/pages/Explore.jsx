@@ -28,7 +28,6 @@ import {
   FaWhatsapp,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
-import FitBadge from "../components/FitBadge";
 import { opportunities } from "../data/opportunities";
 
 const safeJson = (key, fallback) => {
@@ -137,8 +136,8 @@ const updatePostAnalytics = (postId, field) => {
 };
 
 const buildPostUrl = (postId) => {
-  const base = window.location.href.split("#")[0];
-  return `${base}#/explore?post=${encodeURIComponent(postId)}`;
+  const base = window.location.origin;
+  return `${base}/explore?post=${encodeURIComponent(postId)}`;
 };
 
 const readSharedPostId = (searchParams, location) => {
@@ -718,7 +717,7 @@ export default function Explore() {
         ) : rankedOpportunities.length === 0 ? (
           <EmptyState search={search} />
         ) : (
-          <div className="mt-5 grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-5 grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
             {rankedOpportunities.map((item) => (
               <OpportunityCard
                 key={item.id}
@@ -784,34 +783,37 @@ export default function Explore() {
 
 function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
   return (
-    <div className="relative mt-5 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:mt-8 sm:p-6 md:p-7">
-      <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-[var(--forsa-gold-soft)]/35 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-28 -left-28 h-64 w-64 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
+    <div className="relative mt-5 overflow-hidden rounded-[34px] border border-white/70 bg-white/85 p-5 shadow-[0_24px_80px_rgba(109,40,217,0.10)] backdrop-blur-2xl sm:mt-8 sm:p-6 md:p-8">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[var(--forsa-glow)]/18 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-28 -left-28 h-72 w-72 rounded-full bg-[var(--forsa-gold)]/12 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(139,92,246,0.10),transparent_42%)]" />
 
-      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-sm font-medium text-neutral-500">Explore Forsa</p>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white/80 px-3 py-2 text-xs font-medium text-[var(--forsa-primary)] shadow-sm">
+            <FaBolt className="text-[10px]" />
+            Smart opportunity discovery
+          </div>
 
-          <h1 className="mt-3 max-w-3xl text-3xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-4xl md:text-5xl">
-            Find the right opportunity without the noise.
+          <h1 className="mt-4 max-w-3xl text-3xl font-semibold leading-[0.96] tracking-[-0.06em] sm:text-4xl md:text-5xl">
+            Explore work that matches your profile, city, and goals.
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-7 text-neutral-600 sm:text-base">
-            Browse local jobs, internships, gigs, and projects across Lebanon.
-            Save what matters, apply with a message, and track everything.
+            Browse local jobs, internships, gigs, and projects across Lebanon with cleaner cards, better filtering, and organized application flow.
           </p>
         </div>
 
         <button
           onClick={() => navigate(isHiring ? "/post" : isLoggedIn ? "/profile" : "/auth")}
-          className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-primary-light)] sm:w-fit"
+          className="forsa-button group inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-medium text-white transition hover:-translate-y-0.5 sm:w-fit"
         >
           {isHiring ? "Post opportunity" : isLoggedIn ? "Improve profile" : "Join Forsa"}
           <FaArrowRight className="text-xs transition group-hover:translate-x-0.5" />
         </button>
       </div>
 
-      <div className="relative mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="relative mt-7 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <MiniStat label="Results" value={stats.total} />
         <MiniStat label="Urgent" value={stats.urgent} />
         <MiniStat label="Saved" value={stats.saved} />
@@ -823,25 +825,34 @@ function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
 
 function MiniStat({ label, value }) {
   return (
-    <div className="rounded-2xl bg-[var(--forsa-bg)] p-3">
-      <p className="text-xl font-semibold tracking-[-0.04em]">{value}</p>
-      <p className="mt-1 text-xs text-neutral-500">{label}</p>
+    <div className="rounded-[22px] border border-[var(--forsa-border)] bg-white/78 p-4 shadow-sm backdrop-blur-xl">
+      <p className="text-2xl font-semibold tracking-[-0.05em]">{value}</p>
+      <p className="mt-1 text-xs font-medium text-neutral-500">{label}</p>
     </div>
   );
 }
 
 function SearchPanel({ search, setSearch, activeType, setActiveType, sortBy, setSortBy }) {
   return (
-    <div className="sticky top-[57px] z-30 -mx-4 mt-4 border-y border-[var(--forsa-border)]/80 bg-[var(--forsa-bg)]/95 px-4 py-3 backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[26px] sm:border sm:bg-white/90 sm:p-3 sm:shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="sticky top-[76px] z-30 -mx-4 mt-4 border-y border-[var(--forsa-border)]/80 bg-white/92 px-4 py-3 shadow-[0_12px_40px_rgba(109,40,217,0.06)] backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[28px] sm:border sm:p-3">
       <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-        <div className="flex items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-3 sm:bg-[var(--forsa-bg)]">
-          <FaSearch className="text-sm text-neutral-400" />
+        <div className="group flex items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-[var(--forsa-bg-soft)]/65 px-4 py-3.5 transition focus-within:border-[var(--forsa-primary)] focus-within:bg-white">
+          <FaSearch className="text-sm text-[var(--forsa-primary)]" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search role, skill, city..."
-            className="w-full bg-transparent text-sm outline-none"
+            placeholder="Search role, skill, company, city..."
+            className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-400"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="rounded-full bg-white px-2 py-1 text-xs text-neutral-500"
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1 lg:justify-end lg:pb-0">
@@ -872,10 +883,10 @@ function FilterButton({ active, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 rounded-full border px-3.5 py-2 text-[13px] font-medium transition ${
+      className={`shrink-0 rounded-full border px-4 py-2.5 text-[13px] font-medium transition ${
         active
-          ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white"
-          : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-neutral-400 hover:text-black"
+          ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-[0_12px_28px_rgba(109,40,217,0.20)]"
+          : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
       }`}
     >
       {children}
@@ -984,95 +995,182 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
   );
 }
 
-function OpportunityCard({ item, saved, savedLoading, applied, canInteract, applicantCount, onSave, onDetails, onApply, onShare }) {
+function OpportunityCard({
+  item,
+  saved,
+  savedLoading,
+  applied,
+  canInteract,
+  applicantCount,
+  onSave,
+  onDetails,
+  onApply,
+  onShare,
+}) {
   const Icon = item.icon || FaBriefcase;
+  const description = item.description || "";
+  const tags = item.tags || [];
+  const visibleTags = tags.slice(0, 4);
+  const hiddenTags = Math.max(0, tags.length - visibleTags.length);
+  const isLongDescription = description.length > 128;
+
+  const fitText = item.matchingSkills?.length
+    ? item.matchingSkills.slice(0, 2).join(", ")
+    : item.matchingType
+    ? item.type
+    : "Improve profile";
 
   return (
-    <article className="group flex h-full min-h-[450px] flex-col rounded-[26px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:-translate-y-1 hover:shadow-[0_14px_35px_rgba(0,0,0,0.06)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-white">
-            <Icon className="text-sm" />
+    <article className="group relative flex min-h-[430px] flex-col overflow-hidden rounded-[30px] border border-[#e9e3f3] bg-white shadow-[0_12px_38px_rgba(17,17,17,0.055)] transition duration-300 hover:-translate-y-1 hover:border-[var(--forsa-soft)] hover:shadow-[0_24px_75px_rgba(109,40,217,0.13)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow),#d946ef)]" />
+
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#f4efff] text-[var(--forsa-primary)] ring-1 ring-[#e8ddff]">
+              <Icon className="text-sm" />
+            </div>
+
+            <div className="min-w-0">
+              <div className="mb-1 flex h-5 items-center gap-1.5 overflow-hidden">
+                {item.source === "featured" && <Badge>Featured</Badge>}
+                {item.urgent && (
+                  <Badge tone="red">
+                    <FaBolt className="text-[8px]" />
+                    Urgent
+                  </Badge>
+                )}
+                {applied && <Badge tone="green">Applied</Badge>}
+              </div>
+
+              <h3 className="line-clamp-2 min-h-[42px] text-[16px] font-semibold leading-[1.28] tracking-[-0.035em] text-neutral-950">
+                {item.title}
+              </h3>
+
+              <p className="mt-1 flex items-center gap-1 text-[13px] text-neutral-500">
+                <FaMapMarkerAlt className="shrink-0 text-[10px] text-neutral-400" />
+                <span className="truncate">{item.company} · {item.location}</span>
+              </p>
+            </div>
           </div>
 
-          <div className="min-w-0">
-            <h3 className="line-clamp-2 min-h-[44px] font-semibold leading-snug tracking-[-0.02em]">
-              {item.title}
-            </h3>
-
-            <p className="mt-1 flex items-center gap-1 text-sm text-neutral-500">
-              <FaMapMarkerAlt className="shrink-0 text-[10px]" />
-              <span className="truncate">{item.company} · {item.location}</span>
-            </p>
-          </div>
+          <button
+            onClick={onSave}
+            disabled={savedLoading}
+            className={`shrink-0 rounded-full border p-2 transition ${
+              saved
+                ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white"
+                : "border-[#e7e0f0] bg-white text-neutral-500 hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+            } ${!canInteract ? "opacity-70" : ""}`}
+            aria-label="Save opportunity"
+          >
+            {saved ? <FaBookmark className="text-sm" /> : <FaRegBookmark className="text-sm" />}
+          </button>
         </div>
 
-        <button
-          onClick={onSave}
-          disabled={savedLoading}
-          className={`shrink-0 rounded-full border p-2 transition ${
-            saved
-              ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white"
-              : "border-[var(--forsa-border)] bg-white text-neutral-500 hover:border-neutral-400"
-          } ${!canInteract ? "opacity-70" : ""}`}
-          aria-label="Save opportunity"
-        >
-          {saved ? <FaBookmark /> : <FaRegBookmark />}
-        </button>
-      </div>
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <MetaChip label="Type" value={item.type} />
+          <MetaChip label="Pay" value={item.pay} />
+          <MetaChip label="Applicants" value={`${applicantCount}`} />
+        </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Pill>{item.type}</Pill>
-        <Pill>{item.pay}</Pill>
-        {item.matchScore > 0 && <Pill tone="dark">{item.matchScore}% match</Pill>}
-        {item.urgent && <Pill tone="red" icon={<FaBolt />}>Urgent</Pill>}
-        {item.featured && <Pill tone="gold" icon={<FaStar />}>Featured</Pill>}
-        <Pill>{applicantCount} applicant{applicantCount === 1 ? "" : "s"}</Pill>
-        {applied && <Pill tone="gold">Applied</Pill>}
-      </div>
+        <div className="mt-4 h-[64px]">
+          <p className="line-clamp-2 text-[13px] leading-6 text-neutral-600">
+            {description}
+          </p>
 
-      <p className="mt-4 line-clamp-3 min-h-[72px] text-sm leading-6 text-neutral-600">
-        {item.description}
-      </p>
-
-      <div className="mt-4 min-h-[88px]">
-        <FitBadge
-          score={item.score}
-          matchingSkills={item.matchingSkills}
-          matchingType={item.matchingType ? item.type : null}
-        />
-      </div>
-
-      <div className="mt-4">
-        <p className="text-xs text-neutral-400">Tags</p>
-        <div className="mt-2 flex min-h-[28px] flex-wrap gap-2">
-          {(item.tags || []).slice(0, 4).map((tag) => (
-            <span key={tag} className="rounded-full border border-[var(--forsa-border)] bg-white px-3 py-1 text-xs">
-              {tag}
-            </span>
-          ))}
-
-          {(item.tags || []).length > 4 && (
-            <span className="rounded-full bg-[var(--forsa-bg)] px-3 py-1 text-xs text-neutral-500">
-              +{item.tags.length - 4}
-            </span>
+          {isLongDescription && (
+            <button
+              type="button"
+              onClick={onDetails}
+              className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-[var(--forsa-primary)]"
+            >
+              Read full details
+              <FaArrowRight className="text-[9px]" />
+            </button>
           )}
         </div>
+
+        <div className="mt-4 rounded-[22px] border border-[#eee8f7] bg-[#fbfaff] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-neutral-800">Forsa Fit</p>
+              <p className="mt-1 truncate text-xs text-neutral-500">{fitText}</p>
+            </div>
+
+            <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--forsa-primary)] shadow-sm ring-1 ring-[#eee8ff]">
+              {item.matchScore || 0}%
+            </span>
+          </div>
+
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#eee8ff]">
+            <div
+              className="h-full rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))]"
+              style={{ width: `${Math.min(100, Math.max(6, item.matchScore || 0))}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+              Skills / tags
+            </p>
+
+            {hiddenTags > 0 && (
+              <button
+                type="button"
+                onClick={onDetails}
+                className="shrink-0 text-xs font-semibold text-[var(--forsa-primary)]"
+              >
+                +{hiddenTags} more
+              </button>
+            )}
+          </div>
+
+          <div className="grid min-h-[74px] grid-cols-2 gap-2">
+            {visibleTags.length > 0 ? (
+              visibleTags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={onDetails}
+                  className="flex min-w-0 items-center justify-center rounded-2xl border border-[#e9e4f2] bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+                >
+                  <span className="truncate">{tag}</span>
+                </button>
+              ))
+            ) : (
+              <div className="col-span-2 flex items-center justify-center rounded-2xl border border-dashed border-[#e9e4f2] bg-white px-3 py-2 text-xs text-neutral-400">
+                No tags added
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="mt-auto grid grid-cols-3 gap-2 pt-5">
-        <button onClick={onDetails} className="rounded-full border border-neutral-300 bg-white px-3 py-3 text-sm font-medium transition hover:border-neutral-500">
+      <div className="grid grid-cols-[1fr_44px_1fr] gap-2 border-t border-[#eee8f7] bg-[#fbfaff] p-3">
+        <button
+          onClick={onDetails}
+          className="rounded-full border border-[#e7e2f1] bg-white px-3 py-2.5 text-sm font-semibold transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+        >
           Details
         </button>
 
-        <button onClick={onShare} className="inline-flex items-center justify-center rounded-full border border-neutral-300 bg-white px-3 py-3 text-sm font-medium transition hover:border-neutral-500" aria-label="Share opportunity">
+        <button
+          onClick={onShare}
+          className="inline-flex items-center justify-center rounded-full border border-[#e7e2f1] bg-white px-3 py-2.5 text-sm font-semibold transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+          aria-label="Share opportunity"
+        >
           <FaShareAlt className="text-xs" />
         </button>
 
         <button
           onClick={onApply}
-          className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-3 text-sm font-medium transition ${
-            canInteract ? "bg-[var(--forsa-primary)] text-white hover:bg-[var(--forsa-primary-light)]" : "bg-neutral-200 text-neutral-500"
+          className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-2.5 text-sm font-semibold transition ${
+            canInteract
+              ? "bg-[linear-gradient(135deg,var(--forsa-primary),var(--forsa-glow))] text-white shadow-[0_12px_26px_rgba(109,40,217,0.20)] hover:-translate-y-0.5"
+              : "bg-neutral-200 text-neutral-500"
           }`}
         >
           {!canInteract ? <FaLock className="text-xs" /> : <FaPaperPlane className="text-xs" />}
@@ -1080,6 +1178,31 @@ function OpportunityCard({ item, saved, savedLoading, applied, canInteract, appl
         </button>
       </div>
     </article>
+  );
+}
+
+function Badge({ children, tone = "purple" }) {
+  const styles = {
+    purple: "bg-[#f3edff] text-[var(--forsa-primary)]",
+    red: "bg-red-50 text-red-600",
+    green: "bg-emerald-50 text-emerald-700",
+  };
+
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${styles[tone]}`}>
+      {children}
+    </span>
+  );
+}
+
+function MetaChip({ label, value }) {
+  return (
+    <div className="min-w-0 rounded-2xl bg-[#f8f6fb] px-3 py-2">
+      <p className="text-[10px] font-medium text-neutral-400">{label}</p>
+      <p className="mt-0.5 truncate text-xs font-semibold text-neutral-700">
+        {value || "—"}
+      </p>
+    </div>
   );
 }
 
@@ -1187,12 +1310,12 @@ function Pill({ children, icon, tone = "light" }) {
     dark: "bg-[var(--forsa-primary)] text-white",
     gold: "bg-[var(--forsa-gold)] text-black",
     red: "bg-[var(--forsa-red)] text-white",
-    light: "bg-[var(--forsa-bg)] text-neutral-600",
+    light: "bg-[#f7f5fb] text-neutral-600",
   };
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs ${
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${
         styles[tone] || styles.light
       }`}
     >

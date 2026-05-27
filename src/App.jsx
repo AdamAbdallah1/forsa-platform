@@ -55,7 +55,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-<Route path="/companies" element={<Companies />} />
+          <Route path="/companies" element={<Companies />} />
           <Route
             path="/messages"
             element={

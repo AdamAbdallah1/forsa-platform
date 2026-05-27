@@ -307,14 +307,53 @@ export default function Auth() {
   );
 }
 
+function SpotlightCard({ active, children, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group relative overflow-hidden rounded-[28px] border p-[1px] text-left transition duration-300 hover:-translate-y-1 ${
+        active
+          ? "border-transparent shadow-[0_22px_60px_rgba(109,40,217,0.20)]"
+          : "border-[var(--forsa-border)] shadow-sm hover:shadow-[0_18px_50px_rgba(109,40,217,0.10)]"
+      }`}
+    >
+      <div
+        className={`pointer-events-none absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100 ${
+          active ? "opacity-100" : ""
+        }`}
+        style={{
+          background:
+            "radial-gradient(520px circle at var(--x,50%) var(--y,50%), rgba(139,92,246,0.26), transparent 42%)",
+        }}
+        onMouseMove={() => {}}
+      />
+
+      <div
+        className={`relative h-full rounded-[27px] p-5 transition ${
+          active
+            ? "bg-[linear-gradient(135deg,var(--forsa-primary),var(--forsa-glow))] text-white"
+            : "bg-white text-[var(--forsa-text)]"
+        }`}
+      >
+        {children}
+      </div>
+    </button>
+  );
+}
+
 function ChoiceStep({ accountType, setAccountType, onContinue }) {
   return (
     <div className="mt-5">
-      <p className="text-xs font-medium text-neutral-500">Step 1 of 2</p>
+      <div className="rounded-[24px] bg-[var(--forsa-bg-soft)] p-4">
+  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--forsa-primary)]">
+    Step 1 of 2
+  </p>
 
-      <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-        Choose account type
-      </h2>
+  <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
+    How will you use Forsa?
+  </h2>
+</div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <TypeCard
@@ -446,31 +485,53 @@ function FormStep({
 
 function TypeCard({ active, icon, title, text, onClick }) {
   return (
-    <button
-      onClick={onClick}
-      className={`rounded-[22px] border p-4 text-left transition ${
-        active
-          ? "border-black bg-[var(--forsa-primary)] text-white"
-          : "border-[var(--forsa-border)] bg-white hover:border-neutral-400"
-      }`}
-    >
-      <div
-        className={`flex h-9 w-9 items-center justify-center rounded-full ${
-          active ? "bg-white text-black" : "bg-[#f7f7f5] text-black"
-        }`}
-      >
-        {icon}
+    <SpotlightCard active={active} onClick={onClick}>
+      <div className="flex items-start justify-between gap-4">
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-2xl text-lg shadow-sm ${
+            active
+              ? "bg-white/18 text-white ring-1 ring-white/25"
+              : "bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
+          }`}
+        >
+          {icon}
+        </div>
+
+        <span
+          className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+            active
+              ? "bg-white/15 text-white"
+              : "bg-[var(--forsa-bg)] text-neutral-500"
+          }`}
+        >
+          {active ? "Selected" : "Choose"}
+        </span>
       </div>
 
-      <p className="mt-4 text-sm font-medium">{title}</p>
+      <p className="mt-5 text-lg font-semibold tracking-[-0.03em]">
+        {title}
+      </p>
+
       <p
-        className={`mt-2 text-xs leading-5 ${
-          active ? "text-neutral-300" : "text-neutral-500"
+        className={`mt-2 text-sm leading-6 ${
+          active ? "text-white/75" : "text-neutral-500"
         }`}
       >
         {text}
       </p>
-    </button>
+
+      <div
+        className={`mt-5 h-1.5 overflow-hidden rounded-full ${
+          active ? "bg-white/20" : "bg-[var(--forsa-bg)]"
+        }`}
+      >
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            active ? "w-full bg-white" : "w-1/3 bg-[var(--forsa-soft)]"
+          }`}
+        />
+      </div>
+    </SpotlightCard>
   );
 }
 

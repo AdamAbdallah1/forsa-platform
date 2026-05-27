@@ -1,10 +1,13 @@
 import { Link, useParams } from "react-router-dom";
 import {
+  FaArrowRight,
   FaBriefcase,
   FaCheckCircle,
   FaEnvelope,
+  FaFlag,
   FaMapMarkerAlt,
   FaShieldAlt,
+  FaUserTie,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 
@@ -48,134 +51,164 @@ export default function CompanyProfile() {
     fallbackPost?.company ||
     "Company";
 
-  const companyCity =
-    companyUser?.city || fallbackPost?.location || "Lebanon";
-
-  const isTrusted = trustedPosters.includes(decodedEmail);
+  const companyCity = companyUser?.city || fallbackPost?.location || "Lebanon";
+  const isTrusted = trustedPosters.includes(decodedEmail) || companyUser?.trusted;
+  const isVerified = companyUser?.verified;
 
   return (
-    <section>
+    <section className="min-h-screen bg-[var(--forsa-bg)]">
       <AppHeader />
 
-      <div className="mx-auto max-w-6xl px-5 pb-28 sm:px-6 lg:pb-20">
-        <div className="mt-8 rounded-[30px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+      <div className="mx-auto max-w-6xl px-4 pb-28 sm:px-6 lg:pb-20">
+        <div className="relative mt-6 overflow-hidden rounded-[34px] border border-white/70 bg-white/85 p-5 shadow-[0_24px_80px_rgba(109,40,217,0.10)] backdrop-blur-2xl sm:mt-8 sm:p-7">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[var(--forsa-glow)]/20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 -left-28 h-72 w-72 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
+
+          <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-lg font-semibold text-white">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[24px] bg-[linear-gradient(135deg,var(--forsa-primary),var(--forsa-glow))] text-2xl font-bold text-white shadow-[0_18px_40px_rgba(109,40,217,0.22)]">
                 {companyName.charAt(0).toUpperCase()}
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-3xl font-semibold tracking-[-0.04em]">
+                  <h1 className="text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
                     {companyName}
                   </h1>
 
-                  {isTrusted && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                      <FaCheckCircle className="text-xs" />
-                      Trusted
-                    </span>
-                  )}
+                  {isTrusted && <Badge icon={<FaCheckCircle />} text="Trusted" />}
+                  {isVerified && <Badge icon={<FaShieldAlt />} text="Verified" />}
                 </div>
 
-                <p className="mt-3 flex items-center gap-2 text-sm text-neutral-500">
-                  <FaMapMarkerAlt className="text-xs" />
-                  {companyCity}
-                </p>
-
-                <p className="mt-2 flex items-center gap-2 break-all text-sm text-neutral-500">
-                  <FaEnvelope className="text-xs" />
-                  {account ? decodedEmail : "Login to view contact email"}
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-[#f7f7f5] p-4 text-sm text-neutral-600 md:max-w-xs">
-              <div className="flex items-center gap-2 font-medium text-black">
-                <FaShieldAlt className="text-xs" />
-                Company profile
-              </div>
-              <p className="mt-2 leading-6">
-                View active opportunities from this poster and check basic trust
-                signals before applying.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <Stat label="Active posts" value={companyPosts.length} />
-            <Stat label="Location" value={companyCity} />
-            <Stat label="Trust" value={isTrusted ? "Trusted" : "New"} />
-          </div>
-        </div>
-
-        <div className="mt-8">
-          <p className="text-sm font-medium text-neutral-500">Opportunities</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-            Active posts from {companyName}
-          </h2>
-
-          {companyPosts.length === 0 ? (
-            <div className="mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white p-8 text-center">
-              <p className="font-medium">No active posts.</p>
-              <p className="mt-2 text-sm text-neutral-500">
-                This company has no active opportunities right now.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {companyPosts.map((post) => (
-                <Link
-                  key={post.id}
-                  to={`/explore?post=${post.id}`}
-                  className="rounded-[26px] border border-[var(--forsa-border)] bg-white p-5 transition hover:-translate-y-1 hover:shadow-sm"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-white">
-                      <FaBriefcase />
-                    </div>
-
-                    <div className="min-w-0">
-                      <h3 className="line-clamp-2 font-semibold">
-                        {post.title}
-                      </h3>
-
-                      <p className="mt-1 text-sm text-neutral-500">
-                        {post.location} · {post.pay}
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-600">
-                    {post.description}
+                <div className="mt-4 grid gap-2 text-sm text-neutral-600">
+                  <p className="flex items-center gap-2">
+                    <FaMapMarkerAlt className="text-xs text-[var(--forsa-primary)]" />
+                    {companyCity}
                   </p>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {(post.tags || []).slice(0, 4).map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-[#f7f7f5] px-3 py-1 text-xs text-neutral-600"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </Link>
-              ))}
+                  <p className="flex items-center gap-2 break-all">
+                    <FaEnvelope className="text-xs text-[var(--forsa-primary)]" />
+                    {account ? decodedEmail : "Login to view contact email"}
+                  </p>
+                </div>
+              </div>
             </div>
-          )}
+
+            <div className="rounded-[24px] border border-[var(--forsa-border)] bg-white/80 p-4 md:max-w-xs">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <FaUserTie className="text-[var(--forsa-primary)]" />
+                Hiring profile
+              </div>
+              <p className="mt-2 text-sm leading-6 text-neutral-600">
+                Review active opportunities, trust signals, and company details
+                before applying.
+              </p>
+            </div>
+          </div>
+
+          <div className="relative mt-7 grid gap-3 sm:grid-cols-3">
+            <Stat label="Active posts" value={companyPosts.length} />
+            <Stat label="Location" value={companyCity} />
+            <Stat label="Trust" value={isTrusted ? "Trusted" : "New poster"} />
+          </div>
         </div>
+
+        <div className="mt-7 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-neutral-500">Opportunities</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em]">
+              Active posts from {companyName}
+            </h2>
+          </div>
+
+          <button className="hidden items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-sm font-medium text-neutral-600 sm:inline-flex">
+            <FaFlag className="text-xs" />
+            Report
+          </button>
+        </div>
+
+        {companyPosts.length === 0 ? (
+          <div className="mt-5 rounded-[28px] border border-[var(--forsa-border)] bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]">
+              <FaBriefcase />
+            </div>
+
+            <p className="mt-5 font-semibold">No active posts right now.</p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-500">
+              This company has no active opportunities. Check again later or
+              explore more companies.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            {companyPosts.map((post) => (
+              <CompanyPostCard key={post.id} post={post} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
+function CompanyPostCard({ post }) {
+  return (
+    <Link
+      to={`/explore?post=${encodeURIComponent(post.id)}`}
+      className="group rounded-[28px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[var(--forsa-primary)] hover:shadow-[0_18px_55px_rgba(109,40,217,0.10)]"
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]">
+          <FaBriefcase />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h3 className="line-clamp-2 font-semibold tracking-[-0.03em]">
+            {post.title}
+          </h3>
+
+          <p className="mt-1 text-sm text-neutral-500">
+            {post.location || "Lebanon"} · {post.pay || "Pay not specified"}
+          </p>
+        </div>
+
+        <FaArrowRight className="mt-1 text-xs text-neutral-400 transition group-hover:translate-x-1 group-hover:text-[var(--forsa-primary)]" />
+      </div>
+
+      <p className="mt-4 line-clamp-2 text-sm leading-6 text-neutral-600">
+        {post.description || "No description provided."}
+      </p>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {(post.tags || []).slice(0, 4).map((tag) => (
+          <span
+            key={tag}
+            className="truncate rounded-2xl border border-[var(--forsa-border)] bg-[var(--forsa-bg)] px-3 py-2 text-xs font-medium text-neutral-600"
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+    </Link>
+  );
+}
+
+function Badge({ icon, text }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1 text-xs font-semibold text-[var(--forsa-primary)]">
+      {icon}
+      {text}
+    </span>
+  );
+}
+
 function Stat({ label, value }) {
   return (
-    <div className="rounded-2xl bg-[#f7f7f5] p-4">
-      <p className="text-lg font-semibold tracking-[-0.03em]">{value}</p>
-      <p className="mt-1 text-xs text-neutral-500">{label}</p>
+    <div className="rounded-[22px] border border-[var(--forsa-border)] bg-white/80 p-4 shadow-sm">
+      <p className="truncate text-lg font-semibold tracking-[-0.03em]">
+        {value}
+      </p>
+      <p className="mt-1 text-xs font-medium text-neutral-500">{label}</p>
     </div>
   );
 }

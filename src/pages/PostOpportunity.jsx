@@ -433,7 +433,7 @@ export default function PostOpportunity() {
       <div className="mx-auto max-w-[1180px] px-4 pb-28 sm:px-6 lg:pb-20">
         <div className="mt-5 grid gap-5 sm:mt-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-6">
           <aside className="lg:sticky lg:top-20 lg:self-start">
-            <div className="rounded-[26px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+            <div className="overflow-hidden rounded-[30px] border border-[#e9e3f3] bg-white p-5 shadow-[0_18px_55px_rgba(17,17,17,0.045)]">
               <p className="text-sm font-medium text-neutral-500">Post</p>
 
               <h1 className="mt-3 max-w-xl text-3xl font-semibold leading-[1] tracking-[-0.045em] sm:text-4xl">
@@ -460,7 +460,7 @@ export default function PostOpportunity() {
             </div>
           </aside>
 
-          <div className="rounded-[26px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-5">
+          <div className="overflow-hidden rounded-[32px] border border-[#e9e3f3] bg-white p-4 shadow-[0_20px_70px_rgba(17,17,17,0.055)] sm:p-5">
             {showRestoreDraft && (
               <RestoreDraftBanner
                 draftSavedAt={draftSavedAt}
@@ -529,7 +529,7 @@ export default function PostOpportunity() {
                 <button
                   type="button"
                   onClick={() => setTagsOpen(!tagsOpen)}
-                  className="flex w-full items-center justify-between rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-left text-sm outline-none transition hover:border-neutral-400"
+                  className="flex w-full items-center justify-between rounded-[18px] border border-[#e8e2f1] bg-[#fbfaff] px-4 py-3.5 text-left text-sm outline-none transition hover:border-[var(--forsa-primary)] hover:bg-white"
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <FaTag className="shrink-0 text-xs text-neutral-400" />
@@ -587,7 +587,7 @@ export default function PostOpportunity() {
                       type="button"
                       key={tag}
                       onClick={() => toggleTag(tag)}
-                      className="inline-flex items-center gap-2 rounded-full forsa-button px-3 py-1.5 text-xs text-white"
+                      className="inline-flex items-center gap-2 rounded-full border border-[#e8ddff] bg-[#f5f0ff] px-3 py-1.5 text-xs font-medium text-[var(--forsa-primary)] transition hover:border-[var(--forsa-primary)] hover:bg-white"
                     >
                       {tag}
                       <FaTimes className="text-[10px]" />
@@ -604,7 +604,7 @@ export default function PostOpportunity() {
                 value={form.description}
                 onChange={(e) => updateForm("description", e.target.value)}
                 placeholder="Explain the role, requirements, schedule, and who this opportunity fits."
-                className="mt-2 min-h-36 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-black"
+                className="mt-2 min-h-40 w-full resize-none rounded-[20px] border border-[#e8e2f1] bg-[#fbfaff] px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-neutral-400 focus:border-[var(--forsa-primary)] focus:bg-white focus:ring-4 focus:ring-[var(--forsa-primary)]/10"
               />
 
               <p className="mt-2 text-xs text-neutral-500">
@@ -651,7 +651,7 @@ export default function PostOpportunity() {
             updateQuestion(index, e.target.value)
           }
           placeholder={`Question ${index + 1}`}
-          className="w-full rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
+          className="w-full rounded-[18px] border border-[#e8e2f1] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--forsa-primary)] focus:ring-4 focus:ring-[var(--forsa-primary)]/10"
         />
 
         {form.questions.length > 1 && (
@@ -811,27 +811,33 @@ function TemplatesCard({ onApply }) {
 }
 
 function QualityCard({ qualityScore }) {
+  const label = qualityScore >= 80 ? "Strong post" : qualityScore >= 55 ? "Almost ready" : "Needs details";
+
   return (
-    <div className="mt-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">Post quality</p>
-        <span className="rounded-full forsa-button px-3 py-1 text-xs font-medium text-white">
+    <div className="mt-4 overflow-hidden rounded-[26px] border border-[#e9e3f3] bg-white p-4 shadow-[0_14px_45px_rgba(17,17,17,0.04)]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold">Post quality</p>
+          <p className="mt-1 text-xs text-neutral-500">{label}</p>
+        </div>
+
+        <span className="rounded-full bg-[var(--forsa-primary)] px-3 py-1 text-xs font-bold text-white shadow-[0_10px_22px_rgba(109,40,217,0.18)]">
           {qualityScore}%
         </span>
       </div>
 
-      <div className="mt-4 h-2 rounded-full bg-[#f7f7f5]">
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#f0eafd]">
         <div
-          className="h-2 rounded-full forsa-button transition-all"
+          className="h-2 rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))] transition-all duration-500"
           style={{ width: `${qualityScore}%` }}
         />
       </div>
 
       <div className="mt-4 grid gap-2">
-        <QualityItem active={qualityScore >= 20} text="Clear title" />
-        <QualityItem active={qualityScore >= 40} text="Location and pay added" />
-        <QualityItem active={qualityScore >= 60} text="Skills selected" />
-        <QualityItem active={qualityScore >= 80} text="Detailed description" />
+        <QualityItem active={qualityScore >= 20} text="Clear opportunity title" />
+        <QualityItem active={qualityScore >= 40} text="Location, pay, and contact added" />
+        <QualityItem active={qualityScore >= 60} text="Useful skills selected" />
+        <QualityItem active={qualityScore >= 80} text="Description is detailed enough" />
       </div>
     </div>
   );
@@ -840,8 +846,14 @@ function QualityCard({ qualityScore }) {
 function QualityItem({ active, text }) {
   return (
     <div className="flex items-center gap-2">
-      <div className={`h-2 w-2 rounded-full ${active ? "forsa-button" : "bg-neutral-300"}`} />
-      <p className={`text-sm ${active ? "text-black" : "text-neutral-500"}`}>
+      <div
+        className={`flex h-4 w-4 items-center justify-center rounded-full ${
+          active ? "bg-[var(--forsa-primary)] text-white" : "bg-neutral-200 text-transparent"
+        }`}
+      >
+        <FaCheck className="text-[8px]" />
+      </div>
+      <p className={`text-sm ${active ? "text-neutral-900" : "text-neutral-500"}`}>
         {text}
       </p>
     </div>
@@ -851,20 +863,20 @@ function QualityItem({ active, text }) {
 function Dropdown({ refEl, label, value, open, setOpen, children }) {
   return (
     <div ref={refEl} className="mt-5">
-      <label className="text-sm font-medium">{label}</label>
+      <label className="text-sm font-semibold text-neutral-900">{label}</label>
 
       <div className="relative mt-2">
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="flex w-full items-center justify-between rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-left text-sm outline-none transition hover:border-neutral-400"
+          className="flex w-full items-center justify-between rounded-[18px] border border-[#e8e2f1] bg-[#fbfaff] px-4 py-3.5 text-left text-sm outline-none transition hover:border-[var(--forsa-primary)] hover:bg-white"
         >
-          {value}
-          <FaChevronDown className="text-xs text-neutral-400" />
+          <span className="font-medium">{value}</span>
+          <FaChevronDown className={`text-xs text-neutral-400 transition ${open ? "rotate-180" : ""}`} />
         </button>
 
         {open && (
-          <div className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-2xl border border-[var(--forsa-border)] bg-white p-2 shadow-xl">
+          <div className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-[20px] border border-[#e8e2f1] bg-white p-2 shadow-[0_24px_70px_rgba(17,17,17,0.12)]">
             {children}
           </div>
         )}
@@ -876,13 +888,16 @@ function Dropdown({ refEl, label, value, open, setOpen, children }) {
 function Field({ label, placeholder, value, onChange }) {
   return (
     <div className="mt-5 first:mt-0 md:mt-0">
-      <label className="text-sm font-medium">{label}</label>
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-semibold text-neutral-900">{label}</label>
+        {value?.trim?.() && <span className="text-[11px] font-medium text-[var(--forsa-primary)]">Done</span>}
+      </div>
 
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-2 w-full rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none transition focus:border-black"
+        className="mt-2 w-full rounded-[18px] border border-[#e8e2f1] bg-[#fbfaff] px-4 py-3.5 text-sm outline-none transition placeholder:text-neutral-400 focus:border-[var(--forsa-primary)] focus:bg-white focus:ring-4 focus:ring-[var(--forsa-primary)]/10"
       />
     </div>
   );

@@ -1,76 +1,75 @@
 import { motion } from "framer-motion";
-import { FaBookmark, FaPaperPlane, FaSearch } from "react-icons/fa";
+import { FaBookmark, FaPaperPlane } from "react-icons/fa";
 import { opportunities } from "../data/opportunities";
 
 export default function MatchPreview() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.98 }}
+      initial={{ opacity: 0, y: 20, scale: 0.99 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.55, delay: 0.1, ease: "easeOut" }}
-      className="mx-auto w-full max-w-md rounded-[30px] border border-[var(--forsa-border)] bg-white p-3 shadow-[0_20px_60px_rgba(0,0,0,0.06)] lg:max-w-none"
+      transition={{ duration: 0.6, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
+      className="mx-auto w-full max-w-md rounded-3xl border border-[var(--forsa-border)] bg-white p-5 shadow-[0_8px_40px_rgba(0,0,0,0.02)] sm:p-6 lg:max-w-none"
     >
-
-
-      <div className="px-2 pb-2 pt-4">
-        <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="space-y-5">
+        {/* Card Header */}
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold tracking-[-0.02em]">
+            <h4 className="text-sm font-semibold tracking-tight text-neutral-950">
               Live opportunity feed
-            </p>
-            <p className="mt-1 text-xs leading-5 text-neutral-500">
+            </h4>
+            <p className="mt-0.5 text-xs text-neutral-400">
               Clear posts. Searchable. Saved for later.
             </p>
           </div>
-
-          <span className="shrink-0 rounded-full bg-[var(--forsa-primary)] px-3 py-1 text-xs text-white">
+          <span className="shrink-0 rounded-full bg-neutral-900 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-white uppercase">
             Lebanon
           </span>
         </div>
 
-        <div className="space-y-3">
+        {/* Dynamic Items Stack */}
+        <div className="space-y-3.5">
           {opportunities.slice(0, 2).map((item, index) => {
             const Icon = item.icon;
 
             return (
               <div
                 key={item.id}
-                className="rounded-[22px] border border-[var(--forsa-border)] bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
+                className="group rounded-2xl border border-[var(--forsa-border)] bg-white p-4 transition-all duration-300 hover:border-neutral-300 hover:shadow-[0_4px_20px_rgba(0,0,0,0.01)]"
               >
-                <div className="flex gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-white">
-                    <Icon />
+                <div className="flex gap-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-50 text-neutral-600 border border-neutral-100 transition-colors duration-300 group-hover:bg-[var(--forsa-primary)] group-hover:text-white group-hover:border-transparent">
+                    <Icon className="text-sm" />
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="line-clamp-1 text-sm font-semibold leading-tight">
+                        <h5 className="line-clamp-1 text-sm font-semibold text-neutral-950">
                           {item.title}
-                        </h3>
-                        <p className="mt-1 truncate text-xs text-neutral-500">
+                        </h5>
+                        <p className="mt-0.5 truncate text-xs text-neutral-400">
                           {item.company} · {item.location}
                         </p>
                       </div>
 
-                      <button className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--forsa-border)] bg-white text-neutral-500">
-                        <FaBookmark className="text-xs" />
+                      <button className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-400 transition-colors hover:border-neutral-400 hover:text-neutral-700">
+                        <FaBookmark className="text-[10px]" />
                       </button>
                     </div>
 
-                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-neutral-600">
+                    <p className="mt-2.5 line-clamp-2 text-xs leading-relaxed text-neutral-500">
                       {item.description}
                     </p>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-[#f7f7f5] px-3 py-1 text-xs text-neutral-600">
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-md border border-neutral-100 bg-neutral-50 px-2 py-0.5 text-[11px] font-medium text-neutral-500">
                         {item.type}
                       </span>
-                      <span className="rounded-full bg-[#f7f7f5] px-3 py-1 text-xs text-neutral-600">
+                      <span className="rounded-md border border-neutral-100 bg-neutral-50 px-2 py-0.5 text-[11px] font-medium text-neutral-500">
                         {item.pay || "Paid"}
                       </span>
                       {index === 0 && (
-                        <span className="rounded-full bg-[var(--forsa-primary)] px-3 py-1 text-xs text-white">
+                        <span className="rounded-md bg-[var(--forsa-primary)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--forsa-primary)]">
                           Best fit
                         </span>
                       )}
@@ -82,8 +81,8 @@ export default function MatchPreview() {
           })}
         </div>
 
-        <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-medium text-white">
-          <FaPaperPlane className="text-xs" />
+        <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--forsa-primary)] px-4 py-3 text-sm font-medium text-white transition-all duration-300 hover:brightness-110">
+          <FaPaperPlane className="text-[10px]" />
           Apply in one message
         </button>
       </div>
