@@ -2,6 +2,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 import {
   doc,
@@ -92,6 +94,52 @@ export async function updateUserAccount(uid, data) {
   setSession(next);
 
   return next;
+}
+
+export async function loginWithGoogle() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({
+    prompt: "select_account",
+  });
+
+  const credential = await signInWithPopup(auth, provider);
+  const user = credential.user;
+
+  const snap = await getDoc(doc(db, "users", user.uid));
+
+  if (snap.exists()) {
+    const account = {
+      uid: user.uid,
+      ...snap.data(),
+    };
+
+    setSession(account);
+    return { account, isNewUser: false };
+  }
+
+  const newAccount = {
+    uid: user.uid,
+    accountType: "finder",
+    name: user.displayName || "Forsa user",
+    email: user.email,
+    city: "",
+    photoURL: user.photoURL || "",
+    provider: "google",
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  await setDoc(doc(db, "users", user.uid), newAccount);
+
+  const sessionAccount = {
+    ...newAccount,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  setSession(sessionAccount);
+
+  return { account: sessionAccount, isNewUser: true };
 }
 
 export async function logout() {

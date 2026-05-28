@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import SEO from "../components/CEO";
+import SEO from "../components/SEO";
 import { Link } from "react-router-dom";
 import { createNotification } from "../lib/notificationService";
 import Footer from "../components/Footer";
@@ -469,7 +469,7 @@ function MessageToolbar({ search, setSearch, statusFilter, setStatusFilter }) {
   return (
     <div className="sticky top-[58px] z-20 mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white/90 p-3 shadow-sm backdrop-blur-xl">
       <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-        <div className="flex items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-[var(--forsa-bg)] px-4 py-3">
+        <div className="forsa-focus flex items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-[var(--forsa-bg)] px-4 py-3">
           <FaSearch className="text-sm text-neutral-400" />
           <input
             value={search}
@@ -484,7 +484,7 @@ function MessageToolbar({ search, setSearch, statusFilter, setStatusFilter }) {
             <button
               key={filter.value}
               onClick={() => setStatusFilter(filter.value)}
-              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
+              className={`forsa-click shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
                 statusFilter === filter.value
                   ? "border-[var(--forsa-green)] forsa-button text-white shadow-sm"
                   : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-[var(--forsa-green)]"
@@ -589,7 +589,7 @@ function ThreadButton({ message, active, onClick, account, presence }) {
   return (
     <button
       onClick={onClick}
-      className={`rounded-2xl p-4 text-left transition ${
+      className={`forsa-click rounded-2xl p-4 text-left ${
         active ? "forsa-button text-white shadow-[0_14px_30px_rgba(18,60,47,0.18)]" : "bg-[var(--forsa-bg)] text-black hover:bg-white hover:shadow-sm"
       }`}
     >
@@ -711,7 +711,7 @@ function ThreadHeader({ thread, account, presence, onDelete, onBack }) {
         <div className="flex min-w-0 items-start gap-3">
           <button
             onClick={onBack}
-            className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-bg)] lg:hidden"
+            className="forsa-click mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-bg)] lg:hidden"
           >
             <FaArrowLeft className="text-sm" />
           </button>
@@ -740,7 +740,7 @@ function ThreadHeader({ thread, account, presence, onDelete, onBack }) {
 
         <button
           onClick={onDelete}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-red-200 bg-white text-sm text-red-600"
+          className="forsa-click flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-red-200 bg-white text-sm text-red-600"
         >
           <FaTrash />
         </button>
@@ -815,7 +815,7 @@ function StatusControl({ status, onChange }) {
             <button
               key={option.value}
               onClick={() => onChange(option.value)}
-              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
+              className={`forsa-click inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
                 active
                   ? "border-[var(--forsa-green)] forsa-button text-white"
                   : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-neutral-400"
@@ -982,7 +982,7 @@ function ReplyBox({ reply, setReply, sendReply }) {
       <button
         onClick={sendReply}
         disabled={!reply.trim()}
-        className={`mt-3 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium sm:w-fit ${
+        className={`forsa-click mt-3 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium sm:w-fit ${
           reply.trim()
             ? "forsa-button text-white"
             : "cursor-not-allowed bg-neutral-200 text-neutral-400"

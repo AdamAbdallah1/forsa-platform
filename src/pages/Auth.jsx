@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { loginUser, registerUser } from "../lib/auth";
 import Footer from "../components/Footer";
 import { showToast } from "../lib/Toast";
-import SEO from "../components/CEO";
+import SEO from "../components/SEO";
 import {
   FaArrowLeft,
   FaArrowRight,
@@ -12,6 +12,7 @@ import {
   FaUserPlus,
   FaEye,
   FaEyeSlash,
+  FaGoogle,
   FaBuilding,
   FaEnvelope,
   FaUser,
@@ -254,29 +255,46 @@ export default function Auth() {
           </div>
 
           <div className="rounded-[22px] bg-[#f7f7f5] p-1.5">
-            <div className="grid grid-cols-2 gap-1.5">
-              <button
-                onClick={() => switchMode("signup")}
-                disabled={loading}
-                className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
-                  mode === "signup" ? "bg-white shadow-sm" : "text-neutral-500"
-                }`}
-              >
-                Create
-              </button>
+  <div className="grid grid-cols-2 gap-1.5">
+    <button
+      onClick={() => switchMode("signup")}
+      disabled={loading}
+      className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
+        mode === "signup" ? "bg-white shadow-sm" : "text-neutral-500"
+      }`}
+    >
+      Create
+    </button>
 
-              <button
-                onClick={() => switchMode("login")}
-                disabled={loading}
-                className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
-                  mode === "login" ? "bg-white shadow-sm" : "text-neutral-500"
-                }`}
-              >
-                Log in
-              </button>
-            </div>
-          </div>
+    <button
+      onClick={() => switchMode("login")}
+      disabled={loading}
+      className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
+        mode === "login" ? "bg-white shadow-sm" : "text-neutral-500"
+      }`}
+    >
+      Log in
+    </button>
+  </div>
+</div>
 
+<button
+  type="button"
+  onClick={handleGoogleLogin}
+  disabled={loading}
+  className="forsa-click mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+>
+  <FaGoogle className="text-sm" />
+  Continue with Google
+</button>
+
+<div className="my-5 flex items-center gap-3">
+  <div className="h-px flex-1 bg-[var(--forsa-border)]" />
+  <span className="text-xs font-medium text-neutral-400">
+    or continue with email
+  </span>
+  <div className="h-px flex-1 bg-[var(--forsa-border)]" />
+</div>
           {error && (
             <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm leading-6 text-red-600">
               {error}
@@ -310,6 +328,32 @@ export default function Auth() {
     </main>
   );
 }
+
+const handleGoogleLogin = async () => {
+  if (loading) return;
+
+  setLoading(true);
+  setError("");
+
+  try {
+    const { account, isNewUser } = await loginWithGoogle();
+
+    showToast(isNewUser ? "Welcome to Forsa" : "Welcome back");
+
+    navigate(
+      isNewUser
+        ? "/onboarding"
+        : account.accountType === "hiring"
+        ? "/profile"
+        : "/explore"
+    );
+  } catch (err) {
+    console.error("Google auth error:", err);
+    setError("Google sign-in failed. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
 function SpotlightCard({ active, children, onClick }) {
   return (

@@ -104,3 +104,34 @@ select {
     transform: translateX(100%);
   }
 }
+
+.forsa-card {
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.forsa-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 55px rgba(109, 40, 217, 0.1);
+}
+
+.forsa-click {
+  transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+}
+
+.forsa-click:hover {
+  transform: translateY(-1px);
+}
+
+.forsa-click:active {
+  transform: scale(0.97);
+}
+
+.forsa-focus {
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.forsa-focus:focus,
+.forsa-focus:focus-within {
+  border-color: var(--forsa-primary);
+  box-shadow: 0 0 0 4px rgba(109, 40, 217, 0.09);
+}

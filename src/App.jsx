@@ -7,6 +7,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Companies from "./pages/Companies";
 import PostOpportunity from "./pages/PostOpportunity";
+import Text from "./pages/Text";
 import Notifications from "./pages/Notifications";
 import SavedJobs from "./pages/SavedJobs";
 import Privacy from "./pages/Privacy";
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/text" element={<Text />} />
           <Route
             path="/applicants"
             element={

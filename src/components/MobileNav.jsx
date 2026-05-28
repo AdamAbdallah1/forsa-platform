@@ -46,18 +46,18 @@ export default function MobileNav() {
 
   const items = !account ? guestItems : isHiring ? hiringItems : seekerItems;
 
+  // Modern clean dynamic layout sizing map
+  const gridConfig = {
+    1: "grid-cols-1",
+    4: "grid-cols-4",
+    5: "grid-cols-5",
+  };
+  const currentGridClass = gridConfig[items.length] || "grid-cols-5";
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-3 md:hidden">
-      <div className="mx-auto max-w-md rounded-[26px] border border-white/70 bg-white/90 p-1.5 shadow-[0_18px_50px_rgba(109,40,217,0.16)] backdrop-blur-2xl">
-        <div
-          className={`grid gap-1 ${
-            items.length === 5
-              ? "grid-cols-5"
-              : items.length === 4
-              ? "grid-cols-4"
-              : "grid-cols-1"
-          }`}
-        >
+    <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-5 md:hidden">
+      <div className="mx-auto max-w-md rounded-[24px] border border-neutral-200/50 bg-white/80 p-1 shadow-[0_16px_40px_rgba(0,0,0,0.06)] backdrop-blur-xl">
+        <div className={`grid gap-0.5 ${currentGridClass}`}>
           {items.map((item) => {
             const Icon = item.icon;
 
@@ -66,15 +66,30 @@ export default function MobileNav() {
                 key={item.label}
                 to={item.to}
                 className={({ isActive }) =>
-                  `relative flex min-h-[54px] flex-col items-center justify-center rounded-[20px] px-1.5 py-2 text-[10.5px] font-semibold transition-all duration-200 ${
+                  `relative flex min-h-[56px] flex-col items-center justify-center rounded-[18px] px-1 py-1.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-300 active:scale-95 ${
                     isActive
-                      ? "bg-[linear-gradient(135deg,var(--forsa-primary),var(--forsa-glow))] text-white shadow-[0_10px_24px_rgba(109,40,217,0.22)]"
-                      : "text-neutral-500 hover:bg-[var(--forsa-bg-soft)] hover:text-[var(--forsa-primary)]"
+                      ? "text-[var(--forsa-primary)] font-bold"
+                      : "text-neutral-400 hover:text-neutral-600"
                   }`
                 }
               >
-                <Icon className="mb-1 text-sm" />
-                <span className="leading-none">{item.label}</span>
+                {({ isActive }) => (
+                  <>
+                    {/* Icon container handles scale transformation smoothly */}
+                    <div className={`transition-transform duration-300 ${isActive ? "-translate-y-0.5 scale-110 text-[var(--forsa-primary)]" : ""}`}>
+                      <Icon className="text-[15px]" />
+                    </div>
+                    
+                    <span className="mt-1.5 text-[9px] leading-none tracking-tight">
+                      {item.label}
+                    </span>
+
+                    {/* Minimal Underline Pill Micro Indicator */}
+                    {isActive && (
+                      <div className="absolute bottom-1 h-1 w-3 rounded-full bg-[var(--forsa-primary)] animate-fade-in" />
+                    )}
+                  </>
+                )}
               </NavLink>
             );
           })}

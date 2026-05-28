@@ -3,7 +3,9 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { showToast } from "../lib/Toast";
 import ExploreSkeleton from "../components/ExploreSkeleton";
 import Skeleton from "../components/Skeleton";
-import SEO from "../components/CEO"
+import { FaWhatsapp, FaCopy } from "react-icons/fa";
+import SEO from "../components/SEO"
+import Modal from "../components/ui/Modal";
 import { getActivePosts } from "../lib/postService";
 import Footer from "../components/Footer";
 import { createNotification } from "../lib/notificationService";
@@ -29,7 +31,6 @@ import {
   FaShareAlt,
   FaFlag,
   FaShieldAlt,
-  FaWhatsapp,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import { opportunities } from "../data/opportunities";
@@ -169,10 +170,11 @@ const getDateValue = (value) => {
 };
 
 const types = ["All", "Internship", "Freelance", "Part-time", "Project", "Remote"];
-const sortOptions = ["Best match", "Newest", "Urgent"];
+const sortOptions = ["Best match", "Newest", "Urgent", "Most applied"];
 
 export default function Explore() {
   const navigate = useNavigate();
+  const [shareItem, setShareItem] = useState(null);
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
@@ -194,6 +196,8 @@ export default function Explore() {
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState("All");
   const [sortBy, setSortBy] = useState("Best match");
+  const [locationFilter, setLocationFilter] = useState("All");
+  const [showFilters, setShowFilters] = useState(false);
   const [savedJobs, setSavedJobs] = useState(safeJson("forsaSavedJobs", []));
   const [savedLoading, setSavedLoading] = useState(false);
   const [recentlyViewed, setRecentlyViewed] = useState(safeJson("forsaRecentlyViewed", []));
@@ -299,6 +303,24 @@ export default function Explore() {
     return [...normalizedPosts, ...normalizedSeed];
   }, [firebasePosts]);
 
+  const availableLocations = useMemo(() => {
+    const locations = allOpportunities
+      .map((item) => item.location || "Lebanon")
+      .filter(Boolean);
+
+    return ["All", ...Array.from(new Set(locations)).slice(0, 12)];
+  }, [allOpportunities]);
+
+  const hasActiveFilters =
+    search.trim() || activeType !== "All" || locationFilter !== "All" || sortBy !== "Best match";
+
+  const clearFilters = () => {
+    setSearch("");
+    setActiveType("All");
+    setLocationFilter("All");
+    setSortBy("Best match");
+  };
+
   const appliedIds = useMemo(() => {
     if (!account?.email) return new Set();
 
@@ -313,10 +335,14 @@ export default function Explore() {
     const query = search.trim().toLowerCase();
 
     const filtered = allOpportunities.filter((item) => {
-      const searchText = `${item.title} ${item.company} ${item.location} ${(item.tags || []).join(" ")}`.toLowerCase();
+      const searchText = `${item.title} ${item.company} ${item.location} ${item.type} ${(item.tags || []).join(" ")}`.toLowerCase();
       const matchesSearch = query.length === 0 || searchText.includes(query);
       const matchesType = activeType === "All" || item.type === activeType;
-      return matchesSearch && matchesType;
+      const matchesLocation =
+        locationFilter === "All" ||
+        normalize(item.location).includes(normalize(locationFilter));
+
+      return matchesSearch && matchesType && matchesLocation;
     });
 
     const scored = filtered.map((item) => {
@@ -352,8 +378,17 @@ export default function Explore() {
       );
     }
 
+    if (sortBy === "Most applied") {
+      return scored.sort(
+        (a, b) =>
+          getApplicantCount(b.id) - getApplicantCount(a.id) ||
+          b.matchScore - a.matchScore ||
+          new Date(b.createdAt) - new Date(a.createdAt)
+      );
+    }
+
     return scored.sort((a, b) => b.rankScore - a.rankScore);
-  }, [allOpportunities, search, activeType, sortBy, savedProfile, account]);
+  }, [allOpportunities, search, activeType, locationFilter, sortBy, savedProfile, account]);
 
   const recommendedOpportunities = useMemo(() => {
     if (!canInteract) return [];
@@ -664,6 +699,13 @@ export default function Explore() {
           setActiveType={setActiveType}
           sortBy={sortBy}
           setSortBy={setSortBy}
+          locationFilter={locationFilter}
+          setLocationFilter={setLocationFilter}
+          availableLocations={availableLocations}
+          showFilters={showFilters}
+          setShowFilters={setShowFilters}
+          hasActiveFilters={Boolean(hasActiveFilters)}
+          clearFilters={clearFilters}
         />
         <HeroBar
           isHiring={isHiring}
@@ -740,7 +782,7 @@ export default function Explore() {
                 onApply={() =>
                   appliedIds.has(item.id) ? navigate("/messages") : openApply(item)
                 }
-                onShare={() => shareOpportunity(item)}
+                onShare={() => setShareItem(item)}
               />
             ))}
           </div>
@@ -786,6 +828,50 @@ export default function Explore() {
         />
       )}
       <Footer />
+      <Modal
+  open={Boolean(shareItem)}
+  title="Share opportunity"
+  onClose={() => setShareItem(null)}
+>
+  {shareItem && (
+    <div>
+      <p className="text-sm leading-7 text-neutral-600">
+        Share this opportunity with someone who might be a good fit.
+      </p>
+
+      <div className="mt-5 rounded-2xl bg-[var(--forsa-bg)] p-4">
+        <p className="text-sm font-semibold">{shareItem.title}</p>
+        <p className="mt-1 text-sm text-neutral-500">
+          {shareItem.company} · {shareItem.location}
+        </p>
+      </div>
+
+      <div className="mt-5 grid gap-2">
+        <button
+          onClick={() => {
+            shareToWhatsApp(shareItem);
+            setShareItem(null);
+          }}
+          className="flex items-center justify-center gap-2 rounded-full bg-green-600 px-5 py-3 text-sm font-semibold text-white"
+        >
+          <FaWhatsapp />
+          Share on WhatsApp
+        </button>
+
+        <button
+          onClick={() => {
+            shareOpportunity(shareItem);
+            setShareItem(null);
+          }}
+          className="flex items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700"
+        >
+          <FaCopy />
+          Copy link
+        </button>
+      </div>
+    </div>
+  )}
+</Modal>
     </section>
   );
 }
@@ -841,49 +927,192 @@ function MiniStat({ label, value }) {
   );
 }
 
-function SearchPanel({ search, setSearch, activeType, setActiveType, sortBy, setSortBy }) {
+function SearchPanel({
+  search,
+  setSearch,
+  activeType,
+  setActiveType,
+  sortBy,
+  setSortBy,
+  locationFilter,
+  setLocationFilter,
+  availableLocations,
+  showFilters,
+  setShowFilters,
+  hasActiveFilters,
+  clearFilters,
+}) {
   return (
-    <div className="sticky top-[76px] z-30 -mx-4 mt-4 border-y border-[var(--forsa-border)]/80 bg-white/92 px-4 py-3 shadow-[0_12px_40px_rgba(109,40,217,0.06)] backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[28px] sm:border sm:p-3">
-      <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-        <div className="group flex items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-[var(--forsa-bg-soft)]/65 px-4 py-3.5 transition focus-within:border-[var(--forsa-primary)] focus-within:bg-white">
-          <FaSearch className="text-sm text-[var(--forsa-primary)]" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search role, skill, company, city..."
-            className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-400"
-          />
-          {search && (
+    <>
+      <div className="sticky top-[76px] z-30 -mx-4 mt-4 border-y border-[var(--forsa-border)]/80 bg-white/92 px-4 py-3 shadow-[0_12px_40px_rgba(109,40,217,0.06)] backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[28px] sm:border sm:p-3">
+        <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="forsa-focus flex items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-[var(--forsa-bg-soft)]/65 px-4 py-3.5 transition">
+            <FaSearch className="text-sm text-[var(--forsa-primary)]" />
+
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search role, skill, company, city..."
+              className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-400"
+            />
+
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="forsa-click rounded-full bg-white px-2 py-1 text-xs text-neutral-500"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setSearch("")}
-              className="rounded-full bg-white px-2 py-1 text-xs text-neutral-500"
+              onClick={() => setShowFilters(true)}
+              className="forsa-click inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm font-semibold text-neutral-700 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)] lg:hidden"
             >
-              Clear
+              <FaSlidersH className="text-xs" />
+              Filters
+              {hasActiveFilters && (
+                <span className="h-2 w-2 rounded-full bg-[var(--forsa-primary)]" />
+              )}
+            </button>
+
+            <div className="hidden gap-2 overflow-x-auto lg:flex">
+              {sortOptions.map((option) => (
+                <FilterButton key={option} active={sortBy === option} onClick={() => setSortBy(option)}>
+                  <span className="inline-flex items-center gap-2">
+                    {option === "Best match" && <FaSlidersH className="text-xs" />}
+                    {option}
+                  </span>
+                </FilterButton>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 hidden gap-2 overflow-x-auto pb-1 lg:flex">
+          {types.map((type) => (
+            <FilterButton key={type} active={activeType === type} onClick={() => setActiveType(type)}>
+              {type}
+            </FilterButton>
+          ))}
+
+          <div className="mx-1 h-9 w-px shrink-0 bg-[var(--forsa-border)]" />
+
+          {availableLocations.slice(0, 8).map((city) => (
+            <FilterButton key={city} active={locationFilter === city} onClick={() => setLocationFilter(city)}>
+              <span className="inline-flex items-center gap-1.5">
+                <FaMapMarkerAlt className="text-[10px]" />
+                {city}
+              </span>
+            </FilterButton>
+          ))}
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="forsa-click shrink-0 rounded-full border border-red-100 bg-red-50 px-4 py-2.5 text-[13px] font-semibold text-red-600"
+            >
+              Clear all
             </button>
           )}
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1 lg:justify-end lg:pb-0">
-          {sortOptions.map((option) => (
-            <FilterButton key={option} active={sortBy === option} onClick={() => setSortBy(option)}>
-              <span className="inline-flex items-center gap-2">
-                {option === "Best match" && <FaSlidersH className="text-xs" />}
-                {option}
-              </span>
-            </FilterButton>
-          ))}
-        </div>
+        {hasActiveFilters && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {search.trim() && <ActiveChip label={`Search: ${search}`} onClear={() => setSearch("")} />}
+            {activeType !== "All" && <ActiveChip label={activeType} onClear={() => setActiveType("All")} />}
+            {locationFilter !== "All" && <ActiveChip label={locationFilter} onClear={() => setLocationFilter("All")} />}
+            {sortBy !== "Best match" && <ActiveChip label={sortBy} onClear={() => setSortBy("Best match")} />}
+          </div>
+        )}
       </div>
 
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-        {types.map((type) => (
-          <FilterButton key={type} active={activeType === type} onClick={() => setActiveType(type)}>
-            {type}
-          </FilterButton>
-        ))}
-      </div>
+      <Modal
+        open={showFilters}
+        title="Filter opportunities"
+        onClose={() => setShowFilters(false)}
+        maxWidth="max-w-lg"
+      >
+        <div className="grid gap-6">
+          <FilterGroup title="Sort by">
+            <div className="grid grid-cols-2 gap-2">
+              {sortOptions.map((option) => (
+                <FilterButton key={option} active={sortBy === option} onClick={() => setSortBy(option)}>
+                  {option}
+                </FilterButton>
+              ))}
+            </div>
+          </FilterGroup>
+
+          <FilterGroup title="Opportunity type">
+            <div className="flex flex-wrap gap-2">
+              {types.map((type) => (
+                <FilterButton key={type} active={activeType === type} onClick={() => setActiveType(type)}>
+                  {type}
+                </FilterButton>
+              ))}
+            </div>
+          </FilterGroup>
+
+          <FilterGroup title="Location">
+            <div className="flex max-h-[180px] flex-wrap gap-2 overflow-auto pr-1">
+              {availableLocations.map((city) => (
+                <FilterButton key={city} active={locationFilter === city} onClick={() => setLocationFilter(city)}>
+                  {city}
+                </FilterButton>
+              ))}
+            </div>
+          </FilterGroup>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="forsa-click rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700"
+            >
+              Clear
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowFilters(false)}
+              className="forsa-click forsa-button rounded-full px-5 py-3 text-sm font-semibold text-white"
+            >
+              Show results
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </>
+  );
+}
+
+function FilterGroup({ title, children }) {
+  return (
+    <div>
+      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400">
+        {title}
+      </p>
+      {children}
     </div>
+  );
+}
+
+function ActiveChip({ label, onClear }) {
+  return (
+    <button
+      type="button"
+      onClick={onClear}
+      className="forsa-click inline-flex items-center gap-2 rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--forsa-primary)]"
+    >
+      {label}
+      <FaTimes className="text-[10px]" />
+    </button>
   );
 }
 
@@ -892,7 +1121,7 @@ function FilterButton({ active, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 rounded-full border px-4 py-2.5 text-[13px] font-medium transition ${
+      className={`forsa-click shrink-0 rounded-full border px-4 py-2.5 text-[13px] font-medium transition ${
         active
           ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-[0_12px_28px_rgba(109,40,217,0.20)]"
           : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom"; 
 import Footer from "../components/Footer";
-import SEO from "../components/CEO";
+import SEO from "../components/SEO";
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
 import {
@@ -200,7 +200,7 @@ export default function Profile() {
 
             <Link
               to="/auth"
-              className="mt-7 inline-flex rounded-full forsa-button px-6 py-3 text-sm font-medium text-white"
+              className="forsa-click mt-7 inline-flex rounded-full forsa-button px-6 py-3 text-sm font-medium text-white"
             >
               Create account
             </Link>
@@ -247,6 +247,31 @@ const displayEmail =
   };
 
   const completionScore = getProfileCompletion();
+
+  const profileLevel =
+    completionScore >= 90
+      ? "Pro"
+      : completionScore >= 70
+      ? "Advanced"
+      : completionScore >= 45
+      ? "Active"
+      : "Starter";
+
+  const profileSignals = isHiring
+    ? [
+        { label: "Company name", done: Boolean(account.companyName || account.name) },
+        { label: "Contact email", done: Boolean(account.companyEmail || account.email) },
+        { label: "Location", done: Boolean(account.city) },
+        { label: "Public profile", done: Boolean(account.companyBio || account.website || account.instagram) },
+        { label: "First post", done: posts.length > 0 },
+      ]
+    : [
+        { label: "Full name", done: Boolean(account.name) },
+        { label: "Location", done: Boolean(account.city || profile.cityPreference) },
+        { label: "Skills", done: profile.skills.length > 0 },
+        { label: "Goals", done: profile.lookingFor.length > 0 },
+        { label: "CV", done: Boolean(profile.cv?.url || profile.cv?.name) },
+      ];
 
   const seekerApplications = messages.filter(
     (thread) => thread.seeker?.email === account.email
@@ -588,11 +613,12 @@ const displayEmail =
 
 
   return (
-    <section>
+    <section className="min-h-screen bg-[var(--forsa-bg)]">
+      <SEO title="Profile" />
       <AppHeader />
 
       <div className="mx-auto max-w-6xl px-5 pb-28 sm:px-6 lg:pb-20">
-        <div className="mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:mt-8 sm:rounded-[32px] sm:p-5 md:p-6">
+        <div className="forsa-card mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:mt-8 sm:rounded-[32px] sm:p-5 md:p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="flex min-w-0 items-start gap-4 sm:gap-5">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full forsa-button text-lg font-semibold text-white sm:h-14 sm:w-14 sm:text-lg">
@@ -610,30 +636,31 @@ const displayEmail =
                   </span>
                 </div>
 
-                <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-neutral-500 sm:text-base">
-                  {isHiring && (
-  <Link
-    to={`/company/${encodeURIComponent(
-      account.companyEmail || account.email
-    )}`}
-    className="mt-4 inline-flex items-center gap-2 rounded-full forsa-button px-4 py-2 text-xs font-medium text-white"
-  >
-    <FaEye className="text-[10px]" />
-    View public company profile
-  </Link>
-)}
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-neutral-500 sm:text-base">
                   <FaMapMarkerAlt className="text-xs" />
-                  <span>{account.city}</span>
+                  <span>{account.city || "Lebanon"}</span>
                   <span className="hidden sm:inline">·</span>
                   <span className="break-all">{displayEmail}</span>
-                </p>
+                </div>
+
+                {isHiring && (
+                  <Link
+                    to={`/company/${encodeURIComponent(
+                      account.companyEmail || account.email
+                    )}`}
+                    className="forsa-click mt-4 inline-flex items-center gap-2 rounded-full forsa-button px-4 py-2 text-xs font-medium text-white"
+                  >
+                    <FaEye className="text-[10px]" />
+                    View public company profile
+                  </Link>
+                )}
               </div>
             </div>
 
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-neutral-500 sm:w-fit"
+                className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-neutral-500 sm:w-fit"
               >
                 <FaEdit className="text-xs" />
                 Edit profile
@@ -642,14 +669,14 @@ const displayEmail =
               <div className="grid grid-cols-2 gap-2 sm:flex">
                 <button
                   onClick={cancelEdit}
-                  className="rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-neutral-500"
+                  className="forsa-click rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-neutral-500"
                 >
                   Cancel
                 </button>
 
                 <button
                   onClick={saveChanges}
-                  className="rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
+                  className="forsa-click rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
                 >
                   Save changes
                 </button>
@@ -706,6 +733,8 @@ const displayEmail =
                   posts={posts}
                   savedJobs={savedJobs}
                   completionScore={completionScore}
+                  profileLevel={profileLevel}
+                  profileSignals={profileSignals}
                   seekerApplications={seekerApplications}
                   recentlyViewed={recentlyViewed}
                   account={account}
@@ -757,6 +786,8 @@ const displayEmail =
         </div>
       </div>
 
+      <Footer />
+
       {selectedApplicantsPost && (
         <ApplicantsModal
           post={selectedApplicantsPost}
@@ -776,6 +807,8 @@ function OverviewTab({
   posts,
   savedJobs,
   completionScore,
+  profileLevel,
+  profileSignals = [],
   seekerApplications = [],
   recentlyViewed = [],
   account,
@@ -784,6 +817,13 @@ function OverviewTab({
   return (
     <div className="mt-6 sm:mt-8">
       <CompletionCard completionScore={completionScore} isHiring={isHiring} />
+
+      <ProfileLevelCard
+        level={profileLevel}
+        completionScore={completionScore}
+        signals={profileSignals}
+        isHiring={isHiring}
+      />
 
       <CompletionTips isHiring={isHiring} profile={profile} posts={posts} />
 
@@ -847,7 +887,7 @@ function OverviewTab({
 
             <Link
               to="/post"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
+              className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
             >
               <FaPlus className="text-xs" />
               Post
@@ -856,6 +896,78 @@ function OverviewTab({
         </div>
       )}
     </div>
+  );
+}
+
+function ProfileLevelCard({ level, completionScore, signals, isHiring }) {
+  const nextTarget = completionScore >= 90 ? 100 : completionScore >= 70 ? 90 : completionScore >= 45 ? 70 : 45;
+  const missing = signals.filter((item) => !item.done);
+
+  return (
+    <div className="forsa-card mb-5 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white shadow-sm sm:mb-6">
+      <div className="relative p-5 sm:p-6">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-[var(--forsa-glow)]/15 blur-3xl" />
+
+        <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-medium text-neutral-500">
+              {isHiring ? "Company level" : "Profile level"}
+            </p>
+
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <h3 className="text-3xl font-semibold tracking-[-0.05em]">
+                {level}
+              </h3>
+
+              <span className="rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1 text-xs font-semibold text-[var(--forsa-primary)]">
+                {completionScore}% complete
+              </span>
+            </div>
+
+            <p className="mt-3 max-w-xl text-sm leading-6 text-neutral-600">
+              {missing.length === 0
+                ? "Your profile has strong trust signals and is ready for better matches."
+                : `Complete ${missing[0].label.toLowerCase()} to move closer to the next level.`}
+            </p>
+          </div>
+
+          <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 md:w-[220px]">
+            <div className="flex items-center justify-between text-xs text-neutral-500">
+              <span>Next level</span>
+              <span>{nextTarget}%</span>
+            </div>
+
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+              <div
+                className="h-full rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))] transition-all duration-500"
+                style={{ width: `${Math.min(100, completionScore)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="relative mt-5 flex flex-wrap gap-2">
+          {signals.map((item) => (
+            <ProfileSignal key={item.label} done={item.done} label={item.label} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileSignal({ done, label }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+        done
+          ? "bg-[var(--forsa-primary)] text-white"
+          : "bg-[var(--forsa-bg)] text-neutral-500"
+      }`}
+    >
+      {done ? <FaCheckCircle className="text-[10px]" /> : <FaClock className="text-[10px]" />}
+      {label}
+    </span>
   );
 }
 
@@ -891,7 +1003,7 @@ function VerificationCard({ account, onRequestVerification }) {
         {!verified && (
           <button
             onClick={onRequestVerification}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)] sm:w-fit"
+            className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)] sm:w-fit"
           >
             <FaShieldAlt className="text-xs" />
             Request verification
@@ -987,7 +1099,7 @@ function PostsTab({
 
         <Link
           to="/post"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
+          className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
         >
           <FaPlus className="text-xs" />
           New post
@@ -1045,7 +1157,7 @@ function EditPostCard({
   cancelPostEdit,
 }) {
   return (
-    <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
+    <div className="forsa-card rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
       <div className="grid gap-3">
         <Field label="Title" value={editingPost.title} onChange={(value) => updateEditingPost("title", value)} />
         <Field label="Location" value={editingPost.location} onChange={(value) => updateEditingPost("location", value)} />
@@ -1066,7 +1178,7 @@ function EditPostCard({
         <button onClick={cancelPostEdit} className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium">
           Cancel
         </button>
-        <button onClick={savePostEdit} className="rounded-full forsa-button px-4 py-2 text-sm font-medium text-white">
+        <button onClick={savePostEdit} className="forsa-click rounded-full forsa-button px-4 py-2 text-sm font-medium text-white">
           Save
         </button>
       </div>
@@ -1138,7 +1250,7 @@ function PostCard({
 
           <button
             onClick={() => openApplicants(post)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-4 py-2 text-xs font-medium text-white sm:w-fit"
+            className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-4 py-2 text-xs font-medium text-white sm:w-fit"
           >
             <FaUsers className="text-xs" />
             View
@@ -1934,7 +2046,7 @@ function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo, isHiring, 
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
           <button
             onClick={loadDemo}
-            className="rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
+            className="forsa-click rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
           >
             Load demo activity
           </button>
@@ -1954,7 +2066,7 @@ function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo, isHiring, 
           Login/logout is simulated with localStorage for now.
         </p>
 
-        <button onClick={logout} className="mt-5 w-full rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit">
+        <button onClick={logout} className="forsa-click mt-5 w-full rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit">
           Log out
         </button>
       </div>
@@ -2053,7 +2165,7 @@ function CvLinkEditor({ cv, onSave, onRemove }) {
           <button
             type="button"
             onClick={() => onSave(url)}
-            className="rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
+            className="forsa-click rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
           >
             Save CV link
           </button>
@@ -2227,7 +2339,7 @@ function TabButton({ active, onClick, icon, children }) {
   return (
     <button
       onClick={onClick}
-      className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+      className={`forsa-click inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
         active ? "forsa-button text-white" : "bg-[var(--forsa-bg)] text-neutral-600 hover:bg-white"
       }`}
     >

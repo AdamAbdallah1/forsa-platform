@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import SEO from "../components/CEO";
+import SEO from "../components/SEO";
 import { Link, useNavigate } from "react-router-dom";
+import Modal from "../components/ui/Modal";
 import {
   FaArrowRight,
   FaBriefcase,
@@ -57,6 +58,7 @@ export default function Applicants() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [statusConfirm, setStatusConfirm] = useState(null);
 
   const isHiring = account?.accountType === "hiring";
 
@@ -178,12 +180,70 @@ export default function Applicants() {
                 thread={thread}
                 busy={busyId === thread.id}
                 onMessage={() => navigate("/messages")}
-                onStatus={(status) => changeStatus(thread, status)}
+                onStatus={(status) =>
+  setStatusConfirm({
+    thread,
+    status,
+  })
+}
               />
             ))}
           </div>
         )}
       </div>
+      <Modal
+  open={Boolean(statusConfirm)}
+  title="Update applicant status"
+  onClose={() => setStatusConfirm(null)}
+>
+  {statusConfirm && (
+    <div>
+      <p className="text-sm leading-7 text-neutral-600">
+        Are you sure you want to mark{" "}
+        <span className="font-semibold text-black">
+          {statusConfirm.thread.seeker?.name || "this applicant"}
+        </span>{" "}
+        as{" "}
+        <span className="font-semibold text-[var(--forsa-primary)]">
+          {getStatusLabel(statusConfirm.status)}
+        </span>
+        ?
+      </p>
+
+      <div className="mt-5 rounded-2xl bg-[var(--forsa-bg)] p-4">
+        <p className="text-sm font-semibold">
+          {statusConfirm.thread.title}
+        </p>
+        <p className="mt-1 text-sm text-neutral-500">
+          {statusConfirm.thread.seeker?.email || "No email"}
+        </p>
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-2">
+        <button
+          onClick={() => setStatusConfirm(null)}
+          className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={() => {
+            changeStatus(statusConfirm.thread, statusConfirm.status);
+            setStatusConfirm(null);
+          }}
+          className={`rounded-full px-5 py-3 text-sm font-semibold text-white ${
+            statusConfirm.status === "rejected"
+              ? "bg-red-600"
+              : "forsa-button"
+          }`}
+        >
+          Confirm
+        </button>
+      </div>
+    </div>
+  )}
+</Modal>
     </section>
   );
 }
@@ -277,7 +337,7 @@ function ApplicantCard({ thread, busy, onMessage, onStatus }) {
   const lookingFor = seeker.lookingFor || [];
 
   return (
-    <article className="overflow-hidden rounded-[30px] border border-[var(--forsa-border)] bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-[var(--forsa-soft)] hover:shadow-[0_22px_70px_rgba(109,40,217,0.10)]">
+    <article className="forsa-card overflow-hidden rounded-[30px] border border-[var(--forsa-border)] bg-white shadow-sm">
       <div className="grid gap-0 lg:grid-cols-[1fr_290px]">
         <div className="p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -337,7 +397,7 @@ function ApplicantCard({ thread, busy, onMessage, onStatus }) {
           <p className="mt-1 text-xs leading-5 text-neutral-500">Update status and continue the conversation.</p>
 
           <div className="mt-4 grid gap-2">
-            <button onClick={onMessage} className="forsa-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white">
+            <button onClick={onMessage} className="forsa-click forsa-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white">
               <FaEnvelope className="text-xs" />
               Open messages
             </button>

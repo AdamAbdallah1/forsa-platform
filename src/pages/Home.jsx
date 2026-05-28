@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import Hero from "../components/Hero";
 import MatchPreview from "../components/MatchPreview";
 import ProblemSection from "../components/ProblemSection";
-import SEO from "../components/CEO";
+import SEO from "../components/SEO";
 import HowItWorks from "../components/HowItWorks";
 import CategoriesSection from "../components/CategoriesSection";
 import Grainient from "../components/ui/Grainient";

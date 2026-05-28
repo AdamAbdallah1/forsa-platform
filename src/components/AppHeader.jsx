@@ -1,6 +1,7 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   FaBell,
+  FaBookmark,
   FaCompass,
   FaPaperPlane,
   FaPlus,
@@ -76,6 +77,15 @@ export default function AppHeader() {
                 </>
               )}
 
+              {!isHiring && (
+  <NavLink to="/saved" className={linkClass}>
+    <span className="flex items-center gap-1.5">
+      <FaBookmark className="text-[11px]" />
+      Saved
+    </span>
+  </NavLink>
+)}
+
               <NavLink to="/messages" className={linkClass}>
                 <span className="flex items-center gap-1.5">
                   <FaPaperPlane className="text-[11px]" />
@@ -116,10 +126,10 @@ export default function AppHeader() {
               </NavLink>
 
               <button
-                onClick={() => navigate(isHiring ? "/applicants" : "/explore")}
+                onClick={() => navigate(isHiring ? "/applicants" : "/saved")}
                 className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-[var(--forsa-primary-light)] sm:block"
               >
-                {isHiring ? "Applicants" : "Explore"}
+                {isHiring ? "Applicants" : "Saved"}
               </button>
             </>
           ) : !isAuthPage ? (

@@ -1,5 +1,5 @@
 import AppHeader from "../components/AppHeader";
-import SEO from "../components/CEO";
+import SEO from "../components/SEO";
 import Footer from "../components/Footer";
 
 export default function Privacy() {
