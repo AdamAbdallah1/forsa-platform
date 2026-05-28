@@ -114,7 +114,7 @@ export default function CurvedLoop({
 
   return (
     <div
-      className="relative h-[90px] w-full overflow-hidden sm:h-[110px] lg:h-[125px]"
+      className="relative h-[90px] w-full overflow-hidden sm:h-[110px] lg:h-[125px] pt-50"
       style={{
         visibility: ready ? "visible" : "hidden",
         cursor: interactive ? (dragRef.current ? "grabbing" : "grab") : "default",
@@ -144,7 +144,7 @@ export default function CurvedLoop({
         {ready && (
           <text
             xmlSpace="preserve"
-            className={`fill-[var(--forsa-primary)] text-[42px] font-semibold uppercase tracking-[-0.05em] opacity-[0.07] sm:text-[56px] lg:text-[64px] ${className}`}
+            className={`fill-[var(--forsa-primary)] text-[42px] font-semibold uppercase tracking-[-0.05em] opacity-[0.09] sm:text-[56px] lg:text-[64px] ${className}`}
           >
             <textPath
               ref={textPathRef}

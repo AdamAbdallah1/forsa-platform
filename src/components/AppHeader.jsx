@@ -1,5 +1,12 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { FaBell, FaCompass, FaPaperPlane, FaPlus, FaUser } from "react-icons/fa";
+import {
+  FaBell,
+  FaCompass,
+  FaPaperPlane,
+  FaPlus,
+  FaUser,
+  FaUsers,
+} from "react-icons/fa";
 import BrandLogo from "./BrandLogo";
 
 function safeJson(key, fallback) {
@@ -52,12 +59,21 @@ export default function AppHeader() {
           {account && (
             <>
               {isHiring && (
-                <NavLink to="/post" className={linkClass}>
-                  <span className="flex items-center gap-1.5">
-                    <FaPlus className="text-[11px]" />
-                    Post
-                  </span>
-                </NavLink>
+                <>
+                  <NavLink to="/post" className={linkClass}>
+                    <span className="flex items-center gap-1.5">
+                      <FaPlus className="text-[11px]" />
+                      Post
+                    </span>
+                  </NavLink>
+
+                  <NavLink to="/applicants" className={linkClass}>
+                    <span className="flex items-center gap-1.5">
+                      <FaUsers className="text-[11px]" />
+                      Applicants
+                    </span>
+                  </NavLink>
+                </>
               )}
 
               <NavLink to="/messages" className={linkClass}>
@@ -100,16 +116,16 @@ export default function AppHeader() {
               </NavLink>
 
               <button
-                onClick={() => navigate(isHiring ? "/post" : "/explore")}
-                className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:bg-[var(--forsa-primary-light)] hover:scale-[1.01] sm:block"
+                onClick={() => navigate(isHiring ? "/applicants" : "/explore")}
+                className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-[var(--forsa-primary-light)] sm:block"
               >
-                {isHiring ? "Post" : "Explore"}
+                {isHiring ? "Applicants" : "Explore"}
               </button>
             </>
           ) : !isAuthPage ? (
             <button
               onClick={() => navigate("/auth")}
-              className="rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:bg-[var(--forsa-primary-light)] hover:scale-[1.01]"
+              className="rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-[var(--forsa-primary-light)]"
             >
               Join
             </button>
