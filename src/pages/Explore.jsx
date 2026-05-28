@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { showToast } from "../lib/Toast";
+import ExploreSkeleton from "../components/ExploreSkeleton";
 import Skeleton from "../components/Skeleton";
 import SEO from "../components/CEO"
 import { getActivePosts } from "../lib/postService";
@@ -653,8 +654,17 @@ export default function Explore() {
     description="Explore jobs, internships, freelance gigs, and local opportunities in Lebanon on Forsa."
   />
       <AppHeader />
+      
 
       <div className="mx-auto max-w-[1180px] px-4 pb-28 sm:px-6 lg:pb-20">
+        <SearchPanel
+          search={search}
+          setSearch={setSearch}
+          activeType={activeType}
+          setActiveType={setActiveType}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+        />
         <HeroBar
           isHiring={isHiring}
           isLoggedIn={isLoggedIn}
@@ -667,15 +677,6 @@ export default function Explore() {
           isHiring={isHiring}
           savedProfile={savedProfile}
           navigate={navigate}
-        />
-
-        <SearchPanel
-          search={search}
-          setSearch={setSearch}
-          activeType={activeType}
-          setActiveType={setActiveType}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
         />
 
         {recentlyViewed.length > 0 && (
@@ -720,8 +721,8 @@ export default function Explore() {
         </div>
 
         {postsLoading ? (
-          <LoadingState />
-        ) : rankedOpportunities.length === 0 ? (
+  <ExploreSkeleton />
+) : rankedOpportunities.length === 0 ? (
           <EmptyState search={search} />
         ) : (
           <div className="mt-5 grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
