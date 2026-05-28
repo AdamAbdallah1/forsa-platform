@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { showToast } from "../lib/Toast";
+import Skeleton from "../components/Skeleton";
 import SEO from "../components/CEO"
 import { getActivePosts } from "../lib/postService";
 import Footer from "../components/Footer";

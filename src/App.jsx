@@ -4,6 +4,7 @@ import Onboarding from "./pages/Onboarding";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
+import NotFound from "./pages/NotFound";
 import Companies from "./pages/Companies";
 import PostOpportunity from "./pages/PostOpportunity";
 import Notifications from "./pages/Notifications";
@@ -66,6 +67,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="*" element={<NotFound />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route
