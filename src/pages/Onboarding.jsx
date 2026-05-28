@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import Footer from "../components/Footer";
 import {
   FaArrowRight,
   FaBriefcase,
@@ -431,6 +432,7 @@ export default function Onboarding() {
           </div>
         </div>
       </div>
+      <Footer />
     </section>
   );
 }

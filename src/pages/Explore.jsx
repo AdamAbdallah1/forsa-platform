@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { showToast } from "../lib/Toast";
 import SEO from "../components/CEO"
 import { getActivePosts } from "../lib/postService";
+import Footer from "../components/Footer";
 import { createNotification } from "../lib/notificationService";
 import { createApplicationThread } from "../lib/applicationService";
 import { getUserSavedJobs, saveJob, unsaveJob } from "../lib/savedJobsService";
@@ -782,6 +783,7 @@ export default function Explore() {
           onCreateAccount={() => navigate("/auth")}
         />
       )}
+      <Footer />
     </section>
   );
 }

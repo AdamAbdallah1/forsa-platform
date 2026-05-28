@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import SEO from "../components/CEO";
 import { Link } from "react-router-dom";
 import { createNotification } from "../lib/notificationService";
+import Footer from "../components/Footer";
 import { showToast } from "../lib/Toast";
 import {
   deleteThreadFromFirestore,
@@ -451,6 +452,7 @@ export default function Messages() {
           </div>
         )}
       </div>
+      <Footer />
     </section>
   );
 }

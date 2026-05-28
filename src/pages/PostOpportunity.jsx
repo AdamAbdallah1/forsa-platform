@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { showToast } from "../lib/Toast";
+import Footer from "../components/Footer";
 import SEO from "../components/CEO";
 import { createPost } from "../lib/postService";
 import {
@@ -572,6 +573,7 @@ export default function PostOpportunity() {
           </div>
         </div>
       </div>
+      <Footer />
     </section>
   );
 }

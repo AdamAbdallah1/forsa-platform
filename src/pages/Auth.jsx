@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser, registerUser } from "../lib/auth";
+import Footer from "../components/Footer";
 import { showToast } from "../lib/Toast";
 import SEO from "../components/CEO";
 import {
@@ -305,6 +306,7 @@ export default function Auth() {
           )}
         </div>
       </section>
+      <Footer />
     </main>
   );
 }

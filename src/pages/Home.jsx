@@ -6,6 +6,7 @@ import SEO from "../components/CEO";
 import HowItWorks from "../components/HowItWorks";
 import CategoriesSection from "../components/CategoriesSection";
 import Grainient from "../components/ui/Grainient";
+import Footer from "../components/Footer";
 import CurvedLoop from "../components/CurvedLoop";
 import OnboardingPreview from "../components/OnboardingPreview";
 import CTASection from "../components/CTASection";
@@ -159,6 +160,7 @@ export default function Home() {
         </motion.div>
 
       </div>
+      <Footer />
     </main>
   );
 }

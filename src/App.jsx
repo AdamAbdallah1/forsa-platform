@@ -8,6 +8,8 @@ import Companies from "./pages/Companies";
 import PostOpportunity from "./pages/PostOpportunity";
 import Notifications from "./pages/Notifications";
 import SavedJobs from "./pages/SavedJobs";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import Applicants from "./pages/Applicants";
 import Messages from "./pages/Messages";
 import MobileNav from "./components/MobileNav";
@@ -64,7 +66,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route
             path="/applicants"
             element={

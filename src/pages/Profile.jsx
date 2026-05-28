@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom"; 
+import Footer from "../components/Footer";
 import SEO from "../components/CEO";
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";

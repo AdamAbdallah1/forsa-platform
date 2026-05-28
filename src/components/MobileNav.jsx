@@ -1,10 +1,11 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  FaBell,
   FaBriefcase,
   FaCompass,
   FaPaperPlane,
+  FaPlus,
   FaUser,
+  FaUsers,
 } from "react-icons/fa";
 
 function safeJson(key, fallback) {
@@ -24,34 +25,37 @@ export default function MobileNav() {
   const account = safeJson("forsaAccount", null);
   const isHiring = account?.accountType === "hiring";
 
-  const notifications = safeJson("forsaNotificationsCache", []);
-  const unread = notifications.filter(
-    (item) =>
-      !item.read && (!item.targetEmail || item.targetEmail === account?.email)
-  ).length;
-
-  const guestItems = [{ label: "Explore", to: "/explore", icon: FaCompass }];
-
-  const userItems = [
+  const guestItems = [
     { label: "Explore", to: "/explore", icon: FaCompass },
-    {
-  label: isHiring ? "Post" : "Saved",
-  to: isHiring ? "/post" : "/saved",
-  icon: FaBriefcase,
-},
+  ];
+
+  const seekerItems = [
+    { label: "Explore", to: "/explore", icon: FaCompass },
+    { label: "Saved", to: "/saved", icon: FaBriefcase },
     { label: "Messages", to: "/messages", icon: FaPaperPlane },
-    { label: "Alerts", to: "/notifications", icon: FaBell, count: unread },
     { label: "Profile", to: "/profile", icon: FaUser },
   ];
 
-  const items = account ? userItems : guestItems;
+  const hiringItems = [
+    { label: "Explore", to: "/explore", icon: FaCompass },
+    { label: "Post", to: "/post", icon: FaPlus },
+    { label: "Applicants", to: "/applicants", icon: FaUsers },
+    { label: "Messages", to: "/messages", icon: FaPaperPlane },
+    { label: "Profile", to: "/profile", icon: FaUser },
+  ];
+
+  const items = !account ? guestItems : isHiring ? hiringItems : seekerItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-3 md:hidden">
-      <div className="mx-auto max-w-md rounded-[24px] border border-[var(--forsa-border)] bg-white/90 p-1.5 shadow-[0_18px_45px_rgba(18,60,47,0.16)] backdrop-blur-2xl">
+      <div className="mx-auto max-w-md rounded-[26px] border border-white/70 bg-white/90 p-1.5 shadow-[0_18px_50px_rgba(109,40,217,0.16)] backdrop-blur-2xl">
         <div
           className={`grid gap-1 ${
-            account ? "grid-cols-5" : "grid-cols-1"
+            items.length === 5
+              ? "grid-cols-5"
+              : items.length === 4
+              ? "grid-cols-4"
+              : "grid-cols-1"
           }`}
         >
           {items.map((item) => {
@@ -62,21 +66,15 @@ export default function MobileNav() {
                 key={item.label}
                 to={item.to}
                 className={({ isActive }) =>
-                  `relative flex min-h-[54px] flex-col items-center justify-center rounded-[18px] px-2 py-2 text-[11px] font-medium transition-all duration-200 ${
+                  `relative flex min-h-[54px] flex-col items-center justify-center rounded-[20px] px-1.5 py-2 text-[10.5px] font-semibold transition-all duration-200 ${
                     isActive
-                      ? "bg-[var(--forsa-primary)] text-white shadow-sm"
-                      : "text-neutral-500 hover:bg-[var(--forsa-bg)] hover:text-[var(--forsa-primary)]"
+                      ? "bg-[linear-gradient(135deg,var(--forsa-primary),var(--forsa-glow))] text-white shadow-[0_10px_24px_rgba(109,40,217,0.22)]"
+                      : "text-neutral-500 hover:bg-[var(--forsa-bg-soft)] hover:text-[var(--forsa-primary)]"
                   }`
                 }
               >
                 <Icon className="mb-1 text-sm" />
                 <span className="leading-none">{item.label}</span>
-
-                {item.count > 0 && (
-                  <span className="absolute right-2 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--forsa-gold)] px-1 text-[9px] font-bold text-black ring-2 ring-white">
-                    {item.count > 9 ? "9+" : item.count}
-                  </span>
-                )}
               </NavLink>
             );
           })}

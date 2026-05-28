@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Footer from "../components/Footer";
 import { Link, useNavigate } from "react-router-dom";
 import { FaBookmark, FaBriefcase, FaMapMarkerAlt, FaTrash } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
@@ -193,6 +194,7 @@ export default function SavedJobs() {
           </div>
         )}
       </div>
+      <Footer />
     </section>
   );
 }
