@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import Hero from "../components/Hero";
 import MatchPreview from "../components/MatchPreview";
 import ProblemSection from "../components/ProblemSection";
+import SEO from "../components/CEO";
 import HowItWorks from "../components/HowItWorks";
 import CategoriesSection from "../components/CategoriesSection";
 import Grainient from "../components/ui/Grainient";
@@ -37,6 +38,7 @@ export default function Home() {
       {/* Premium Hero Wrapper */}
       <section className="relative min-h-[820px] sm:min-h-[880px] lg:min-h-[calc(100vh-72px)] flex items-center pt-20 pb-16 lg:py-0">
         {/* Ambient Layers */}
+        <SEO title="Find work. Hire talent." />
         <div className="pointer-events-none absolute inset-0 z-0">
           <Grainient
             color1="#ff9ffc"

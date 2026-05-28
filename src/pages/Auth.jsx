@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser, registerUser } from "../lib/auth";
 import { showToast } from "../lib/Toast";
+import SEO from "../components/CEO";
 import {
   FaArrowLeft,
   FaArrowRight,
@@ -222,6 +223,7 @@ export default function Auth() {
   return (
     <main className="min-h-screen bg-[#f7f7f5] text-[#111111]">
       <section className="mx-auto grid min-h-screen max-w-6xl gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[0.85fr_1fr] lg:items-center lg:gap-10 lg:py-8">
+        <SEO title="Join" />
         <div className="hidden lg:block">
           <p className="w-fit rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-xs font-medium text-neutral-600">
             Local work platform for Lebanon

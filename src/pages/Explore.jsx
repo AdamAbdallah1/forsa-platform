@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { showToast } from "../lib/Toast";
+import SEO from "../components/CEO"
 import { getActivePosts } from "../lib/postService";
 import { createNotification } from "../lib/notificationService";
 import { createApplicationThread } from "../lib/applicationService";
@@ -645,6 +646,10 @@ export default function Explore() {
 
   return (
     <section className="min-h-screen">
+      <SEO
+    title="Explore"
+    description="Explore jobs, internships, freelance gigs, and local opportunities in Lebanon on Forsa."
+  />
       <AppHeader />
 
       <div className="mx-auto max-w-[1180px] px-4 pb-28 sm:px-6 lg:pb-20">

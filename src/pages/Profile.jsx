@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom"; 
+import SEO from "../components/CEO";
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
 import {
@@ -182,6 +183,7 @@ export default function Profile() {
   if (!account) {
     return (
       <section>
+        <SEO title="Profile" />
         <AppHeader />
           
         <div className="mx-auto max-w-3xl px-5 py-14 pb-28 sm:px-6 sm:py-20">

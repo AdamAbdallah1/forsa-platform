@@ -7,6 +7,7 @@ import {
   FaBriefcase,
   FaUserCheck,
   FaTrash,
+  FaSpinner,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import {
@@ -14,6 +15,8 @@ import {
   getUserNotifications,
   markNotificationRead,
 } from "../lib/notificationService";
+
+const CACHE_KEY = "forsaNotificationsCache";
 
 const safeJson = (key, fallback) => {
   try {
@@ -24,11 +27,10 @@ const safeJson = (key, fallback) => {
 };
 
 export default function Notifications() {
-  const account = safeJson("forsaAccount", null);
-  const [notifications, setNotifications] = useState(
-    safeJson("forsaNotificationsCache", [])
-  );
+  const [account] = useState(() => safeJson("forsaAccount", null));
+  const [notifications, setNotifications] = useState(() => safeJson(CACHE_KEY, []));
   const [loading, setLoading] = useState(true);
+  const [batchActionLoading, setBatchActionLoading] = useState(false);
 
   useEffect(() => {
     if (!account?.email) {
@@ -36,111 +38,128 @@ export default function Notifications() {
       return;
     }
 
+    let isMounted = true;
     const loadNotifications = async () => {
-      setLoading(true);
-
       try {
         const data = await getUserNotifications(account.email);
-        setNotifications(data);
-        localStorage.setItem("forsaNotificationsCache", JSON.stringify(data));
+        if (isMounted) {
+          setNotifications(data);
+          localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        }
       } catch (error) {
-        console.error("Load notifications error:", error);
-        setNotifications(safeJson("forsaNotificationsCache", []));
-        showToast("Could not refresh notifications. Showing saved data.", "info");
+        console.error("Load notifications fallback loop:", error);
+        showToast("Displaying localized offline inbox data assets.", "info");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     loadNotifications();
+    return () => { isMounted = false; };
   }, [account?.email]);
 
   const filteredNotifications = useMemo(() => {
     if (!account?.email) return [];
-
     return notifications
       .filter((item) => !item.targetEmail || item.targetEmail === account.email)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [notifications, account]);
+  }, [notifications, account?.email]);
 
-  const unreadCount = filteredNotifications.filter((item) => !item.read).length;
+  const stats = useMemo(() => {
+    const total = filteredNotifications.length;
+    const unread = filteredNotifications.filter((item) => !item.read).length;
+    return { total, unread, read: total - unread };
+  }, [filteredNotifications]);
 
-  const markAsRead = async (id) => {
+  const handleMarkAsRead = async (id) => {
+    const originalState = [...notifications];
+    
+    // Optimistic client-side state mutation
+    const updated = notifications.map((item) =>
+      item.id === id ? { ...item, read: true } : item
+    );
+    setNotifications(updated);
+    localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+
     try {
       await markNotificationRead(id);
-
-      const updated = notifications.map((item) =>
-        item.id === id ? { ...item, read: true } : item
-      );
-
-      setNotifications(updated);
-      localStorage.setItem("forsaNotificationsCache", JSON.stringify(updated));
-      showToast("Notification marked as read");
     } catch (error) {
-      console.error("Mark notification error:", error);
-      showToast("Could not update notification.", "error");
+      console.error("Mutation failure:", error);
+      setNotifications(originalState);
+      localStorage.setItem(CACHE_KEY, JSON.stringify(originalState));
+      showToast("Sync transaction aborted. Please try again.", "error");
     }
   };
 
-  const markAllAsRead = async () => {
-    const unread = filteredNotifications.filter((item) => !item.read);
+  const handleMarkAllAsRead = async () => {
+    const unreadItems = filteredNotifications.filter((item) => !item.read);
+    if (unreadItems.length === 0) return;
+
+    const originalState = [...notifications];
+    setBatchActionLoading(true);
+
+    // Optimistic batch updates
+    const updated = notifications.map((item) =>
+      !item.targetEmail || item.targetEmail === account.email
+        ? { ...item, read: true }
+        : item
+    );
+    setNotifications(updated);
+    localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
 
     try {
-      await Promise.all(unread.map((item) => markNotificationRead(item.id)));
-
-      const updated = notifications.map((item) =>
-        !item.targetEmail || item.targetEmail === account.email
-          ? { ...item, read: true }
-          : item
-      );
-
-      setNotifications(updated);
-      localStorage.setItem("forsaNotificationsCache", JSON.stringify(updated));
-      showToast("All notifications marked as read");
+      await Promise.all(unreadItems.map((item) => markNotificationRead(item.id)));
+      showToast("Inbox clear status synced");
     } catch (error) {
-      console.error("Mark all notifications error:", error);
-      showToast("Could not update notifications.", "error");
+      console.error("Batch mutation failure:", error);
+      setNotifications(originalState);
+      localStorage.setItem(CACHE_KEY, JSON.stringify(originalState));
+      showToast("Could not clear notification queue indices.", "error");
+    } finally {
+      setBatchActionLoading(false);
     }
   };
 
   const handleDeleteNotification = async (id) => {
+    const originalState = [...notifications];
+    
+    // Optimistic eviction processing
+    const updated = notifications.filter((item) => item.id !== id);
+    setNotifications(updated);
+    localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+
     try {
       await deleteNotification(id);
-
-      const updated = notifications.filter((item) => item.id !== id);
-      setNotifications(updated);
-      localStorage.setItem("forsaNotificationsCache", JSON.stringify(updated));
-      showToast("Notification deleted");
     } catch (error) {
-      console.error("Delete notification error:", error);
-      showToast("Could not delete notification.", "error");
+      console.error("Eviction handling fault:", error);
+      setNotifications(originalState);
+      localStorage.setItem(CACHE_KEY, JSON.stringify(originalState));
+      showToast("Failed to safely destroy notification resource node.", "error");
     }
   };
 
   if (!account) {
     return (
-      <section>
+      <section className="min-h-screen bg-[var(--forsa-bg)] text-[var(--forsa-text)] antialiased">
         <AppHeader />
-
-        <div className="mx-auto max-w-3xl px-5 py-14 pb-28 sm:px-6 sm:py-20">
-          <div className="rounded-[28px] border border-[var(--forsa-border)] bg-white p-6 text-center shadow-sm sm:rounded-[32px] sm:p-10">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full forsa-button text-white">
-              <FaBell />
+        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="rounded-[34px] border border-neutral-200/60 bg-white p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.015)] space-y-6 sm:p-12">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl forsa-button text-white shadow-sm">
+              <FaBell className="text-lg" />
             </div>
-
-            <h1 className="mt-6 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
-              Login to view notifications
-            </h1>
-
-            <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-neutral-600 sm:text-base">
-              Notifications help you track applications, updates, and opportunity activity.
-            </p>
-
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold tracking-[-0.04em] text-neutral-950 sm:text-3xl">
+                Identity Verification Required
+              </h1>
+              <p className="mx-auto max-w-md text-sm font-medium text-neutral-500 leading-relaxed">
+                Unlock your centralized notification repository data to track inbound application feedback cycles and Forsa platform hooks.
+              </p>
+            </div>
             <Link
               to="/auth"
-              className="mt-7 inline-flex rounded-full forsa-button px-6 py-3 text-sm font-medium text-white"
+              className="inline-flex items-center justify-center rounded-full forsa-button px-6 py-3.5 text-sm font-bold text-white tracking-tight shadow-sm transition hover:brightness-110"
             >
-              Create account
+              Authenticate Account Setup
             </Link>
           </div>
         </div>
@@ -149,51 +168,58 @@ export default function Notifications() {
   }
 
   return (
-    <section>
+    <section className="min-h-screen bg-[var(--forsa-bg)] text-[var(--forsa-text)] antialiased">
       <AppHeader />
 
-      <div className="mx-auto max-w-5xl px-5 pb-28 sm:px-6 lg:pb-20">
-        <div className="mt-6 flex flex-col gap-4 sm:mt-10 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm font-medium text-neutral-500">Notifications</p>
-
-            <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl md:text-5xl">
+      <div className="mx-auto max-w-5xl px-4 pb-28 pt-4 sm:px-6 lg:px-8 lg:pb-20">
+        
+        {/* Header Block Layer */}
+        <div className="mt-6 flex flex-col gap-6 md:flex-row md:items-end md:justify-between border-b border-neutral-100 pb-8">
+          <div className="space-y-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold tracking-wider text-neutral-500 uppercase">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--forsa-primary)] animate-pulse" />
+              Operational Log
+            </span>
+            <h1 className="text-3xl font-bold tracking-[-0.05em] text-neutral-950 sm:text-4xl md:text-5xl">
               Updates and activity
             </h1>
-
-            <p className="mt-4 max-w-xl text-sm leading-7 text-neutral-600 sm:text-base">
-              Track applications, status changes, and Forsa activity in one clean inbox.
+            <p className="text-sm sm:text-base font-medium text-neutral-500 leading-relaxed max-w-xl">
+              Track lifecycle tracking indicators, application feedback arrays, and Forsa infrastructure logs.
             </p>
           </div>
 
-          {unreadCount > 0 && (
+          {stats.unread > 0 && (
             <button
-              onClick={markAllAsRead}
-              className="w-full rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-black sm:w-fit"
+              disabled={batchActionLoading}
+              onClick={handleMarkAllAsRead}
+              className="inline-flex items-center justify-center gap-2 w-full rounded-full border border-neutral-200 bg-white px-5 py-3.5 text-xs font-bold text-neutral-800 shadow-sm transition-all hover:border-neutral-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:w-fit"
             >
-              Mark all as read
+              {batchActionLoading && <FaSpinner className="animate-spin" />}
+              Mark all records as read
             </button>
           )}
         </div>
 
-        <div className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-3">
-          <StatCard label="All alerts" value={filteredNotifications.length} />
-          <StatCard label="Unread" value={unreadCount} />
-          <StatCard label="Read" value={filteredNotifications.length - unreadCount} />
+        {/* Aggregate Stats Dashboard Modules */}
+        <div className="mt-8 grid grid-cols-3 gap-3 sm:gap-4">
+          <StatCard label="All Signals" value={stats.total} variant="neutral" />
+          <StatCard label="Pending Action" value={stats.unread} variant={stats.unread > 0 ? "active" : "neutral"} />
+          <StatCard label="Cleared logs" value={stats.read} variant="neutral" />
         </div>
 
-        <div className="mt-5 rounded-[28px] border border-[var(--forsa-border)] bg-white p-3 shadow-sm sm:mt-6 sm:rounded-[32px] sm:p-4">
+        {/* Main Interface Content Box Container */}
+        <div className="mt-6 rounded-[32px] border border-neutral-200/70 bg-white p-2 shadow-[0_20px_50px_rgba(0,0,0,0.015)] sm:p-4">
           {loading ? (
             <LoadingNotifications />
           ) : filteredNotifications.length === 0 ? (
             <EmptyNotifications />
           ) : (
-            <div className="grid gap-3">
+            <div className="divide-y divide-neutral-100/70">
               {filteredNotifications.map((item) => (
                 <NotificationCard
                   key={item.id}
                   item={item}
-                  onRead={() => markAsRead(item.id)}
+                  onRead={() => handleMarkAsRead(item.id)}
                   onDelete={() => handleDeleteNotification(item.id)}
                 />
               ))}
@@ -208,63 +234,81 @@ export default function Notifications() {
 function NotificationCard({ item, onRead, onDelete }) {
   const unread = !item.read;
   const Icon = item.type === "application_status" ? FaUserCheck : FaBriefcase;
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const executeAction = async (actionFn) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    await actionFn();
+    // component safely tears down or updates context parent dynamically
+  };
 
   return (
     <article
-      className={`rounded-[24px] border p-4 transition sm:rounded-[26px] sm:p-5 ${
-        unread ? "border-black bg-[#fafafa]" : "border-[var(--forsa-border)] bg-white"
+      className={`group relative flex items-start gap-4 p-4 transition-all duration-200 sm:p-5 ${
+        unread ? "bg-neutral-50/40" : "bg-transparent"
       }`}
     >
-      <div className="flex items-start gap-3 sm:gap-4">
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full sm:h-11 sm:w-11 ${
-            unread ? "forsa-button text-white" : "bg-[#f7f7f5] text-neutral-600"
-          }`}
-        >
-          <Icon />
-        </div>
+      {/* Unread Visual Tracker Dot */}
+      {unread && (
+        <span className="absolute left-1.5 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-[var(--forsa-primary)]" />
+      )}
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold">{item.title}</h3>
+      {/* Dynamic Render Icon Containers */}
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all duration-300 ${
+          unread
+            ? "border-neutral-950 bg-neutral-950 text-white shadow-sm"
+            : "border-neutral-200/60 bg-neutral-50 text-neutral-500"
+        }`}
+      >
+        <Icon className="text-xs" />
+      </div>
 
-                {unread && (
-                  <span className="rounded-full forsa-button px-2 py-0.5 text-[10px] font-medium text-white">
-                    New
-                  </span>
-                )}
-              </div>
-
-              <p className="mt-2 text-sm leading-6 text-neutral-600">
-                {item.text}
-              </p>
-
-              <p className="mt-3 text-xs text-neutral-400">
-                {item.createdAt ? new Date(item.createdAt).toLocaleString() : "Just now"}
-              </p>
-            </div>
-
-            <div className="flex shrink-0 gap-2">
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1 pr-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className={`text-sm font-bold tracking-tight ${unread ? "text-neutral-950" : "text-neutral-700"}`}>
+                {item.title}
+              </h3>
               {unread && (
-                <button
-                  onClick={onRead}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-300 bg-white text-sm transition hover:border-black"
-                  aria-label="Mark as read"
-                >
-                  <FaCheck />
-                </button>
+                <span className="inline-flex items-center rounded-md bg-[var(--forsa-primary)]/10 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[var(--forsa-primary)]">
+                  New
+                </span>
               )}
-
-              <button
-                onClick={onDelete}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-white text-sm text-red-600 transition hover:border-red-300"
-                aria-label="Delete notification"
-              >
-                <FaTrash />
-              </button>
             </div>
+
+            <p className="text-xs sm:text-sm font-medium leading-relaxed text-neutral-500 max-w-2xl">
+              {item.text}
+            </p>
+
+            <p className="text-[10px] font-bold text-neutral-400 tracking-tight pt-1">
+              {item.createdAt ? new Date(item.createdAt).toLocaleString() : "Just now"}
+            </p>
+          </div>
+
+          {/* Action Module Interfaces */}
+          <div className="flex items-center gap-1.5 pt-1 sm:pt-0 shrink-0 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            {unread && (
+              <button
+                disabled={isProcessing}
+                onClick={() => executeAction(onRead)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-xs text-neutral-700 shadow-sm transition hover:border-neutral-400 hover:text-neutral-950 disabled:opacity-50"
+                aria-label="Mark tracking telemetry item as read"
+              >
+                <FaCheck />
+              </button>
+            )}
+
+            <button
+              disabled={isProcessing}
+              onClick={() => executeAction(onDelete)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-xs text-neutral-400 shadow-sm transition hover:border-red-200 hover:text-red-600 disabled:opacity-50"
+              aria-label="Evict record row data node"
+            >
+              <FaTrash />
+            </button>
           </div>
         </div>
       </div>
@@ -274,11 +318,11 @@ function NotificationCard({ item, onRead, onDelete }) {
 
 function LoadingNotifications() {
   return (
-    <div className="flex flex-col items-center justify-center px-4 py-16 text-center sm:py-20">
-      <div className="h-14 w-14 animate-pulse rounded-full bg-[#f7f7f5]" />
-      <h2 className="mt-5 text-2xl font-semibold">Loading notifications</h2>
-      <p className="mt-3 max-w-md text-sm leading-7 text-neutral-600 sm:text-base">
-        Fetching your latest activity.
+    <div className="flex flex-col items-center justify-center px-4 py-20 text-center">
+      <FaSpinner className="h-8 w-8 animate-spin text-neutral-400" />
+      <h2 className="mt-4 text-sm font-bold text-neutral-950">Synchronizing database changes</h2>
+      <p className="mt-1 text-xs font-medium text-neutral-400 max-w-xs leading-relaxed">
+        Polling streaming network interface endpoints for mutations.
       </p>
     </div>
   );
@@ -286,25 +330,29 @@ function LoadingNotifications() {
 
 function EmptyNotifications() {
   return (
-    <div className="flex flex-col items-center justify-center px-4 py-16 text-center sm:py-20">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f7f7f5]">
-        <FaBell className="text-neutral-500" />
+    <div className="flex flex-col items-center justify-center px-4 py-20 text-center space-y-4">
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-50 border border-neutral-200/50 text-neutral-400">
+        <FaBell className="text-sm" />
       </div>
-
-      <h2 className="mt-5 text-2xl font-semibold">No notifications yet</h2>
-
-      <p className="mt-3 max-w-md text-sm leading-7 text-neutral-600 sm:text-base">
-        Activity like applications and status updates will appear here.
-      </p>
+      <div className="space-y-1">
+        <h2 className="text-sm font-bold text-neutral-950">Inbox completely verified</h2>
+        <p className="text-xs font-medium text-neutral-400 max-w-xs leading-relaxed">
+          Operational log returns zero unread references. New records append dynamically.
+        </p>
+      </div>
     </div>
   );
 }
 
-function StatCard({ label, value }) {
+function StatCard({ label, value, variant }) {
   return (
-    <div className="rounded-[22px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:rounded-[26px]">
-      <p className="text-xs text-neutral-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-[-0.03em]">{value}</p>
+    <div className="rounded-[20px] border border-neutral-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.01)] transition-all">
+      <p className="text-[10px] font-bold tracking-wider text-neutral-400 uppercase">{label}</p>
+      <p className={`mt-1.5 text-2xl font-bold tracking-[-0.04em] ${
+        variant === "active" ? "text-[var(--forsa-primary)]" : "text-neutral-950"
+      }`}>
+        {value}
+      </p>
     </div>
   );
 }

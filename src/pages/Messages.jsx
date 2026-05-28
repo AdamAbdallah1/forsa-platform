@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import SEO from "../components/CEO";
 import { Link } from "react-router-dom";
 import { createNotification } from "../lib/notificationService";
 import { showToast } from "../lib/Toast";
@@ -353,6 +354,7 @@ export default function Messages() {
   if (!account) {
     return (
       <section>
+        <SEO title="Messages" />
         <AppHeader />
 
         <div className="mx-auto max-w-3xl px-5 py-14 pb-28 sm:px-6 sm:py-20">

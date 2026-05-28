@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import SEO from "../components/CEO";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FaArrowRight,
@@ -158,6 +159,7 @@ export default function Applicants() {
 
   return (
     <section className="min-h-screen bg-[var(--forsa-bg)]">
+      <SEO title="Applicants" />
       <AppHeader />
 
       <div className="mx-auto max-w-[1180px] px-4 pb-28 sm:px-6 lg:pb-20">
