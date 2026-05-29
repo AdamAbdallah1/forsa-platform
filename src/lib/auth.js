@@ -4,6 +4,9 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithPopup,
+  sendPasswordResetEmail,
+  updateEmail,
+  updatePassword,
 } from "firebase/auth";
 import {
   doc,
@@ -140,6 +143,35 @@ export async function loginWithGoogle() {
   setSession(sessionAccount);
 
   return { account: sessionAccount, isNewUser: true };
+}
+
+export async function resetPassword(email) {
+  await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+}
+
+export async function changeCurrentUserEmail(newEmail) {
+  if (!auth.currentUser) {
+    throw new Error("No authenticated user.");
+  }
+
+  await updateEmail(auth.currentUser, newEmail.trim().toLowerCase());
+
+  const current = getAccount();
+  const next = {
+    ...current,
+    email: newEmail.trim().toLowerCase(),
+  };
+
+  setSession(next);
+  return next;
+}
+
+export async function changeCurrentUserPassword(newPassword) {
+  if (!auth.currentUser) {
+    throw new Error("No authenticated user.");
+  }
+
+  await updatePassword(auth.currentUser, newPassword);
 }
 
 export async function logout() {

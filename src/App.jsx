@@ -7,6 +7,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Companies from "./pages/Companies";
 import PostOpportunity from "./pages/PostOpportunity";
+import ForgotPassword from "./pages/ForgotPassword";
 import Text from "./pages/Text";
 import Notifications from "./pages/Notifications";
 import SavedJobs from "./pages/SavedJobs";
@@ -68,6 +69,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="*" element={<NotFound />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />

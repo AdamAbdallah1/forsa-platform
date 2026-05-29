@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { loginUser, registerUser } from "../lib/auth";
+import { Link, useNavigate } from "react-router-dom";
+import { loginUser, registerUser, loginWithGoogle } from "../lib/auth";
 import Footer from "../components/Footer";
 import { showToast } from "../lib/Toast";
 import SEO from "../components/SEO";
@@ -22,43 +22,35 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const validatePassword = (password) => {
   const value = password.trim();
-
   if (value.length < 8) return "Password must be at least 8 characters.";
   if (!/[A-Z]/.test(value)) return "Add at least one uppercase letter.";
   if (!/[a-z]/.test(value)) return "Add at least one lowercase letter.";
   if (!/[0-9]/.test(value)) return "Add at least one number.";
   if (!/[^A-Za-z0-9]/.test(value)) return "Add at least one symbol.";
-
   return "";
 };
 
 const validateName = (name, label = "Name") => {
   const value = name.trim();
-
   if (value.length < 2) return `${label} must be at least 2 characters.`;
   if (value.length > 60) return `${label} is too long.`;
   if (!/^[a-zA-Z\u0600-\u06FF\s.'-]+$/.test(value)) {
     return `${label} can only include letters, spaces, dots, hyphens, or apostrophes.`;
   }
-
   return "";
 };
 
 const validateCompanyName = (name) => {
   const value = name.trim();
-
   if (value.length < 2) return "Company name must be at least 2 characters.";
   if (value.length > 80) return "Company name is too long.";
-
   return "";
 };
 
 const validateCity = (city) => {
   const value = city.trim();
-
   if (value.length < 2) return "City is required.";
   if (value.length > 50) return "City name is too long.";
-
   return "";
 };
 
@@ -66,18 +58,15 @@ const getFriendlyAuthError = (error, isSignup) => {
   const code = error?.code || "";
 
   const messages = {
-    "auth/email-already-in-use":
-      "This email is already registered. Please log in instead.",
+    "auth/email-already-in-use": "This email is already registered. Please log in instead.",
     "auth/invalid-email": "Please enter a valid email address.",
-    "auth/weak-password":
-      "Password is too weak. Use 8+ characters with a number and symbol.",
+    "auth/weak-password": "Password is too weak. Use 8+ characters with a number and symbol.",
     "auth/invalid-credential": "Email or password is incorrect.",
     "auth/user-not-found": "No account found with this email.",
     "auth/wrong-password": "Email or password is incorrect.",
-    "auth/network-request-failed":
-      "Network error. Check your connection and try again.",
-    "auth/too-many-requests":
-      "Too many attempts. Please wait a moment and try again.",
+    "auth/network-request-failed": "Network error. Check your connection and try again.",
+    "auth/too-many-requests": "Too many attempts. Please wait a moment and try again.",
+    "auth/popup-closed-by-user": "Google sign-in was cancelled. Please try again.",
   };
 
   return (
@@ -110,7 +99,6 @@ export default function Auth() {
 
   const isSignup = mode === "signup";
   const isHiring = accountType === "hiring";
-  const signupEmail = isHiring ? form.companyEmail : form.email;
   const passwordIssue = isSignup ? validatePassword(form.password) : "";
 
   const canContinue = isSignup
@@ -140,9 +128,7 @@ export default function Auth() {
   const validateBeforeSubmit = () => {
     const emailToCheck = isSignup && isHiring ? form.companyEmail : form.email;
 
-    if (!emailRegex.test(emailToCheck.trim())) {
-      return "Please enter a valid email address.";
-    }
+    if (!emailRegex.test(emailToCheck.trim())) return "Please enter a valid email address.";
 
     if (!isSignup) {
       if (!form.password.trim()) return "Please enter your password.";
@@ -153,14 +139,36 @@ export default function Auth() {
     if (passError) return passError;
 
     if (isHiring) {
-      return (
-        validateCompanyName(form.companyName) ||
-        validateName(form.contactPerson, "Contact person") ||
-        validateCity(form.city)
-      );
+      return validateCompanyName(form.companyName) || validateName(form.contactPerson, "Contact person") || validateCity(form.city);
     }
 
     return validateName(form.name, "Full name") || validateCity(form.city);
+  };
+
+  const handleGoogleLogin = async () => {
+    if (loading) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const { account, isNewUser } = await loginWithGoogle();
+
+      showToast(isNewUser ? "Welcome to Forsa" : "Welcome back");
+
+      navigate(
+        isNewUser
+          ? "/onboarding"
+          : account.accountType === "hiring"
+          ? "/profile"
+          : "/explore"
+      );
+    } catch (err) {
+      console.error("Google auth error:", err);
+      setError(getFriendlyAuthError(err, false));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -207,10 +215,7 @@ export default function Auth() {
             city: form.city.trim(),
           };
 
-      const user = await registerUser({
-        ...newAccount,
-        password,
-      });
+      const user = await registerUser({ ...newAccount, password });
 
       showToast(isHiring ? "Company account created" : "Welcome to Forsa");
       navigate(user.accountType === "hiring" ? "/post" : "/onboarding");
@@ -224,8 +229,9 @@ export default function Auth() {
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] text-[#111111]">
+      <SEO title="Join" />
+
       <section className="mx-auto grid min-h-screen max-w-6xl gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[0.85fr_1fr] lg:items-center lg:gap-10 lg:py-8">
-        <SEO title="Join" />
         <div className="hidden lg:block">
           <p className="w-fit rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-xs font-medium text-neutral-600">
             Local work platform for Lebanon
@@ -255,46 +261,47 @@ export default function Auth() {
           </div>
 
           <div className="rounded-[22px] bg-[#f7f7f5] p-1.5">
-  <div className="grid grid-cols-2 gap-1.5">
-    <button
-      onClick={() => switchMode("signup")}
-      disabled={loading}
-      className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
-        mode === "signup" ? "bg-white shadow-sm" : "text-neutral-500"
-      }`}
-    >
-      Create
-    </button>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => switchMode("signup")}
+                disabled={loading}
+                className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
+                  mode === "signup" ? "bg-white shadow-sm" : "text-neutral-500"
+                }`}
+              >
+                Create
+              </button>
 
-    <button
-      onClick={() => switchMode("login")}
-      disabled={loading}
-      className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
-        mode === "login" ? "bg-white shadow-sm" : "text-neutral-500"
-      }`}
-    >
-      Log in
-    </button>
-  </div>
-</div>
+              <button
+                onClick={() => switchMode("login")}
+                disabled={loading}
+                className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
+                  mode === "login" ? "bg-white shadow-sm" : "text-neutral-500"
+                }`}
+              >
+                Log in
+              </button>
+            </div>
+          </div>
 
-<button
-  type="button"
-  onClick={handleGoogleLogin}
-  disabled={loading}
-  className="forsa-click mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
->
-  <FaGoogle className="text-sm" />
-  Continue with Google
-</button>
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="forsa-click mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)] disabled:cursor-wait disabled:opacity-60"
+          >
+            <FaGoogle className="text-sm" />
+            Continue with Google
+          </button>
 
-<div className="my-5 flex items-center gap-3">
-  <div className="h-px flex-1 bg-[var(--forsa-border)]" />
-  <span className="text-xs font-medium text-neutral-400">
-    or continue with email
-  </span>
-  <div className="h-px flex-1 bg-[var(--forsa-border)]" />
-</div>
+          <div className="my-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-[var(--forsa-border)]" />
+            <span className="text-xs font-medium text-neutral-400">
+              or continue with email
+            </span>
+            <div className="h-px flex-1 bg-[var(--forsa-border)]" />
+          </div>
+
           {error && (
             <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm leading-6 text-red-600">
               {error}
@@ -324,36 +331,11 @@ export default function Auth() {
           )}
         </div>
       </section>
+
       <Footer />
     </main>
   );
 }
-
-const handleGoogleLogin = async () => {
-  if (loading) return;
-
-  setLoading(true);
-  setError("");
-
-  try {
-    const { account, isNewUser } = await loginWithGoogle();
-
-    showToast(isNewUser ? "Welcome to Forsa" : "Welcome back");
-
-    navigate(
-      isNewUser
-        ? "/onboarding"
-        : account.accountType === "hiring"
-        ? "/profile"
-        : "/explore"
-    );
-  } catch (err) {
-    console.error("Google auth error:", err);
-    setError("Google sign-in failed. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
 
 function SpotlightCard({ active, children, onClick }) {
   return (
@@ -366,17 +348,6 @@ function SpotlightCard({ active, children, onClick }) {
           : "border-[var(--forsa-border)] shadow-sm hover:shadow-[0_18px_50px_rgba(109,40,217,0.10)]"
       }`}
     >
-      <div
-        className={`pointer-events-none absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100 ${
-          active ? "opacity-100" : ""
-        }`}
-        style={{
-          background:
-            "radial-gradient(520px circle at var(--x,50%) var(--y,50%), rgba(139,92,246,0.26), transparent 42%)",
-        }}
-        onMouseMove={() => {}}
-      />
-
       <div
         className={`relative h-full rounded-[27px] p-5 transition ${
           active
@@ -394,14 +365,14 @@ function ChoiceStep({ accountType, setAccountType, onContinue }) {
   return (
     <div className="mt-5">
       <div className="rounded-[24px] bg-[var(--forsa-bg-soft)] p-4">
-  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--forsa-primary)]">
-    Step 1 of 2
-  </p>
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--forsa-primary)]">
+          Step 1 of 2
+        </p>
 
-  <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
-    How will you use Forsa?
-  </h2>
-</div>
+        <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
+          How will you use Forsa?
+        </h2>
+      </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <TypeCard
@@ -423,7 +394,7 @@ function ChoiceStep({ accountType, setAccountType, onContinue }) {
 
       <button
         onClick={onContinue}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-primary-light)]"
+        className="forsa-click mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-primary-light)]"
       >
         Continue
         <FaArrowRight className="text-xs" />
@@ -477,13 +448,13 @@ function FormStep({
           <>
             <Field icon={<FaBuilding />} label="Company name" placeholder="Pixel House" value={form.companyName} onChange={(value) => updateField("companyName", value)} />
             <Field icon={<FaEnvelope />} label="Company email" type="email" placeholder="jobs@company.com" value={form.companyEmail} onChange={(value) => updateField("companyEmail", value)} />
-            <Field icon={<FaUser />} label="Contact person" placeholder="Adam Abdallah" value={form.contactPerson} onChange={(value) => updateField("contactPerson", value)} />
+            <Field icon={<FaUser />} label="Contact person" placeholder="Enter your full name" value={form.contactPerson} onChange={(value) => updateField("contactPerson", value)} />
           </>
         )}
 
         {isSignup && !isHiring && (
           <>
-            <Field label="Full name" placeholder="Adam Abdallah" value={form.name} onChange={(value) => updateField("name", value)} />
+            <Field label="Full name" placeholder="Enter your full name" value={form.name} onChange={(value) => updateField("name", value)} />
             <Field label="Email" type="email" placeholder="you@example.com" value={form.email} onChange={(value) => updateField("email", value)} />
           </>
         )}
@@ -499,6 +470,15 @@ function FormStep({
           setShowPassword={setShowPassword}
         />
 
+        {!isSignup && (
+          <Link
+            to="/forgot-password"
+            className="w-fit text-xs font-semibold text-[var(--forsa-primary)]"
+          >
+            Forgot password?
+          </Link>
+        )}
+
         {isSignup && passwordIssue && form.password && (
           <p className="text-xs leading-5 text-neutral-500">{passwordIssue}</p>
         )}
@@ -510,7 +490,7 @@ function FormStep({
         <button
           disabled={!canContinue || loading}
           onClick={onSubmit}
-          className={`mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${
+          className={`forsa-click mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${
             canContinue && !loading
               ? "bg-[var(--forsa-primary)] text-white hover:bg-[var(--forsa-primary-light)]"
               : "cursor-not-allowed bg-neutral-200 text-neutral-400"
@@ -556,28 +536,14 @@ function TypeCard({ active, icon, title, text, onClick }) {
         </span>
       </div>
 
-      <p className="mt-5 text-lg font-semibold tracking-[-0.03em]">
-        {title}
-      </p>
+      <p className="mt-5 text-lg font-semibold tracking-[-0.03em]">{title}</p>
 
-      <p
-        className={`mt-2 text-sm leading-6 ${
-          active ? "text-white/75" : "text-neutral-500"
-        }`}
-      >
+      <p className={`mt-2 text-sm leading-6 ${active ? "text-white/75" : "text-neutral-500"}`}>
         {text}
       </p>
 
-      <div
-        className={`mt-5 h-1.5 overflow-hidden rounded-full ${
-          active ? "bg-white/20" : "bg-[var(--forsa-bg)]"
-        }`}
-      >
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${
-            active ? "w-full bg-white" : "w-1/3 bg-[var(--forsa-soft)]"
-          }`}
-        />
+      <div className={`mt-5 h-1.5 overflow-hidden rounded-full ${active ? "bg-white/20" : "bg-[var(--forsa-bg)]"}`}>
+        <div className={`h-full rounded-full transition-all duration-500 ${active ? "w-full bg-white" : "w-1/3 bg-[var(--forsa-soft)]"}`} />
       </div>
     </SpotlightCard>
   );
@@ -588,7 +554,7 @@ function Field({ label, placeholder, value, onChange, type = "text", icon }) {
     <div>
       <label className="text-sm font-medium">{label}</label>
 
-      <div className="mt-2 flex items-center gap-3 rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 transition focus-within:border-black">
+      <div className="forsa-focus mt-2 flex items-center gap-3 rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3">
         {icon && <span className="text-neutral-400">{icon}</span>}
 
         <input
@@ -608,7 +574,7 @@ function PasswordField({ value, onChange, showPassword, setShowPassword }) {
     <div>
       <label className="text-sm font-medium">Password</label>
 
-      <div className="mt-2 flex items-center gap-3 rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 transition focus-within:border-black">
+      <div className="forsa-focus mt-2 flex items-center gap-3 rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3">
         <input
           type={showPassword ? "text" : "password"}
           value={value}
