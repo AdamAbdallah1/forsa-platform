@@ -475,6 +475,7 @@ export default function PostOpportunity() {
         featured: Boolean(form.featured),
         trusted: Boolean(account?.trusted),
         verified: Boolean(account?.verified),
+        
         questions: cleanQuestions,
         reports: 0, views: 0, applications: 0,
         qualityScore,

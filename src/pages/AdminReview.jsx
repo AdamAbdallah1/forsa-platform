@@ -106,7 +106,7 @@ export default function AdminReview() {
         localStorage.setItem("forsaPostsCache", JSON.stringify(remotePosts));
       } catch (error) {
         console.error("Admin load error:", error);
-        showToast("Could not sync dashboard items.", "error");
+        console.error("Admin review sync error:", error);
       } finally {
         if (active) setLoading(false);
       }

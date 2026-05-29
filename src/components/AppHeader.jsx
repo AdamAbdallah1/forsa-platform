@@ -3,6 +3,7 @@ import {
   FaBell,
   FaBookmark,
   FaCompass,
+  FaClipboardList,
   FaPaperPlane,
   FaPlus,
   FaUser,
@@ -46,7 +47,6 @@ export default function AppHeader() {
           className="group flex shrink-0 items-center gap-2"
         >
           <BrandLogo />
-          <span className="hidden h-2 w-2 rounded-full bg-[var(--forsa-gold)] transition group-hover:scale-125 sm:block" />
         </button>
 
         <nav className="hidden items-center gap-1.5 rounded-full border border-[var(--forsa-border)] bg-white/65 p-1 shadow-sm lg:flex">
@@ -84,8 +84,17 @@ export default function AppHeader() {
       Saved
     </span>
   </NavLink>
+  
 )}
 
+{!isHiring && (
+  <NavLink to="/applications" className={linkClass}>
+    <span className="flex items-center gap-1.5">
+      <FaClipboardList className="text-[11px]" />
+      Applications
+    </span>
+  </NavLink>
+)}
               <NavLink to="/messages" className={linkClass}>
                 <span className="flex items-center gap-1.5">
                   <FaPaperPlane className="text-[11px]" />
@@ -126,10 +135,12 @@ export default function AppHeader() {
               </NavLink>
 
               <button
-                onClick={() => navigate(isHiring ? "/applicants" : "/saved")}
+                onClick={() =>
+  navigate(isHiring ? "/applicants" : "/applications")
+}
                 className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-[var(--forsa-primary-light)] sm:block"
               >
-                {isHiring ? "Applicants" : "Saved"}
+                {isHiring ? "Applicants" : "Applications"}
               </button>
             </>
           ) : !isAuthPage ? (

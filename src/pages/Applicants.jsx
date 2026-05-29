@@ -8,6 +8,7 @@ import {
   FaCheckCircle,
   FaEnvelope,
   FaFileAlt,
+  FaCalendarAlt,
   FaFilter,
   FaInbox,
   FaSearch,
@@ -17,7 +18,12 @@ import {
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
-import { listenUserThreads, updateThreadStatus } from "../lib/applicationService";
+import { calculateApplicantScore } from "../lib/applicantScore";
+import {
+  listenUserThreads,
+  updateThreadStatus,
+  scheduleThreadInterview,
+} from "../lib/applicationService";
 
 const safeJson = (key, fallback) => {
   try {
@@ -31,9 +37,13 @@ const writeJson = (key, value) => {
   localStorage.setItem(key, JSON.stringify(value));
 };
 
-const statusOptions = ["all", "pending", "shortlisted", "accepted", "rejected"];
-
+const statusOptions = ["all", "pending", "shortlisted", "interview", "accepted", "rejected"];
 const statusMeta = {
+  interview: {
+  label: "Interview",
+  tone: "bg-blue-50 text-blue-700 ring-blue-100",
+  dot: "bg-blue-500",
+},
   pending: { label: "Pending", tone: "bg-amber-50 text-amber-700 ring-amber-100", dot: "bg-amber-500" },
   shortlisted: { label: "Shortlisted", tone: "bg-violet-50 text-[var(--forsa-primary)] ring-violet-100", dot: "bg-[var(--forsa-primary)]" },
   accepted: { label: "Accepted", tone: "bg-emerald-50 text-emerald-700 ring-emerald-100", dot: "bg-emerald-500" },
@@ -59,6 +69,13 @@ export default function Applicants() {
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [statusConfirm, setStatusConfirm] = useState(null);
+  const [interviewTarget, setInterviewTarget] = useState(null);
+const [interviewForm, setInterviewForm] = useState({
+  date: "",
+  time: "",
+  location: "",
+  notes: "",
+});
 
   const isHiring = account?.accountType === "hiring";
 
@@ -101,12 +118,45 @@ export default function Applicants() {
   }, [threads, statusFilter, search]);
 
   const stats = useMemo(() => ({
+    interview: threads.filter((item) => item.status === "interview").length,
     total: threads.length,
     pending: threads.filter((item) => (item.status || "pending") === "pending").length,
     shortlisted: threads.filter((item) => item.status === "shortlisted").length,
     accepted: threads.filter((item) => item.status === "accepted").length,
     rejected: threads.filter((item) => item.status === "rejected").length,
   }), [threads]);
+
+  const jobStats = useMemo(() => {
+  const map = {};
+
+  threads.forEach((thread) => {
+    const key = thread.postId || thread.opportunityId || thread.title || "Unknown job";
+
+    if (!map[key]) {
+      map[key] = {
+        id: key,
+        title: thread.title || "Untitled job",
+        total: 0,
+        pending: 0,
+        shortlisted: 0,
+        interview: 0,
+        accepted: 0,
+        rejected: 0,
+        scoreTotal: 0,
+      };
+    }
+
+    const status = thread.status || "pending";
+    const applicantScore = calculateApplicantScore(thread).score;
+
+    map[key].total += 1;
+    map[key].scoreTotal += applicantScore;
+    map[key].avgScore = Math.round(map[key].scoreTotal / map[key].total);
+    map[key][status] = (map[key][status] || 0) + 1;
+  });
+
+  return Object.values(map).sort((a, b) => b.total - a.total);
+}, [threads]);
 
   const changeStatus = async (thread, status) => {
     if ((thread.status || "pending") === status) return;
@@ -151,6 +201,76 @@ export default function Applicants() {
     }
   };
 
+  const inviteInterview = async () => {
+  if (!interviewTarget || busyId) return;
+
+  if (!interviewForm.date || !interviewForm.time || !interviewForm.location.trim()) {
+    showToast("Add date, time, and location.", "error");
+    return;
+  }
+
+  const now = new Date().toISOString();
+
+  const interview = {
+    date: interviewForm.date,
+    time: interviewForm.time,
+    location: interviewForm.location.trim(),
+    notes: interviewForm.notes.trim(),
+    createdAt: now,
+    createdBy: account.email,
+  };
+
+  const systemMessage = {
+    id: Date.now(),
+    from: "Forsa",
+    role: "system",
+    text: `Interview invited for ${interview.date} at ${interview.time}.`,
+    createdAt: now,
+  };
+
+  const previousThreads = threads;
+
+  const optimistic = threads.map((item) =>
+    item.id === interviewTarget.id
+      ? {
+          ...item,
+          status: "interview",
+          interview,
+          updatedAt: now,
+          lastMessage: systemMessage.text,
+          conversation: [...(item.conversation || []), systemMessage],
+          statusHistory: [
+            ...(item.statusHistory || []),
+            { status: "interview", createdAt: now, by: account.email },
+          ],
+        }
+      : item
+  );
+
+  setThreads(optimistic);
+  writeJson("forsaMessagesCache", optimistic);
+  writeJson("forsaMessages", optimistic);
+  setBusyId(interviewTarget.id);
+
+  try {
+    await scheduleThreadInterview(interviewTarget.id, {
+      interview,
+      by: account.email,
+      systemMessage,
+    });
+
+    showToast("Interview invitation sent");
+    setInterviewTarget(null);
+    setInterviewForm({ date: "", time: "", location: "", notes: "" });
+  } catch (error) {
+    console.error("Interview invite error:", error);
+    setThreads(previousThreads);
+    showToast("Could not send interview invite.", "error");
+  } finally {
+    setBusyId(null);
+  }
+};
+
   if (!account) {
     return <AccessState title="Login required" text="You need a Forsa account to access applicants." actionLabel="Login" to="/auth" />;
   }
@@ -166,6 +286,7 @@ export default function Applicants() {
 
       <div className="mx-auto max-w-[1180px] px-4 pb-28 sm:px-6 lg:pb-20">
         <HeroPanel stats={stats} />
+        <JobStatsPanel jobStats={jobStats} />
         <Toolbar search={search} setSearch={setSearch} statusFilter={statusFilter} setStatusFilter={setStatusFilter} stats={stats} />
 
         {loading ? (
@@ -176,6 +297,15 @@ export default function Applicants() {
           <div className="mt-6 grid gap-4">
             {filteredApplicants.map((thread) => (
               <ApplicantCard
+              onInterview={() => {
+  setInterviewTarget(thread);
+  setInterviewForm({
+    date: "",
+    time: "",
+    location: thread.opportunity?.location || thread.location || "",
+    notes: "",
+  });
+}}
                 key={thread.id}
                 thread={thread}
                 busy={busyId === thread.id}
@@ -244,7 +374,144 @@ export default function Applicants() {
     </div>
   )}
 </Modal>
+
+<Modal
+  open={Boolean(interviewTarget)}
+  title="Invite to interview"
+  onClose={() => setInterviewTarget(null)}
+>
+  {interviewTarget && (
+    <div>
+      <p className="text-sm leading-7 text-neutral-600">
+        Send an interview invitation to{" "}
+        <span className="font-semibold text-black">
+          {interviewTarget.seeker?.name || "this applicant"}
+        </span>
+        .
+      </p>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <InterviewField
+          label="Date"
+          type="date"
+          value={interviewForm.date}
+          onChange={(value) =>
+            setInterviewForm((prev) => ({ ...prev, date: value }))
+          }
+        />
+
+        <InterviewField
+          label="Time"
+          type="time"
+          value={interviewForm.time}
+          onChange={(value) =>
+            setInterviewForm((prev) => ({ ...prev, time: value }))
+          }
+        />
+      </div>
+
+      <div className="mt-3">
+        <InterviewField
+          label="Location"
+          value={interviewForm.location}
+          placeholder="Farouj Restaurant - Jal El Dib"
+          onChange={(value) =>
+            setInterviewForm((prev) => ({ ...prev, location: value }))
+          }
+        />
+      </div>
+
+      <div className="mt-3">
+        <label className="text-sm font-semibold">Notes</label>
+        <textarea
+          value={interviewForm.notes}
+          onChange={(event) =>
+            setInterviewForm((prev) => ({
+              ...prev,
+              notes: event.target.value,
+            }))
+          }
+          placeholder="Example: Please arrive 10 minutes early and bring your CV."
+          className="mt-2 min-h-28 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--forsa-primary)]"
+        />
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-2">
+        <button
+          onClick={() => setInterviewTarget(null)}
+          className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={inviteInterview}
+          disabled={busyId === interviewTarget.id}
+          className="forsa-button rounded-full px-5 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+        >
+          {busyId === interviewTarget.id ? "Sending..." : "Send invite"}
+        </button>
+      </div>
+    </div>
+  )}
+</Modal>
+
+
     </section>
+  );
+}
+
+function JobStatsPanel({ jobStats }) {
+  if (!jobStats.length) return null;
+
+  return (
+    <div className="mt-5 rounded-[30px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-neutral-500">Job performance</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em]">
+            Applications by post
+          </h2>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3">
+        {jobStats.map((job) => (
+          <div
+            key={job.id}
+            className="rounded-[24px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="font-semibold tracking-[-0.03em]">
+                  {job.title}
+                </h3>
+                <p className="mt-1 text-sm text-neutral-500">
+                  {job.total} total applicants
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <MiniStat label="Pending" value={job.pending} />
+                <MiniStat label="Shortlisted" value={job.shortlisted} />
+                <MiniStat label="Interviews" value={job.interview} />
+                <MiniStat label="Avg fit" value={`${job.avgScore || 0}%`} />
+                <MiniStat label="Accepted" value={job.accepted} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div className="rounded-2xl bg-white px-3 py-2 text-center">
+      <p className="text-sm font-semibold">{value}</p>
+      <p className="text-[10px] font-medium text-neutral-500">{label}</p>
+    </div>
   );
 }
 
@@ -276,10 +543,11 @@ function HeroPanel({ stats }) {
         </Link>
       </div>
 
-      <div className="relative mt-7 grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <div className="relative mt-7 grid grid-cols-2 gap-2 sm:grid-cols-6">
         <StatCard label="Total" value={stats.total} />
         <StatCard label="Pending" value={stats.pending} />
         <StatCard label="Shortlisted" value={stats.shortlisted} />
+        <StatCard label="Interviews" value={stats.interview} />
         <StatCard label="Accepted" value={stats.accepted} />
         <StatCard label="Rejected" value={stats.rejected} />
       </div>
@@ -329,12 +597,13 @@ function Toolbar({ search, setSearch, statusFilter, setStatusFilter, stats }) {
   );
 }
 
-function ApplicantCard({ thread, busy, onMessage, onStatus }) {
+function ApplicantCard({ thread, busy, onMessage, onStatus, onInterview }) {
   const seeker = thread.seeker || {};
   const status = thread.status || "pending";
   const answers = Object.entries(thread.answers || {}).filter(([question, answer]) => question?.trim() && answer?.trim());
   const skills = seeker.skills || [];
   const lookingFor = seeker.lookingFor || [];
+  const applicantFit = calculateApplicantScore(thread);
 
   return (
     <article className="forsa-card overflow-hidden rounded-[30px] border border-[var(--forsa-border)] bg-white shadow-sm">
@@ -359,6 +628,8 @@ function ApplicantCard({ thread, busy, onMessage, onStatus }) {
 
             <p className="shrink-0 rounded-full bg-[var(--forsa-bg)] px-3 py-1.5 text-xs font-medium text-neutral-500">{formatDate(thread.createdAt)}</p>
           </div>
+
+          <ApplicantFitCard fit={applicantFit} />
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <InfoBox title="Skills" items={skills} empty="No skills added" />
@@ -401,6 +672,14 @@ function ApplicantCard({ thread, busy, onMessage, onStatus }) {
               <FaEnvelope className="text-xs" />
               Open messages
             </button>
+            <button
+  onClick={onInterview}
+  disabled={busy}
+  className="forsa-click inline-flex items-center justify-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 disabled:cursor-wait disabled:opacity-60"
+>
+  <FaCalendarAlt className="text-xs" />
+  Invite interview
+</button>
 
             <StatusAction disabled={busy} active={status === "shortlisted"} icon={<FaCheckCircle />} label="Shortlist" onClick={() => onStatus("shortlisted")} />
             <StatusAction disabled={busy} active={status === "accepted"} icon={<FaCheckCircle />} label="Accept" onClick={() => onStatus("accepted")} />
@@ -409,6 +688,53 @@ function ApplicantCard({ thread, busy, onMessage, onStatus }) {
         </aside>
       </div>
     </article>
+  );
+}
+
+
+function ApplicantFitCard({ fit }) {
+  const score = fit?.score || 0;
+  const reasons = fit?.reasons || [];
+
+  return (
+    <div className="mt-5 rounded-[24px] border border-[var(--forsa-border)] bg-[linear-gradient(135deg,#ffffff,#fbfaff)] p-4 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400">
+            Applicant fit
+          </p>
+
+          <div className="mt-2 flex items-center gap-3">
+            <p className="text-3xl font-semibold tracking-[-0.05em] text-[var(--forsa-primary)]">
+              {score}%
+            </p>
+
+            <span className="rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1 text-xs font-semibold text-[var(--forsa-primary)]">
+              {score >= 80 ? "Strong match" : score >= 60 ? "Good match" : "Review profile"}
+            </span>
+          </div>
+        </div>
+
+        <div className="h-2 w-full overflow-hidden rounded-full bg-[#eee8ff] sm:w-[180px]">
+          <div
+            className="h-full rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))]"
+            style={{ width: `${Math.min(100, Math.max(8, score))}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {reasons.slice(0, 4).map((reason) => (
+          <span
+            key={reason}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 ring-1 ring-[var(--forsa-border)]"
+          >
+            <FaCheckCircle className="text-[10px] text-[var(--forsa-primary)]" />
+            {reason}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -533,5 +859,20 @@ function AccessState({ title, text, actionLabel, to }) {
         </div>
       </div>
     </section>
+  );
+}
+
+function InterviewField({ label, value, onChange, type = "text", placeholder }) {
+  return (
+    <div>
+      <label className="text-sm font-semibold">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="mt-2 w-full rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--forsa-primary)]"
+      />
+    </div>
   );
 }

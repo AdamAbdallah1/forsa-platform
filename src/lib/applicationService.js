@@ -112,6 +112,24 @@ export async function updateThreadStatus(threadId, { status, by, systemMessage }
   });
 }
 
+export async function scheduleThreadInterview(threadId, { interview, by, systemMessage }) {
+  await updateDoc(doc(db, "applications", threadId), {
+    status: "interview",
+    interview,
+    lastMessage: systemMessage.text,
+    updatedAt: serverTimestamp(),
+    conversation: arrayUnion({
+      ...systemMessage,
+      createdAt: systemMessage.createdAt || new Date().toISOString(),
+    }),
+    statusHistory: arrayUnion({
+      status: "interview",
+      by,
+      createdAt: new Date().toISOString(),
+    }),
+  });
+}
+
 export async function deleteThreadFromFirestore(threadId) {
   await deleteDoc(doc(db, "applications", threadId));
 }

@@ -1,15 +1,20 @@
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   FaArrowRight,
+  FaBell,
   FaBriefcase,
   FaCheckCircle,
   FaEnvelope,
   FaFlag,
   FaMapMarkerAlt,
+  FaRegBell,
   FaShieldAlt,
   FaUserTie,
+  FaUsers,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
+import { showToast } from "../lib/Toast";
 
 function safeJson(key, fallback) {
   try {
@@ -17,6 +22,10 @@ function safeJson(key, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function writeJson(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
 }
 
 export default function CompanyProfile() {
@@ -27,6 +36,9 @@ export default function CompanyProfile() {
   const users = safeJson("forsaUsers", []);
   const posts = safeJson("forsaPosts", []);
   const trustedPosters = safeJson("forsaTrustedPosters", []);
+  const [followedCompanies, setFollowedCompanies] = useState(
+    safeJson("forsaFollowedCompanies", [])
+  );
 
   const companyUser = users.find(
     (user) =>
@@ -53,7 +65,56 @@ export default function CompanyProfile() {
 
   const companyCity = companyUser?.city || fallbackPost?.location || "Lebanon";
   const isTrusted = trustedPosters.includes(decodedEmail) || companyUser?.trusted;
-  const isVerified = companyUser?.verified;
+  const isVerified = Boolean(companyUser?.verified);
+
+  const companyKey = decodedEmail || companyName;
+
+  const isFollowing = followedCompanies.some(
+    (item) => item.email === companyKey || item.name === companyName
+  );
+
+  const followersCount = useMemo(() => {
+    return followedCompanies.filter(
+      (item) => item.email === companyKey || item.name === companyName
+    ).length;
+  }, [followedCompanies, companyKey, companyName]);
+
+  const toggleFollow = () => {
+    if (!account) {
+      showToast("Create a seeker account to follow companies.", "error");
+      return;
+    }
+
+    if (account.accountType === "hiring") {
+      showToast("Company accounts cannot follow companies.", "error");
+      return;
+    }
+
+    let next;
+
+    if (isFollowing) {
+      next = followedCompanies.filter(
+        (item) => item.email !== companyKey && item.name !== companyName
+      );
+      showToast("Company unfollowed");
+    } else {
+      next = [
+        {
+          email: companyKey,
+          name: companyName,
+          city: companyCity,
+          verified: isVerified,
+          trusted: isTrusted,
+          followedAt: new Date().toISOString(),
+        },
+        ...followedCompanies,
+      ];
+      showToast(`Following ${companyName}`);
+    }
+
+    setFollowedCompanies(next);
+    writeJson("forsaFollowedCompanies", next);
+  };
 
   return (
     <section className="min-h-screen bg-[var(--forsa-bg)]">
@@ -91,6 +152,25 @@ export default function CompanyProfile() {
                     {account ? decodedEmail : "Login to view contact email"}
                   </p>
                 </div>
+
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <button
+                    onClick={toggleFollow}
+                    className={`forsa-click inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold ${
+                      isFollowing
+                        ? "border border-[var(--forsa-border)] bg-white text-[var(--forsa-primary)]"
+                        : "forsa-button text-white"
+                    }`}
+                  >
+                    {isFollowing ? <FaBell className="text-xs" /> : <FaRegBell className="text-xs" />}
+                    {isFollowing ? "Following" : "Follow company"}
+                  </button>
+
+                  <button className="forsa-click inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-600">
+                    <FaFlag className="text-xs" />
+                    Report
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -100,16 +180,16 @@ export default function CompanyProfile() {
                 Hiring profile
               </div>
               <p className="mt-2 text-sm leading-6 text-neutral-600">
-                Review active opportunities, trust signals, and company details
-                before applying.
+                Follow companies to quickly find them later and get ready for future post alerts.
               </p>
             </div>
           </div>
 
-          <div className="relative mt-7 grid gap-3 sm:grid-cols-3">
+          <div className="relative mt-7 grid gap-3 sm:grid-cols-4">
             <Stat label="Active posts" value={companyPosts.length} />
             <Stat label="Location" value={companyCity} />
-            <Stat label="Trust" value={isTrusted ? "Trusted" : "New poster"} />
+            <Stat label="Trust" value={isVerified ? "Verified" : isTrusted ? "Trusted" : "New poster"} />
+            <Stat label="Followers" value={followersCount + (isFollowing ? 1 : 0)} />
           </div>
         </div>
 
@@ -120,11 +200,6 @@ export default function CompanyProfile() {
               Active posts from {companyName}
             </h2>
           </div>
-
-          <button className="hidden items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-sm font-medium text-neutral-600 sm:inline-flex">
-            <FaFlag className="text-xs" />
-            Report
-          </button>
         </div>
 
         {companyPosts.length === 0 ? (
@@ -135,8 +210,7 @@ export default function CompanyProfile() {
 
             <p className="mt-5 font-semibold">No active posts right now.</p>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-500">
-              This company has no active opportunities. Check again later or
-              explore more companies.
+              Follow this company and check again later for new opportunities.
             </p>
           </div>
         ) : (
@@ -179,15 +253,18 @@ function CompanyPostCard({ post }) {
         {post.description || "No description provided."}
       </p>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {(post.tags || []).slice(0, 4).map((tag) => (
-          <span
-            key={tag}
-            className="truncate rounded-2xl border border-[var(--forsa-border)] bg-[var(--forsa-bg)] px-3 py-2 text-xs font-medium text-neutral-600"
-          >
-            {tag}
-          </span>
-        ))}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {[post.category, post.type, post.shift, post.experience]
+          .filter(Boolean)
+          .slice(0, 4)
+          .map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-[var(--forsa-border)] bg-[var(--forsa-bg)] px-3 py-1.5 text-xs font-medium text-neutral-600"
+            >
+              {tag}
+            </span>
+          ))}
       </div>
     </Link>
   );

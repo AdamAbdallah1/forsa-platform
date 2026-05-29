@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
 import AppHeader from "../components/AppHeader";
+import Modal from "../components/ui/Modal";
 import { showToast } from "../lib/Toast";
 import {
   deletePost as deletePostFromFirestore,
@@ -32,6 +33,9 @@ import {
   FaExternalLinkAlt,
   FaLink,
   FaShieldAlt,
+  FaGlobe,
+  FaInstagram,
+  FaPhone,
 } from "react-icons/fa";
 
 const skillOptions = [
@@ -95,7 +99,7 @@ const formatDate = (value) => {
   });
 };
 
-const applicationSteps = ["pending", "shortlisted", "accepted"];
+const applicationSteps = ["pending", "shortlisted", "interview", "accepted"];
 
 const getApplicationStepIndex = (status) => {
   if (status === "rejected") return 0;
@@ -114,6 +118,99 @@ const getAnalyticsForPost = (postId) => {
     reports: 0,
   };
 };
+
+function FollowedCompaniesTab({ companies, onUnfollow }) {
+  return (
+    <div className="mt-6 sm:mt-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-neutral-500">Followed companies</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
+            Companies you follow
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
+            Keep track of companies you’re interested in and quickly open their profiles.
+          </p>
+        </div>
+
+        {companies.length > 0 && (
+          <span className="w-fit rounded-full bg-[var(--forsa-bg)] px-4 py-2 text-sm text-neutral-600">
+            {companies.length} followed
+          </span>
+        )}
+      </div>
+
+      {companies.length === 0 ? (
+        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--forsa-primary)]">
+            <FaUsers />
+          </div>
+
+          <p className="mt-4 text-xl font-semibold">No followed companies yet.</p>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
+            Open a company profile and follow it to save it here.
+          </p>
+
+          <Link
+            to="/explore"
+            className="mt-6 inline-flex rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
+          >
+            Explore opportunities
+          </Link>
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {companies.map((company) => (
+            <div
+              key={company.email || company.name}
+              className="rounded-[24px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl forsa-button font-semibold text-white">
+                  {(company.name || "C").charAt(0).toUpperCase()}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-semibold tracking-[-0.03em]">
+                      {company.name || "Company"}
+                    </h3>
+
+                    {company.verified && (
+                      <span className="rounded-full bg-[var(--forsa-bg-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--forsa-primary)]">
+                        Verified
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="mt-1 text-sm text-neutral-500">
+                    {company.city || "Lebanon"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <Link
+                  to={`/company/${encodeURIComponent(company.email || company.name)}`}
+                  className="forsa-click inline-flex items-center justify-center rounded-full forsa-button px-4 py-2.5 text-sm font-medium text-white"
+                >
+                  View profile
+                </Link>
+
+                <button
+                  onClick={() => onUnfollow(company.email)}
+                  className="forsa-click rounded-full border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600"
+                >
+                  Unfollow
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -139,14 +236,30 @@ export default function Profile() {
     );
   });
   const [savedJobs, setSavedJobs] = useState(safeJson("forsaSavedJobs", []));
-  const [messages, setMessages] = useState(safeJson("forsaMessages", []));
+  const [messages, setMessages] = useState(() => {
+    const localMessages = safeJson("forsaMessages", []);
+    const cachedMessages = safeJson("forsaMessagesCache", []);
+    return localMessages.length ? localMessages : cachedMessages;
+  });
   const [recentlyViewed, setRecentlyViewed] = useState(safeJson("forsaRecentlyViewed", []));
+  const [followedCompanies, setFollowedCompanies] = useState(
+  safeJson("forsaFollowedCompanies", [])
+);
   const [selectedApplicantsPost, setSelectedApplicantsPost] = useState(null);
   const [tab, setTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
   const [editingPostId, setEditingPostId] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const [verificationForm, setVerificationForm] = useState({
+    phone: account?.phone || "",
+    website: account?.website || "",
+    instagram: account?.instagram || "",
+    proof: "",
+  });
+  const [verificationLoading, setVerificationLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => {
     if (!savedAccount || savedAccount.accountType !== "hiring") return;
@@ -474,6 +587,12 @@ const displayEmail =
       contact: editingPost.contact || "",
       description: editingPost.description || "",
       type: editingPost.type || "Project",
+      category: editingPost.category || "",
+      experience: editingPost.experience || "",
+      shift: editingPost.shift || "",
+      gender: editingPost.gender || "",
+      packageDetails: editingPost.packageDetails || "",
+      requirements: editingPost.requirements || "",
       tags: editingPost.tags || [],
       questions: editingPost.questions || [],
     };
@@ -581,14 +700,31 @@ const displayEmail =
   };
 
 
-  const requestVerification = async () => {
+  const requestVerification = () => {
     if (!isHiring) return;
+    setVerificationForm({
+      phone: account?.phone || "",
+      website: account?.website || "",
+      instagram: account?.instagram || "",
+      proof: "",
+    });
+    setVerificationOpen(true);
+  };
 
-    const proof = window.prompt(
-      "Tell us why this company should be verified. Example: official website, Instagram, registration info, or business proof."
-    );
+  const submitVerificationRequest = async () => {
+    if (!isHiring || verificationLoading) return;
 
-    if (!proof?.trim()) return;
+    if (!verificationForm.phone.trim() && !verificationForm.website.trim() && !verificationForm.instagram.trim()) {
+      showToast("Add at least a phone, website, or Instagram.", "error");
+      return;
+    }
+
+    if (verificationForm.proof.trim().length < 15) {
+      showToast("Add a short proof message before submitting.", "error");
+      return;
+    }
+
+    setVerificationLoading(true);
 
     try {
       await createVerificationRequest({
@@ -597,16 +733,32 @@ const displayEmail =
         companyEmail: account.companyEmail || account.email,
         contactPerson: account.contactPerson || "",
         city: account.city || "",
-        website: account.website || "",
-        instagram: account.instagram || "",
-        proof: proof.trim(),
+        phone: verificationForm.phone.trim(),
+        website: verificationForm.website.trim(),
+        instagram: verificationForm.instagram.trim(),
+        proof: verificationForm.proof.trim(),
         requestedByEmail: account.email,
       });
 
+      const nextAccount = {
+        ...account,
+        phone: verificationForm.phone.trim(),
+        website: verificationForm.website.trim(),
+        instagram: verificationForm.instagram.trim(),
+        verificationStatus: "pending",
+      };
+
+      setAccount(nextAccount);
+      localStorage.setItem("forsaAccount", JSON.stringify(nextAccount));
+      syncUserRecord(nextAccount);
+
+      setVerificationOpen(false);
       showToast("Verification request sent");
     } catch (error) {
       console.error("Verification request error:", error);
       showToast("Could not send verification request.", "error");
+    } finally {
+      setVerificationLoading(false);
     }
   };
 
@@ -706,6 +858,9 @@ const displayEmail =
                 <TabButton active={tab === "viewed"} onClick={() => setTab("viewed")} icon={<FaEye />}>
                   Viewed
                 </TabButton>
+                <TabButton active={tab === "companies"} onClick={() => setTab("companies")} icon={<FaUsers />}>
+  Companies
+</TabButton>
               </>
             )}
 
@@ -777,6 +932,17 @@ const displayEmail =
                   }}
                 />
               )}
+              {tab === "companies" && !isHiring && (
+  <FollowedCompaniesTab
+    companies={followedCompanies}
+    onUnfollow={(email) => {
+      const next = followedCompanies.filter((item) => item.email !== email);
+      setFollowedCompanies(next);
+      writeJson("forsaFollowedCompanies", next);
+      showToast("Company unfollowed");
+    }}
+  />
+)}
 
               {tab === "settings" && (
                 <SettingsTab logout={logout} resetDemoAccount={resetDemoAccount} loadDemo={loadDemo} clearDemo={clearDemo} isHiring={isHiring} account={account} onRequestVerification={requestVerification} />
@@ -785,6 +951,17 @@ const displayEmail =
           )}
         </div>
       </div>
+
+      <VerificationRequestModal
+        open={verificationOpen}
+        form={verificationForm}
+        loading={verificationLoading}
+        onChange={(field, value) =>
+          setVerificationForm((prev) => ({ ...prev, [field]: value }))
+        }
+        onClose={() => setVerificationOpen(false)}
+        onSubmit={submitVerificationRequest}
+      />
 
       <Footer />
 
@@ -973,15 +1150,18 @@ function ProfileSignal({ done, label }) {
 
 function VerificationCard({ account, onRequestVerification }) {
   const verified = Boolean(account?.verified);
+  const pending = account?.verificationStatus === "pending";
 
   return (
-    <div className="mt-5 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:mt-6 sm:rounded-[26px] sm:p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="forsa-card mt-5 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:mt-6">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
           <div
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
               verified
                 ? "bg-[var(--forsa-gold)] text-black"
+                : pending
+                ? "bg-blue-50 text-blue-700"
                 : "forsa-button text-white"
             }`}
           >
@@ -989,30 +1169,80 @@ function VerificationCard({ account, onRequestVerification }) {
           </div>
 
           <div>
-            <p className="font-medium">
-              {verified ? "Verified company" : "Company verification"}
-            </p>
-            <p className="mt-1 text-sm leading-6 text-neutral-600">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-semibold">
+                {verified
+                  ? "Verified company"
+                  : pending
+                  ? "Verification pending"
+                  : "Company verification"}
+              </p>
+
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  verified
+                    ? "bg-[var(--forsa-gold)] text-black"
+                    : pending
+                    ? "bg-blue-50 text-blue-700"
+                    : "bg-[var(--forsa-bg)] text-neutral-500"
+                }`}
+              >
+                {verified ? "Trusted" : pending ? "Under review" : "Not verified"}
+              </span>
+            </div>
+
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
               {verified
-                ? "Your company is marked as trusted on Forsa."
-                : "Request verification so seekers can trust your posts and company profile."}
+                ? "Your company has stronger trust signals across Forsa."
+                : pending
+                ? "Your request was sent. Keep your company details updated while we review it."
+                : "Request verification so seekers can trust your company profile and job posts."}
             </p>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <TrustChip icon={<FaEnvelope />} text={account?.companyEmail || account?.email || "Email"} active={Boolean(account?.companyEmail || account?.email)} />
+              <TrustChip icon={<FaMapMarkerAlt />} text={account?.city || "Location"} active={Boolean(account?.city)} />
+              <TrustChip icon={<FaGlobe />} text={account?.website || "Website"} active={Boolean(account?.website)} />
+              <TrustChip icon={<FaInstagram />} text={account?.instagram || "Instagram"} active={Boolean(account?.instagram)} />
+              <TrustChip icon={<FaPhone />} text={account?.phone || "Phone"} active={Boolean(account?.phone)} />
+            </div>
           </div>
         </div>
 
         {!verified && (
           <button
             onClick={onRequestVerification}
-            className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)] sm:w-fit"
+            disabled={pending}
+            className={`forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium sm:w-fit ${
+              pending
+                ? "cursor-not-allowed bg-blue-50 text-blue-700"
+                : "forsa-button text-white"
+            }`}
           >
             <FaShieldAlt className="text-xs" />
-            Request verification
+            {pending ? "Request sent" : "Request verification"}
           </button>
         )}
       </div>
     </div>
   );
 }
+
+function TrustChip({ icon, text, active }) {
+  return (
+    <span
+      className={`inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ${
+        active
+          ? "bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
+          : "bg-[var(--forsa-bg)] text-neutral-400"
+      }`}
+    >
+      {icon}
+      <span className="truncate">{text}</span>
+    </span>
+  );
+}
+
 
 function CompletionCard({ completionScore, isHiring }) {
   return (
@@ -1208,7 +1438,7 @@ function PostCard({
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-2">
-          <span className="rounded-full bg-white px-3 py-1 text-xs">{post.type}</span>
+          <span className="rounded-full bg-white px-3 py-1 text-xs">{post.category || post.type}</span>
 
           <span
             className={`rounded-full px-3 py-1 text-xs ${
@@ -1225,6 +1455,11 @@ function PostCard({
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
+        {[post.type, post.experience, post.shift].filter(Boolean).slice(0, 3).map((tag) => (
+          <span key={tag} className="rounded-full bg-white px-3 py-1 text-xs">
+            {tag}
+          </span>
+        ))}
         {(post.tags || []).slice(0, 6).map((tag) => (
           <span key={tag} className="rounded-full bg-white px-3 py-1 text-xs">
             {tag}
@@ -1427,6 +1662,7 @@ function SavedJobsTab({ jobs, removeSavedJob }) {
 function ApplicationsTab({ applications }) {
   const pending = applications.filter((item) => (item.status || "pending") === "pending").length;
   const shortlisted = applications.filter((item) => item.status === "shortlisted").length;
+  const interview = applications.filter((item) => item.status === "interview").length;
   const accepted = applications.filter((item) => item.status === "accepted").length;
   const rejected = applications.filter((item) => item.status === "rejected").length;
 
@@ -1451,9 +1687,10 @@ function ApplicationsTab({ applications }) {
         </Link>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-4">
+      <div className="mt-5 grid gap-3 sm:grid-cols-5">
         <StatCard label="Pending" value={pending} />
         <StatCard label="Shortlisted" value={shortlisted} />
+        <StatCard label="Interviews" value={interview} />
         <StatCard label="Accepted" value={accepted} />
         <StatCard label="Rejected" value={rejected} />
       </div>
@@ -1495,6 +1732,10 @@ function ApplicationsTab({ applications }) {
               <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-600">
                 {application.lastMessage || "Application sent."}
               </p>
+
+              {application.interview && (
+                <InterviewSummary interview={application.interview} />
+              )}
 
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <div className="rounded-2xl bg-white p-4">
@@ -1571,9 +1812,10 @@ function ApplicationTimeline({ status }) {
         ))}
       </div>
 
-      <div className="mt-3 grid grid-cols-3 text-[11px] uppercase tracking-wide text-neutral-500">
+      <div className="mt-3 grid grid-cols-4 text-[11px] uppercase tracking-wide text-neutral-500">
         <span>Pending</span>
         <span className="text-center">Shortlisted</span>
+        <span className="text-center">Interview</span>
         <span className="text-right">Accepted</span>
       </div>
     </div>
@@ -1583,7 +1825,9 @@ function ApplicationTimeline({ status }) {
 
 function StatusPill({ status }) {
   const styles =
-    status === "shortlisted"
+    status === "interview"
+      ? "bg-blue-100 text-blue-700"
+      : status === "shortlisted"
       ? "forsa-button text-white"
       : status === "accepted"
       ? "bg-green-100 text-green-700"
@@ -1687,6 +1931,12 @@ function ProfileEdit({
               label="Instagram"
               value={account.instagram || ""}
               onChange={(value) => updateAccount("instagram", value)}
+            />
+
+            <Field
+              label="Business phone / WhatsApp"
+              value={account.phone || ""}
+              onChange={(value) => updateAccount("phone", value)}
             />
           </div>
 
@@ -2014,6 +2264,128 @@ function RecentlyViewedTab({ jobs, onClear }) {
 }
 
 
+
+function VerificationRequestModal({
+  open,
+  form,
+  loading,
+  onChange,
+  onClose,
+  onSubmit,
+}) {
+  return (
+    <Modal open={open} title="Request company verification" onClose={onClose}>
+      <div>
+        <p className="text-sm leading-7 text-neutral-600">
+          Add clear proof that your company is real. This helps seekers trust your posts before applying.
+        </p>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <VerificationInput
+            icon={<FaPhone />}
+            label="Phone / WhatsApp"
+            value={form.phone}
+            placeholder="70 000 000"
+            onChange={(value) => onChange("phone", value)}
+          />
+
+          <VerificationInput
+            icon={<FaGlobe />}
+            label="Website"
+            value={form.website}
+            placeholder="https://company.com"
+            onChange={(value) => onChange("website", value)}
+          />
+
+          <VerificationInput
+            icon={<FaInstagram />}
+            label="Instagram"
+            value={form.instagram}
+            placeholder="@company"
+            onChange={(value) => onChange("instagram", value)}
+          />
+        </div>
+
+        <div className="mt-4">
+          <label className="text-sm font-medium">Proof message</label>
+          <textarea
+            value={form.proof}
+            onChange={(event) => onChange("proof", event.target.value)}
+            placeholder="Example: We are Farouj Restaurant in Jal El Dib. This is our official Instagram/phone, and we are hiring through Forsa."
+            className="mt-2 min-h-28 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-primary)]"
+          />
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="forsa-click rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={loading}
+            className="forsa-click forsa-button rounded-full px-5 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+          >
+            {loading ? "Sending..." : "Submit request"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function VerificationInput({ icon, label, value, onChange, placeholder }) {
+  return (
+    <div>
+      <label className="text-sm font-medium">{label}</label>
+      <div className="forsa-focus mt-2 flex items-center gap-3 rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3">
+        <span className="text-neutral-400">{icon}</span>
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="w-full bg-transparent text-sm outline-none"
+        />
+      </div>
+    </div>
+  );
+}
+
+function InterviewSummary({ interview }) {
+  return (
+    <div className="mt-4 rounded-[24px] border border-blue-100 bg-blue-50 p-4">
+      <p className="font-semibold text-blue-700">Interview scheduled</p>
+
+      <div className="mt-3 grid gap-2 text-sm text-blue-700 sm:grid-cols-3">
+        <div>
+          <p className="text-xs font-semibold text-blue-500">Date</p>
+          <p className="mt-1">{interview.date}</p>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold text-blue-500">Time</p>
+          <p className="mt-1">{interview.time}</p>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold text-blue-500">Location</p>
+          <p className="mt-1">{interview.location}</p>
+        </div>
+      </div>
+
+      {interview.notes && (
+        <p className="mt-3 text-sm leading-6 text-blue-700">{interview.notes}</p>
+      )}
+    </div>
+  );
+}
+
 function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo, isHiring, account, onRequestVerification }) {
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -2040,7 +2412,7 @@ function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo, isHiring, 
       <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
         <p className="font-medium">Session</p>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
-          Login/logout is simulated with localStorage for now.
+          Manage your current signed-in session. More security settings will be added here.
         </p>
 
         <button onClick={logout} className="forsa-click mt-5 w-full rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit">

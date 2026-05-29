@@ -3,6 +3,7 @@ import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
+import MyApplications from "./pages/MyApplications";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Companies from "./pages/Companies";
@@ -51,6 +52,14 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+  path="/applications"
+  element={
+    <SeekerRoute>
+      <MyApplications />
+    </SeekerRoute>
+  }
+/>
 
           <Route
             path="/profile"

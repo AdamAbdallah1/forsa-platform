@@ -30,7 +30,7 @@ import {
   FaUserCircle,
   FaShareAlt,
   FaFlag,
-  FaShieldAlt,
+  FaShieldAlt
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import { opportunities } from "../data/opportunities";
@@ -204,6 +204,31 @@ export default function Explore() {
   const [firebasePosts, setFirebasePosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
 
+  const users = safeJson("forsaUsers", []);
+  const trustedPosters = safeJson("forsaTrustedPosters", []);
+
+  const getCompanyTrust = (post) => {
+    const ownerEmail = post.ownerEmail || post.contact || "";
+    const companyUser = users.find(
+      (user) =>
+        user.accountType === "hiring" &&
+        (user.email === ownerEmail ||
+          user.companyEmail === ownerEmail ||
+          user.companyName === post.company ||
+          user.name === post.company)
+    );
+
+    return {
+      verified: Boolean(post.verified || post.companyVerified || companyUser?.verified),
+      trusted: Boolean(
+        post.trusted ||
+          post.companyTrusted ||
+          companyUser?.trusted ||
+          trustedPosters.includes(ownerEmail)
+      ),
+    };
+  };
+
   useEffect(() => {
     let active = true;
 
@@ -289,6 +314,7 @@ export default function Explore() {
         createdAt: getDateValue(post.createdAt || post.id || Date.now()),
         updatedAt: getDateValue(post.updatedAt || post.createdAt || Date.now()),
         source: "community",
+        ...getCompanyTrust(post),
       }));
 
     const normalizedSeed = opportunities.map((item) => ({
@@ -298,6 +324,8 @@ export default function Explore() {
       ownerEmail: item.ownerEmail || null,
       createdAt: item.createdAt || item.id || 0,
       source: "featured",
+      verified: Boolean(item.verified || item.companyVerified),
+      trusted: Boolean(item.trusted || item.companyTrusted),
     }));
 
     return [...normalizedPosts, ...normalizedSeed];
@@ -352,6 +380,8 @@ export default function Explore() {
       const rankScore =
         matchScore +
         (item.featured ? 20 : 0) +
+        (item.verified ? 12 : 0) +
+        (item.trusted ? 6 : 0) +
         (item.urgent ? 14 : 0) +
         recencyScore;
 
@@ -396,6 +426,12 @@ export default function Explore() {
       .filter((item) => item.matchScore >= 58)
       .slice(0, 6);
   }, [rankedOpportunities, canInteract]);
+
+  const featuredOpportunities = useMemo(() => {
+    return rankedOpportunities
+      .filter((item) => item.featured || item.verified || item.trusted)
+      .slice(0, 6);
+  }, [rankedOpportunities]);
 
   useEffect(() => {
     const postId = readSharedPostId(searchParams, location);
@@ -725,6 +761,20 @@ export default function Explore() {
           <RecentlyViewedSection
             items={recentlyViewed}
             onOpen={(item) => openDetails(item)}
+          />
+        )}
+
+        {featuredOpportunities.length > 0 && (
+          <FeaturedSection
+            items={featuredOpportunities}
+            savedJobs={savedJobs}
+            appliedIds={appliedIds}
+            canInteract={canInteract}
+            onSave={toggleSave}
+            onDetails={openDetails}
+            onApply={openApply}
+            onShare={(item) => setShareItem(item)}
+            navigate={navigate}
           />
         )}
 
@@ -1164,7 +1214,10 @@ function RecentlyViewedSection({ items = [], onOpen }) {
             onClick={() => onOpen(item)}
             className="min-w-[260px] rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-[var(--forsa-primary)]"
           >
-            <p className="text-xs text-neutral-500">{item.company}</p>
+            <div className="flex items-center gap-2">
+              <p className="truncate text-xs text-neutral-500">{item.company}</p>
+              {item.verified && <VerifiedBadge />}
+            </div>
             <h3 className="mt-2 line-clamp-2 font-semibold tracking-[-0.02em]">
               {item.title}
             </h3>
@@ -1175,6 +1228,61 @@ function RecentlyViewedSection({ items = [], onOpen }) {
     </section>
   );
 }
+function FeaturedSection({
+  items,
+  savedJobs,
+  appliedIds,
+  canInteract,
+  onSave,
+  onDetails,
+  onApply,
+  onShare,
+  navigate,
+}) {
+  const isSaved = (id) => savedJobs.some((job) => String(job.id) === String(id));
+
+  return (
+    <section className="mt-6 overflow-hidden rounded-[32px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_18px_65px_rgba(109,40,217,0.10)] sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="inline-flex items-center gap-2 rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--forsa-primary)]">
+            <FaStar className="text-[10px]" />
+            Featured
+          </p>
+
+          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em]">
+            Featured opportunities
+          </h2>
+
+          <p className="mt-1 text-sm text-neutral-500">
+            Verified, trusted, or highlighted posts from companies on Forsa.
+          </p>
+        </div>
+
+        <span className="w-fit rounded-full border border-[var(--forsa-border)] bg-[var(--forsa-bg)] px-4 py-2 text-xs font-semibold text-neutral-500">
+          {items.length} featured
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        {items.slice(0, 4).map((item) => (
+          <CompactRecommendationCard
+            key={`featured-${item.id}`}
+            item={item}
+            saved={isSaved(item.id)}
+            applied={appliedIds.has(item.id)}
+            canInteract={canInteract}
+            onSave={() => onSave(item)}
+            onDetails={() => onDetails(item)}
+            onApply={() => (appliedIds.has(item.id) ? navigate("/messages") : onApply(item))}
+            onShare={() => onShare(item)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function RecommendedSection({ items, savedJobs, appliedIds, canInteract, onSave, onDetails, onApply, onShare, navigate }) {
   const isSaved = (id) => savedJobs.some((job) => String(job.id) === String(id));
 
@@ -1221,7 +1329,11 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
             {item.urgent && <span className="rounded-full bg-white px-2.5 py-1 text-[11px] text-neutral-600">Urgent</span>}
           </div>
           <h3 className="mt-3 line-clamp-2 font-semibold tracking-[-0.02em]">{item.title}</h3>
-          <p className="mt-1 text-sm text-neutral-500">{item.company} · {item.location}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
+            <span>{item.company} · {item.location}</span>
+            {item.verified && <VerifiedBadge />}
+            {!item.verified && item.trusted && <TrustedBadge />}
+          </div>
         </div>
 
         <button
@@ -1285,6 +1397,13 @@ function OpportunityCard({
 
             <div className="min-w-0">
               <div className="mb-1 flex h-5 items-center gap-1.5 overflow-hidden">
+                {item.verified && (
+                  <Badge>
+                    <FaShieldAlt className="text-[8px]" />
+                    Verified
+                  </Badge>
+                )}
+                {!item.verified && item.trusted && <Badge>Trusted</Badge>}
                 {item.source === "featured" && <Badge>Featured</Badge>}
                 {item.urgent && (
                   <Badge tone="red">
@@ -1299,10 +1418,12 @@ function OpportunityCard({
                 {item.title}
               </h3>
 
-              <p className="mt-1 flex items-center gap-1 text-[13px] text-neutral-500">
+              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-neutral-500">
                 <FaMapMarkerAlt className="shrink-0 text-[10px] text-neutral-400" />
                 <span className="truncate">{item.company} · {item.location}</span>
-              </p>
+                {item.verified && <VerifiedBadge />}
+                {!item.verified && item.trusted && <TrustedBadge />}
+              </div>
             </div>
           </div>
 
@@ -1430,6 +1551,24 @@ function OpportunityCard({
         </button>
       </div>
     </article>
+  );
+}
+
+function VerifiedBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--forsa-bg-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--forsa-primary)]">
+      <FaShieldAlt className="text-[9px]" />
+      Verified
+    </span>
+  );
+}
+
+function TrustedBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
+      <FaCheck className="text-[9px]" />
+      Trusted
+    </span>
   );
 }
 
@@ -1607,7 +1746,7 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
         </p>
 
         <div className="mt-5 rounded-2xl bg-[var(--forsa-bg)] p-4 text-sm">
-          <InfoLine label="Company" value={item.company} />
+          <InfoLine label="Company" value={item.verified ? `${item.company} · Verified` : item.trusted ? `${item.company} · Trusted` : item.company} />
           <InfoLine label="Location" value={item.location} />
           <InfoLine label="Pay" value={item.pay} />
           <InfoLine label="Match" value={item.matchScore ? `${item.matchScore}%` : "Complete profile for better matches"} />
