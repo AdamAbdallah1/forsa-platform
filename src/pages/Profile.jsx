@@ -11,7 +11,9 @@ import {
   updatePost,
 } from "../lib/postService";
 import { loadDemoActivity, clearDemoActivity } from "../lib/demoData";
+
 import { createVerificationRequest } from "../lib/verificationService";
+import { calculateApplicantScore } from "../lib/applicantScore";
 import {
   FaBriefcase,
   FaBookmark,
@@ -36,6 +38,11 @@ import {
   FaGlobe,
   FaInstagram,
   FaPhone,
+  FaChartLine,
+  FaShareAlt,
+  FaPercent,
+  FaFlag,
+  FaBullseye,
 } from "react-icons/fa";
 
 const skillOptions = [
@@ -116,6 +123,72 @@ const getAnalyticsForPost = (postId) => {
     applications: 0,
     shares: 0,
     reports: 0,
+  };
+};
+
+const percent = (part, total) => {
+  if (!total) return 0;
+  return Math.round((Number(part || 0) / Number(total || 0)) * 100);
+};
+
+const formatNumber = (value) => Number(value || 0).toLocaleString();
+
+const buildPostAnalytics = (posts, messages) => {
+  const rows = posts.map((post) => {
+    const analytics = getAnalyticsForPost(post.id);
+    const applicants = messages.filter(
+      (thread) => thread.opportunityId === post.id || thread.postId === post.id
+    );
+
+    const applications = Math.max(Number(analytics.applications || 0), applicants.length);
+    const views = Number(analytics.views || post.views || 0);
+    const saves = Number(analytics.saves || post.saves || 0);
+    const shares = Number(analytics.shares || post.shares || 0);
+    const reports = Number(analytics.reports || post.reports || 0);
+
+    const avgFit = applicants.length
+      ? Math.round(applicants.reduce((total, thread) => total + calculateApplicantScore(thread).score, 0) / applicants.length)
+      : 0;
+
+    return {
+      post,
+      views,
+      saves,
+      applications,
+      shares,
+      reports,
+      avgFit,
+      conversionRate: percent(applications, views),
+      saveRate: percent(saves, views),
+    };
+  });
+
+  const totals = rows.reduce(
+    (acc, row) => ({
+      views: acc.views + row.views,
+      saves: acc.saves + row.saves,
+      applications: acc.applications + row.applications,
+      shares: acc.shares + row.shares,
+      reports: acc.reports + row.reports,
+      fitTotal: acc.fitTotal + (row.avgFit ? row.avgFit : 0),
+      fitCount: acc.fitCount + (row.avgFit ? 1 : 0),
+    }),
+    { views: 0, saves: 0, applications: 0, shares: 0, reports: 0, fitTotal: 0, fitCount: 0 }
+  );
+
+  const bestPost = rows.length
+    ? [...rows].sort((a, b) => b.applications - a.applications || b.views - a.views || b.conversionRate - a.conversionRate)[0]
+    : null;
+
+  return {
+    rows: rows.sort((a, b) => b.applications - a.applications || b.views - a.views || b.conversionRate - a.conversionRate),
+    totals: {
+      ...totals,
+      conversionRate: percent(totals.applications, totals.views),
+      saveRate: percent(totals.saves, totals.views),
+      avgFit: totals.fitCount ? Math.round(totals.fitTotal / totals.fitCount) : 0,
+    },
+    bestPost,
   };
 };
 
@@ -389,6 +462,10 @@ const displayEmail =
   const seekerApplications = messages.filter(
     (thread) => thread.seeker?.email === account.email
   );
+
+  const hiringAnalytics = isHiring
+    ? buildPostAnalytics(posts, messages)
+    : { rows: [], totals: {}, bestPost: null };
 
   const persistOwnPosts = (updatedOwnPosts) => {
     const allPosts = safeJson("forsaPosts", []);
@@ -842,9 +919,15 @@ const displayEmail =
             </TabButton>
 
             {isHiring ? (
-              <TabButton active={tab === "posts"} onClick={() => setTab("posts")} icon={<FaBriefcase />}>
-                Posts
-              </TabButton>
+              <>
+                <TabButton active={tab === "posts"} onClick={() => setTab("posts")} icon={<FaBriefcase />}>
+                  Posts
+                </TabButton>
+
+                <TabButton active={tab === "analytics"} onClick={() => setTab("analytics")} icon={<FaChartLine />}>
+                  Analytics
+                </TabButton>
+              </>
             ) : (
               <>
                 <TabButton active={tab === "saved"} onClick={() => setTab("saved")} icon={<FaBookmark />}>
@@ -912,6 +995,10 @@ const displayEmail =
                   getApplicantsCount={getApplicantsCount}
                   openApplicants={setSelectedApplicantsPost}
                 />
+              )}
+
+              {tab === "analytics" && isHiring && (
+                <AnalyticsTab analytics={hiringAnalytics} />
               )}
 
               {tab === "saved" && !isHiring && (
@@ -1303,6 +1390,144 @@ function CompletionTips({ isHiring, profile, posts }) {
   );
 }
 
+
+function AnalyticsTab({ analytics }) {
+  const rows = analytics.rows || [];
+  const totals = analytics.totals || {};
+  const bestPost = analytics.bestPost;
+
+  return (
+    <div className="mt-6 sm:mt-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-neutral-500">Company analytics</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
+            Hiring performance
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
+            Track views, saves, applications, shares, reports, conversion rate, and average applicant fit across your posts.
+          </p>
+        </div>
+
+        <Link
+          to="/post"
+          className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
+        >
+          <FaPlus className="text-xs" />
+          New post
+        </Link>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <AnalyticsMetric icon={<FaEye />} label="Total views" value={formatNumber(totals.views)} />
+        <AnalyticsMetric icon={<FaPaperPlane />} label="Applications" value={formatNumber(totals.applications)} />
+        <AnalyticsMetric icon={<FaBookmark />} label="Saves" value={formatNumber(totals.saves)} />
+        <AnalyticsMetric icon={<FaShareAlt />} label="Shares" value={formatNumber(totals.shares)} />
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <AnalyticsMetric icon={<FaPercent />} label="Conversion rate" value={`${totals.conversionRate || 0}%`} />
+        <AnalyticsMetric icon={<FaBullseye />} label="Avg applicant fit" value={`${totals.avgFit || 0}%`} />
+        <AnalyticsMetric icon={<FaFlag />} label="Reports" value={formatNumber(totals.reports)} danger={totals.reports > 0} />
+      </div>
+
+      {bestPost && (
+        <div className="mt-6 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white shadow-sm">
+          <div className="p-5 sm:p-6">
+            <p className="text-sm font-medium text-neutral-500">Best performing post</p>
+            <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-2xl font-semibold tracking-[-0.04em]">{bestPost.post.title}</h3>
+                <p className="mt-2 text-sm text-neutral-500">
+                  {bestPost.post.location || "Lebanon"} · {bestPost.post.pay || "Pay not set"}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 sm:w-[330px]">
+                <MiniAnalytics label="Views" value={bestPost.views} />
+                <MiniAnalytics label="Apps" value={bestPost.applications} />
+                <MiniAnalytics label="Conv." value={`${bestPost.conversionRate}%`} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rows.length === 0 ? (
+        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-8 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--forsa-primary)]">
+            <FaChartLine />
+          </div>
+          <p className="mt-4 text-xl font-semibold">No analytics yet.</p>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
+            Post your first opportunity and analytics will appear here.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-6 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white shadow-sm">
+          <div className="border-b border-[var(--forsa-border)] p-5">
+            <p className="font-semibold">Post performance table</p>
+            <p className="mt-1 text-sm text-neutral-500">Sorted by applications, views, and conversion.</p>
+          </div>
+
+          <div className="divide-y divide-[var(--forsa-border)]">
+            {rows.map((row) => (
+              <div key={row.post.id} className="p-4 sm:p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="line-clamp-1 font-semibold tracking-[-0.03em]">{row.post.title}</h3>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.post.status === "closed" ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>
+                        {row.post.status === "closed" ? "Closed" : "Live"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-neutral-500">
+                      {row.post.location || "Lebanon"} · {row.post.category || row.post.type || "Opportunity"}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-7 lg:w-[620px]">
+                    <MiniAnalytics label="Views" value={row.views} />
+                    <MiniAnalytics label="Saves" value={row.saves} />
+                    <MiniAnalytics label="Apps" value={row.applications} />
+                    <MiniAnalytics label="Shares" value={row.shares} />
+                    <MiniAnalytics label="Conv." value={`${row.conversionRate}%`} />
+                    <MiniAnalytics label="Fit" value={`${row.avgFit}%`} />
+                    <MiniAnalytics label="Reports" value={row.reports} />
+                  </div>
+                </div>
+
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--forsa-bg)]">
+                  <div
+                    className="h-full rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))]"
+                    style={{ width: `${Math.min(100, Math.max(4, row.conversionRate))}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AnalyticsMetric({ icon, label, value, danger }) {
+  return (
+    <div className={`rounded-[24px] border p-4 shadow-sm ${danger ? "border-red-100 bg-red-50" : "border-[var(--forsa-border)] bg-white"}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className={`text-xs font-medium ${danger ? "text-red-500" : "text-neutral-500"}`}>{label}</p>
+          <p className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{value}</p>
+        </div>
+        <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${danger ? "bg-white text-red-600" : "bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"}`}>
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PostsTab({
   posts,
   postsLoading,
@@ -1470,8 +1695,14 @@ function PostCard({
       <div className="mt-5 grid grid-cols-4 gap-2 rounded-2xl bg-white p-3">
         <MiniAnalytics label="Views" value={analytics?.views || 0} />
         <MiniAnalytics label="Saves" value={analytics?.saves || 0} />
-        <MiniAnalytics label="Apps" value={analytics?.applications || applicantsCount} />
+        <MiniAnalytics label="Apps" value={Math.max(analytics?.applications || 0, applicantsCount)} />
         <MiniAnalytics label="Shares" value={analytics?.shares || 0} />
+      </div>
+
+      <div className="mt-3 grid gap-2 rounded-2xl bg-white p-3 sm:grid-cols-3">
+        <MiniAnalytics label="Conversion" value={`${percent(Math.max(analytics?.applications || 0, applicantsCount), analytics?.views || post.views || 0)}%`} />
+        <MiniAnalytics label="Reports" value={analytics?.reports || post.reports || 0} />
+        <MiniAnalytics label="Status" value={post.status === "closed" ? "Closed" : "Live"} />
       </div>
 
       <div className="mt-3 rounded-2xl bg-white p-4">
@@ -1524,9 +1755,9 @@ function PostCard({
 
 function MiniAnalytics({ label, value }) {
   return (
-    <div className="text-center">
+    <div className="rounded-2xl bg-[var(--forsa-bg)] px-3 py-2 text-center">
       <p className="text-sm font-semibold">{value}</p>
-      <p className="mt-1 text-[11px] text-neutral-500">{label}</p>
+      <p className="mt-1 text-[10px] font-medium text-neutral-500">{label}</p>
     </div>
   );
 }

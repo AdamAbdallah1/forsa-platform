@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import SEO from "../components/SEO";
 import { Link, useNavigate } from "react-router-dom";
 import Modal from "../components/ui/Modal";
+import { createNotification } from "../lib/notificationService";
 import {
   FaArrowRight,
   FaBriefcase,
@@ -18,7 +19,7 @@ import {
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
-import { calculateApplicantScore } from "../lib/applicantScore";
+import { calculateApplicantScore } from "../lib/applicantScorejsx";
 import {
   listenUserThreads,
   updateThreadStatus,
@@ -191,6 +192,16 @@ const [interviewForm, setInterviewForm] = useState({
 
     try {
       await updateThreadStatus(thread.id, { status, by: account.email, systemMessage });
+      if (thread.seeker?.email) {
+  await createNotification({
+    type: "application_status",
+    title: `Application ${getStatusLabel(status).toLowerCase()}`,
+    text: `${thread.company || account.companyName || account.name} marked your application for ${thread.title} as ${getStatusLabel(status)}.`,
+    targetEmail: thread.seeker.email,
+    actionUrl: "/applications",
+    applicationId: thread.id,
+  });
+}
       showToast(`Marked as ${getStatusLabel(status).toLowerCase()}`);
     } catch (error) {
       console.error("Applicant status error:", error);
@@ -258,6 +269,17 @@ const [interviewForm, setInterviewForm] = useState({
       by: account.email,
       systemMessage,
     });
+
+    if (interviewTarget.seeker?.email) {
+  await createNotification({
+    type: "interview_invite",
+    title: "Interview invitation",
+    text: `${interviewTarget.company || account.companyName || account.name} invited you to interview for ${interviewTarget.title} on ${interview.date} at ${interview.time}.`,
+    targetEmail: interviewTarget.seeker.email,
+    actionUrl: "/applications",
+    applicationId: interviewTarget.id,
+  });
+}
 
     showToast("Interview invitation sent");
     setInterviewTarget(null);

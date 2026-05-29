@@ -4,6 +4,7 @@ import { showToast } from "../lib/Toast";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
 import { createPost } from "../lib/postService";
+import { createNotification } from "../lib/notificationService";
 import {
   FaBriefcase,
   FaCheck,
@@ -249,6 +250,12 @@ function safeJson(key, fallback) {
   }
 }
 
+function writeJson(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+const normalizeText = (value) => String(value || "").trim();
+
 function formatTime(iso) {
   if (!iso) return "Not saved yet";
   const date = new Date(iso);
@@ -273,6 +280,7 @@ export default function PostOpportunity() {
   const [typeOpen, setTypeOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
+  const [customTags, setCustomTags] = useState(() => safeJson("forsaCustomTags", []));
   const [showRestoreDraft, setShowRestoreDraft] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState(null);
   const [draftIgnored, setDraftIgnored] = useState(false);
@@ -327,10 +335,22 @@ export default function PostOpportunity() {
     return () => clearTimeout(timeout);
   }, [form, draftKey, draftIgnored]);
 
+  const allTagOptions = useMemo(() => {
+    return Array.from(new Set([...tagOptions, ...customTags])).sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }, [customTags]);
+
   const filteredTags = useMemo(() => {
     const cleanSearch = tagSearch.trim().toLowerCase();
-    return tagOptions.filter((tag) => tag.toLowerCase().includes(cleanSearch));
-  }, [tagSearch]);
+    return allTagOptions.filter((tag) => tag.toLowerCase().includes(cleanSearch));
+  }, [tagSearch, allTagOptions]);
+
+  const canAddCustomTag = useMemo(() => {
+    const value = normalizeText(tagSearch);
+    if (value.length < 2) return false;
+    return !allTagOptions.some((tag) => tag.toLowerCase() === value.toLowerCase());
+  }, [tagSearch, allTagOptions]);
 
   const qualityScore = useMemo(() => {
     let score = 0;
@@ -377,6 +397,30 @@ export default function PostOpportunity() {
     }));
   };
 
+  const addCustomTag = () => {
+    const cleanTag = normalizeText(tagSearch);
+    if (!cleanTag || cleanTag.length < 2) return;
+
+    const exists = allTagOptions.some(
+      (tag) => tag.toLowerCase() === cleanTag.toLowerCase()
+    );
+
+    if (!exists) {
+      const nextCustomTags = Array.from(new Set([...customTags, cleanTag]));
+      setCustomTags(nextCustomTags);
+      writeJson("forsaCustomTags", nextCustomTags);
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      tags: prev.tags.includes(cleanTag) ? prev.tags : [...prev.tags, cleanTag],
+    }));
+
+    setTagSearch("");
+    setDraftIgnored(false);
+    showToast(`Added tag: ${cleanTag}`, "info");
+  };
+
   const updateQuestion = (index, value) => {
     setDraftIgnored(false);
     setForm((prev) => ({
@@ -388,7 +432,7 @@ export default function PostOpportunity() {
   const addQuestion = () => {
     if (form.questions.length >= 5) return;
     setDraftIgnored(false);
-    setForm((prev) => ({ ...prev, ...form, questions: [...prev.questions, ""] }));
+    setForm((prev) => ({ ...prev, questions: [...prev.questions, ""] }));
   };
 
   const removeQuestion = (index) => {
@@ -434,17 +478,57 @@ export default function PostOpportunity() {
     setShowRestoreDraft(false);
     setDraftSavedAt(null);
     setDraftIgnored(true);
-    showToast("Draft index evicted", "info");
+    showToast("Draft dismissed", "info");
   };
 
   const clearCurrentDraft = () => {
-    if (!window.confirm("Purge currently staging workspace data?")) return;
+    if (!window.confirm("Clear the saved draft?")) return;
     localStorage.removeItem(draftKey);
     setForm(emptyForm(account));
     setDraftSavedAt(null);
     setShowRestoreDraft(false);
     setDraftIgnored(true);
-    showToast("Workspace flushed");
+    showToast("Draft cleared");
+  };
+
+  const notifyFollowersOfNewPost = async (post) => {
+    const followers = safeJson("forsaCompanyFollowers", []);
+    const ownerEmail = post.ownerEmail || post.contact || account?.email || "";
+    const companyName = post.company || account?.companyName || account?.name || "";
+
+    const followerEmails = Array.from(
+      new Set(
+        followers
+          .filter((item) => (
+            item.companyEmail === ownerEmail ||
+            item.email === ownerEmail ||
+            item.companyName === companyName ||
+            item.name === companyName
+          ))
+          .map((item) => item.seekerEmail || item.userEmail || item.followerEmail)
+          .filter(Boolean)
+      )
+    );
+
+    if (followerEmails.length === 0) return;
+
+    try {
+      await Promise.all(
+        followerEmails.map((targetEmail) =>
+          createNotification({
+            type: "followed_company_post",
+            title: `${companyName} posted a new opportunity`,
+            text: `${post.title} · ${post.location}`,
+            targetEmail,
+            actionUrl: `/explore?post=${encodeURIComponent(post.id)}`,
+            postId: post.id,
+            company: companyName,
+          })
+        )
+      );
+    } catch (error) {
+      console.error("Follower notification error:", error);
+    }
   };
 
   const handleSubmit = async () => {
@@ -484,14 +568,15 @@ export default function PostOpportunity() {
       const createdPost = await createPost(newPost);
       const saved = safeJson("forsaPosts", []);
       localStorage.setItem("forsaPosts", JSON.stringify([createdPost, ...saved]));
+      await notifyFollowersOfNewPost(createdPost);
       localStorage.removeItem(draftKey);
       setDraftSavedAt(null);
 
-      showToast("Opportunity successfully compiled and dispatched");
+      showToast("Opportunity published successfully");
       navigate("/explore");
     } catch (error) {
-      console.error("Post exception thrown:", error);
-      showToast("Failed to compile remote posting entity. Retry transaction.", "error");
+      console.error("Post error:", error);
+      showToast("Could not publish opportunity. Try again.", "error");
     } finally {
       setPosting(false);
     }
@@ -600,14 +685,33 @@ export default function PostOpportunity() {
                       <input
                         value={tagSearch}
                         onChange={(e) => setTagSearch(e.target.value)}
-                        placeholder="Search skills, role tags..."
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && canAddCustomTag) {
+                            e.preventDefault();
+                            addCustomTag();
+                          }
+                        }}
+                        placeholder="Search or add skills, role tags..."
                         className="w-full bg-transparent text-sm font-medium outline-none text-neutral-800"
                       />
                     </div>
 
+                    {canAddCustomTag && (
+                      <button
+                        type="button"
+                        onClick={addCustomTag}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] px-3 py-2.5 text-sm font-bold text-[var(--forsa-primary)]"
+                      >
+                        <FaPlus className="text-xs" />
+                        Add “{normalizeText(tagSearch)}”
+                      </button>
+                    )}
+
                     <div className="max-h-60 overflow-y-auto pr-1 divide-y divide-neutral-50">
                       {filteredTags.length === 0 ? (
-                        <p className="px-3 py-4 text-xs font-semibold text-neutral-400 text-center">No tags found</p>
+                        <p className="px-3 py-4 text-xs font-semibold text-neutral-400 text-center">
+                          No tags found. Type a custom tag above and click add.
+                        </p>
                       ) : (
                         filteredTags.map((tag) => (
                           <button
@@ -710,8 +814,8 @@ export default function PostOpportunity() {
 
             {/* Priority Flags */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <ToggleCard active={form.urgent} icon={<FaBolt />} title="Urgent Delivery Track" text="Inject explicit visual prioritization indicators inside active render pipelines." onClick={() => updateForm("urgent", !form.urgent)} />
-              <ToggleCard active={form.featured} icon={<FaStar />} title="Featured Allocation Placement" text="Elevate operational entity node context inside main explore components." onClick={() => updateForm("featured", !form.featured)} />
+              <ToggleCard active={form.urgent} icon={<FaBolt />} title="Urgent post" text="Show an urgent label so seekers know this role needs faster applications." onClick={() => updateForm("urgent", !form.urgent)} />
+              <ToggleCard active={form.featured} icon={<FaStar />} title="Featured post" text="Highlight this opportunity inside Explore. Verified companies are featured automatically." onClick={() => updateForm("featured", !form.featured)} />
             </div>
 
             <div className="block lg:hidden">
@@ -756,9 +860,9 @@ function RestoreDraftBanner({ draftSavedAt, onRestore, onDismiss }) {
             <FaUndo className="text-xs" />
           </div>
           <div>
-            <p className="text-sm font-bold text-neutral-950">Workspace backup instance located</p>
+            <p className="text-sm font-bold text-neutral-950">Saved draft found</p>
             <p className="mt-0.5 text-xs font-medium text-neutral-500 leading-relaxed">
-              We identified an un-dispatched structural dataset created on {formatTime(draftSavedAt)}.
+              You have an unfinished job post saved from {formatTime(draftSavedAt)}.
             </p>
           </div>
         </div>
@@ -768,7 +872,7 @@ function RestoreDraftBanner({ draftSavedAt, onRestore, onDismiss }) {
             Dismiss
           </button>
           <button type="button" onClick={onRestore} className="rounded-xl bg-neutral-950 px-4 py-2 text-xs font-bold text-white hover:bg-neutral-900 transition shadow-sm">
-            Restore State
+            Restore draft
           </button>
         </div>
       </div>
@@ -783,7 +887,7 @@ function DraftStatusCard({ draftSavedAt, onClearDraft }) {
         <div className="space-y-1">
           <p className="text-sm font-bold tracking-tight text-neutral-950">Auto-save draft</p>
           <p className="text-xs font-medium text-neutral-400 leading-relaxed">
-            {draftSavedAt ? `Buffer checkpoint verified: ${formatTime(draftSavedAt)}` : "Automatic draft saving is active while you write."}
+            {draftSavedAt ? `Last saved: ${formatTime(draftSavedAt)}` : "Automatic draft saving is active while you write."}
           </p>
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-neutral-200/60 bg-neutral-50 text-neutral-400">
