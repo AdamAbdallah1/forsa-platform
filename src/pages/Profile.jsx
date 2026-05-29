@@ -2038,29 +2038,6 @@ function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo, isHiring, 
       )}
 
       <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
-        <p className="font-medium">Demo activity</p>
-        <p className="mt-2 text-sm leading-6 text-neutral-600">
-          Fill Forsa with realistic posts, messages, applications, and notifications so the MVP feels alive during demos.
-        </p>
-
-        <div className="mt-5 grid gap-2 sm:grid-cols-2">
-          <button
-            onClick={loadDemo}
-            className="forsa-click rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
-          >
-            Load demo activity
-          </button>
-
-          <button
-            onClick={clearDemo}
-            className="rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium"
-          >
-            Clear demo
-          </button>
-        </div>
-      </div>
-
-      <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
         <p className="font-medium">Session</p>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
           Login/logout is simulated with localStorage for now.

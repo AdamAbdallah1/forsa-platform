@@ -33,14 +33,61 @@ const typeOptions = [
   "Collaboration",
 ];
 
+const categoryOptions = [
+  "Restaurant / F&B",
+  "Retail / Clothing",
+  "Sales",
+  "Customer Service",
+  "Delivery / Driver",
+  "Admin / Office",
+  "Tech / Digital",
+  "Design / Creative",
+  "Marketing / Social Media",
+  "Education",
+  "Events",
+  "Beauty / Salon",
+  "Hospitality",
+  "Healthcare",
+  "Other",
+];
+
+const shiftOptions = [
+  "Flexible",
+  "Morning shift",
+  "Day shift",
+  "Night shift",
+  "Rotating shifts",
+  "Weekend shift",
+  "Remote schedule",
+];
+
+const genderOptions = [
+  "Any",
+  "Male",
+  "Female",
+  "Not specified",
+];
+
+const experienceOptions = [
+  "No experience required",
+  "0-1 years",
+  "1+ years",
+  "2+ years",
+  "3+ years",
+  "5+ years",
+];
+
 const tagOptions = [
   "React", "JavaScript", "Frontend", "Backend", "Node.js", "Laravel",
   "WordPress", "Shopify", "Web design", "UI/UX", "Graphic design", "Canva",
   "Branding", "Logo design", "Marketing", "Social media", "Content creation",
   "Copywriting", "Video editing", "Photography", "Reels", "TikTok", "Instagram",
-  "Sales", "Customer service", "Waiter", "Cashier", "Barista", "Delivery",
-  "Events", "Admin", "Data entry", "Accounting", "Teaching", "English",
-  "Arabic", "Math",
+  "Sales", "Retail sales", "Clothing sales", "Customer service", "Cashier",
+  "Waiter", "Waitress", "Barista", "Chef", "Kitchen staff", "Assistant manager",
+  "Restaurant manager", "Delivery", "Driver", "Warehouse", "Stock management",
+  "Inventory", "Events", "Event staff", "Hostess", "Admin", "Office assistant",
+  "Data entry", "Accounting", "Teaching", "Tutor", "English", "Arabic", "Math",
+  "Receptionist", "Salon assistant", "Beauty", "Nurse", "Healthcare",
 ];
 
 const templates = [
@@ -48,9 +95,15 @@ const templates = [
     label: "Barista",
     data: {
       title: "Part-time Barista",
+      category: "Restaurant / F&B",
       type: "Part-time",
       pay: "$250/month + tips",
       tags: ["Barista", "Customer service", "Sales"],
+      packageDetails: "Salary + tips",
+      experience: "0-1 years",
+      shift: "Weekend shift",
+      gender: "Any",
+      requirements: "Good communication, punctuality, cleanliness, and basic customer service skills.",
       description: "Looking for a friendly part-time barista for weekend shifts. Experience is helpful, but being punctual, clean, and comfortable with customers matters most.",
     },
   },
@@ -58,9 +111,15 @@ const templates = [
     label: "React Internship",
     data: {
       title: "Junior React Developer Internship",
+      category: "Tech / Digital",
       type: "Internship",
       pay: "Paid internship",
       tags: ["React", "JavaScript", "Frontend", "UI/UX"],
+      packageDetails: "Monthly stipend / paid internship",
+      experience: "0-1 years",
+      shift: "Day shift",
+      gender: "Any",
+      requirements: "Basic React, JavaScript, Tailwind, Git, and willingness to learn.",
       description: "Looking for a motivated junior React developer to help build landing pages and dashboards. Good fit for students who know React, Tailwind, and basic UI structure.",
     },
   },
@@ -68,9 +127,15 @@ const templates = [
     label: "Social Media",
     data: {
       title: "Social Media Content Creator",
+      category: "Marketing / Social Media",
       type: "Freelance",
       pay: "$120/project",
       tags: ["Marketing", "Instagram", "Content creation", "Video editing"],
+      packageDetails: "Per project payment",
+      experience: "1+ years",
+      shift: "Flexible",
+      gender: "Any",
+      requirements: "Portfolio or examples of previous Instagram content, reels, captions, or campaigns.",
       description: "Need someone to create Instagram content, captions, and simple reels for a local brand. Portfolio or previous examples are preferred.",
     },
   },
@@ -78,9 +143,15 @@ const templates = [
     label: "Graphic Designer",
     data: {
       title: "Graphic Designer",
+      category: "Design / Creative",
       type: "Project",
       pay: "Per project",
       tags: ["Graphic design", "Branding", "Canva"],
+      packageDetails: "Per project payment",
+      experience: "1+ years",
+      shift: "Flexible",
+      gender: "Any",
+      requirements: "Previous design examples, strong visual taste, and ability to deliver clean social media assets.",
       description: "Looking for a designer to create social posts, branding assets, and clean marketing visuals for a local business campaign.",
     },
   },
@@ -88,10 +159,64 @@ const templates = [
     label: "Event Staff",
     data: {
       title: "Event assistants needed",
+      category: "Events",
       type: "Project",
       pay: "$25/day",
       tags: ["Events", "Customer service", "Part-time"],
+      packageDetails: "Daily payment",
+      experience: "No experience required",
+      shift: "Weekend shift",
+      gender: "Any",
+      requirements: "Energetic, punctual, presentable, and comfortable helping guests during events.",
       description: "Need energetic event assistants for guest check-in, setup, and coordination. Must be available on event day and comfortable working with people.",
+    },
+  },
+  {
+    label: "Waiter",
+    data: {
+      title: "Waiter / Waitress",
+      category: "Restaurant / F&B",
+      type: "Full-time",
+      pay: "Salary + tips",
+      tags: ["Waiter", "Customer service", "Restaurant manager"],
+      packageDetails: "Salary + tips + meals",
+      experience: "0-1 years",
+      shift: "Rotating shifts",
+      gender: "Any",
+      requirements: "Presentable, polite, fast learner, and able to work under pressure.",
+      description: "Restaurant is hiring waiter/waitress staff to serve customers, take orders, keep tables organized, and support daily restaurant operations.",
+    },
+  },
+  {
+    label: "Clothing Sales",
+    data: {
+      title: "Clothing Store Sales Assistant",
+      category: "Retail / Clothing",
+      type: "Full-time",
+      pay: "Salary + commission",
+      tags: ["Clothing sales", "Retail sales", "Customer service"],
+      packageDetails: "Salary + commission",
+      experience: "0-1 years",
+      shift: "Day shift",
+      gender: "Any",
+      requirements: "Good communication, clean appearance, sales mindset, and basic stock organization.",
+      description: "Clothing store is looking for a sales assistant to help customers, organize items, handle basic sales, and support daily shop operations.",
+    },
+  },
+  {
+    label: "Delivery Driver",
+    data: {
+      title: "Delivery Driver",
+      category: "Delivery / Driver",
+      type: "Full-time",
+      pay: "Salary + delivery allowance",
+      tags: ["Delivery", "Driver", "Customer service"],
+      packageDetails: "Salary + delivery allowance",
+      experience: "1+ years",
+      shift: "Day shift",
+      gender: "Any",
+      requirements: "Valid driving license, punctuality, phone availability, and good knowledge of local areas.",
+      description: "Looking for a reliable delivery driver to handle orders, communicate with customers, and deliver items safely and on time.",
     },
   },
 ];
@@ -102,8 +227,14 @@ const emptyForm = (account) => ({
   company: account?.name || "",
   location: account?.city || "",
   type: "Freelance",
+  category: "Restaurant / F&B",
   pay: "",
+  packageDetails: "",
+  experience: "No experience required",
+  shift: "Flexible",
+  gender: "Any",
   description: "",
+  requirements: "",
   contact: account?.email || "",
   tags: [],
   urgent: false,
@@ -206,11 +337,16 @@ export default function PostOpportunity() {
     if (form.title.trim().length >= 8) score += 20;
     if (form.company.trim()) score += 10;
     if (form.location.trim()) score += 10;
-    if (form.pay.trim()) score += 15;
-    if (form.contact.trim()) score += 15;
+    if (form.category.trim()) score += 10;
+    if (form.pay.trim()) score += 10;
+    if (form.packageDetails.trim()) score += 8;
+    if (form.experience.trim()) score += 7;
+    if (form.shift.trim()) score += 7;
+    if (form.contact.trim()) score += 13;
     if (form.tags.length >= 2) score += 15;
-    if (form.description.trim().length >= 60) score += 15;
-    return score;
+    if (form.requirements.trim().length >= 25) score += 10;
+    if (form.description.trim().length >= 60) score += 10;
+    return Math.min(score, 100);
   }, [form]);
 
   const canPost = useMemo(() => {
@@ -218,9 +354,12 @@ export default function PostOpportunity() {
       form.title.trim() &&
       form.company.trim() &&
       form.location.trim() &&
+      form.category.trim() &&
       form.pay.trim() &&
       form.description.trim() &&
       form.contact.trim() &&
+      form.experience.trim() &&
+      form.shift.trim() &&
       form.tags.length > 0
     );
   }, [form]);
@@ -322,8 +461,14 @@ export default function PostOpportunity() {
         location: form.location.trim(),
         title: form.title.trim(),
         type: form.type,
+        category: form.category.trim(),
         pay: form.pay.trim(),
+        packageDetails: form.packageDetails.trim(),
+        experience: form.experience.trim(),
+        shift: form.shift.trim(),
+        gender: form.gender.trim(),
         description: form.description.trim(),
+        requirements: form.requirements.trim(),
         contact: form.contact.trim(),
         tags: form.tags || [],
         urgent: Boolean(form.urgent),
@@ -363,13 +508,13 @@ export default function PostOpportunity() {
           <aside className="lg:sticky lg:top-24 lg:self-start space-y-6 sm:space-y-8">
             <div className="relative overflow-hidden rounded-[34px] border border-neutral-200/60 bg-white p-6 shadow-[0_24px_80px_rgba(0,0,0,0.015)] sm:p-8">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-bold tracking-wider text-neutral-500 uppercase">
-                Campaign Manager
+                Job post builder
               </span>
               <h1 className="mt-4 text-3xl font-bold tracking-[-0.05em] text-neutral-950 sm:text-4xl md:text-5xl md:leading-[1.05]">
                 Create a clear opportunity.
               </h1>
               <p className="mt-4 text-sm font-medium leading-relaxed text-neutral-500">
-                Configure clear structural boundaries for role requirements, output expectations, financial compensation fields, and direct communication tunnels.
+                Create a clear post for restaurants, retail, delivery, office work, tech, events, and more without making the form complicated.
               </p>
             </div>
 
@@ -389,13 +534,28 @@ export default function PostOpportunity() {
             )}
 
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Opportunity title" placeholder="e.g., Junior Frontend Architect" value={form.title} onChange={(val) => updateForm("title", val)} />
-              <Field label="Company / Entity name" placeholder="e.g., Cedars Tech" value={form.company} onChange={(val) => updateForm("company", val)} />
-              <Field label="Target work site location" placeholder="e.g., Beirut, Tripoli, Remote" value={form.location} onChange={(val) => updateForm("location", val)} />
-              <Field label="Compensation parameters" placeholder="e.g., $800/mo, Contractual" value={form.pay} onChange={(val) => updateForm("pay", val)} />
+              <Field label="Opportunity title" placeholder="e.g., Assistant Manager" value={form.title} onChange={(val) => updateForm("title", val)} />
+              <Field label="Company / Restaurant / Entity" placeholder="e.g., Farouj Restaurant" value={form.company} onChange={(val) => updateForm("company", val)} />
+              <Field label="Work location" placeholder="e.g., Jal El Dib, Beirut, Remote" value={form.location} onChange={(val) => updateForm("location", val)} />
+              <Field label="Salary / Pay" placeholder="e.g., Salary + tips, $800/month" value={form.pay} onChange={(val) => updateForm("pay", val)} />
+              <Field label="Package details" placeholder="e.g., Salary + tips + meals + transport" value={form.packageDetails} onChange={(val) => updateForm("packageDetails", val)} />
+              <Field label="Contact / CV destination" placeholder="e.g., WhatsApp 70582107 or jobs@email.com" value={form.contact} onChange={(val) => updateForm("contact", val)} />
             </div>
 
-            <Dropdown refEl={typeRef} label="Operational Framework Strategy" value={form.type} open={typeOpen} setOpen={setTypeOpen}>
+            <div className="grid gap-5 sm:grid-cols-3">
+              <SelectField label="Experience required" value={form.experience} options={experienceOptions} onChange={(val) => updateForm("experience", val)} />
+              <SelectField label="Shift / Schedule" value={form.shift} options={shiftOptions} onChange={(val) => updateForm("shift", val)} />
+              <SelectField label="Gender preference" value={form.gender} options={genderOptions} onChange={(val) => updateForm("gender", val)} />
+            </div>
+
+            <SelectField
+              label="Job Category"
+              value={form.category}
+              options={categoryOptions}
+              onChange={(val) => updateForm("category", val)}
+            />
+
+            <Dropdown refEl={typeRef} label="Opportunity Type" value={form.type} open={typeOpen} setOpen={setTypeOpen}>
               <div className="grid grid-cols-1 gap-1 p-1">
                 {typeOptions.map((type) => (
                   <button
@@ -416,7 +576,7 @@ export default function PostOpportunity() {
 
             {/* Tag Selection System */}
             <div ref={tagsRef} className="space-y-2">
-              <label className="text-sm font-bold tracking-tight text-neutral-950">Capability Node Assignments</label>
+              <label className="text-sm font-bold tracking-tight text-neutral-950">Skills / Job Tags</label>
               <div className="relative">
                 <button
                   type="button"
@@ -426,7 +586,7 @@ export default function PostOpportunity() {
                   <span className="flex min-w-0 items-center gap-2">
                     <FaTag className="shrink-0 text-xs text-neutral-400" />
                     <span className="truncate text-neutral-700">
-                      {form.tags.length > 0 ? `${form.tags.length} verification tags mounted` : "Mount framework dependencies"}
+                      {form.tags.length > 0 ? `${form.tags.length} tags selected` : "Select relevant skills or job tags"}
                     </span>
                   </span>
                   <FaChevronDown className="shrink-0 text-xs text-neutral-400" />
@@ -439,14 +599,14 @@ export default function PostOpportunity() {
                       <input
                         value={tagSearch}
                         onChange={(e) => setTagSearch(e.target.value)}
-                        placeholder="Filter database schema indices..."
+                        placeholder="Search skills, role tags..."
                         className="w-full bg-transparent text-sm font-medium outline-none text-neutral-800"
                       />
                     </div>
 
                     <div className="max-h-60 overflow-y-auto pr-1 divide-y divide-neutral-50">
                       {filteredTags.length === 0 ? (
-                        <p className="px-3 py-4 text-xs font-semibold text-neutral-400 text-center">No structural matches found</p>
+                        <p className="px-3 py-4 text-xs font-semibold text-neutral-400 text-center">No tags found</p>
                       ) : (
                         filteredTags.map((tag) => (
                           <button
@@ -482,29 +642,37 @@ export default function PostOpportunity() {
               )}
             </div>
 
+            <div className="space-y-2">
+              <label className="text-sm font-bold tracking-tight text-neutral-950">Requirements</label>
+              <textarea
+                value={form.requirements}
+                onChange={(e) => updateForm("requirements", e.target.value)}
+                placeholder="Example: 2+ years F&B supervisory experience, leadership, food safety knowledge, inventory management, customer service..."
+                className="min-h-32 w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/50 px-4 py-3 text-sm font-medium leading-relaxed outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:bg-white"
+              />
+            </div>
+
             {/* Description Text Node */}
             <div className="space-y-2">
-              <label className="text-sm font-bold tracking-tight text-neutral-950">Detailed Role Execution Spec</label>
+              <label className="text-sm font-bold tracking-tight text-neutral-950">Job Description</label>
               <textarea
                 value={form.description}
                 onChange={(e) => updateForm("description", e.target.value)}
-                placeholder="Detail core operations, sprint frequencies, hardware dependencies, and pipeline ownership tracks..."
+                placeholder="Describe the role, responsibilities, daily tasks, work environment, and what the candidate will do."
                 className="min-h-40 w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/50 px-4 py-3 text-sm font-medium leading-relaxed outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:bg-white"
               />
               <div className="flex items-center justify-between text-[11px] font-bold text-neutral-400 uppercase tracking-wider px-1">
-                <span>Staged Context Payload</span>
+                <span>Description length</span>
                 <span>{form.description.trim().length} / 60 minimum recommendations</span>
               </div>
             </div>
-
-            <Field label="Direct Ingress Contact Endpoint" placeholder="WhatsApp line, matrix endpoint URI, or mail routing handle" value={form.contact} onChange={(val) => updateForm("contact", val)} />
 
             {/* Interrogative Validation Node Loops */}
             <div className="rounded-2xl border border-neutral-200/70 bg-neutral-50/40 p-4 sm:p-5 space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-bold tracking-tight text-neutral-950">Staged Evaluation Interrogatories</p>
-                  <p className="text-xs font-medium text-neutral-400 mt-0.5">Enforce custom evaluation fields prior to application acceptance handlers.</p>
+                  <p className="text-sm font-bold tracking-tight text-neutral-950">Application Questions</p>
+                  <p className="text-xs font-medium text-neutral-400 mt-0.5">Ask applicants questions before they apply.</p>
                 </div>
                 <button
                   type="button"
@@ -512,7 +680,7 @@ export default function PostOpportunity() {
                   disabled={form.questions.length >= 5}
                   className="rounded-xl bg-neutral-950 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-neutral-900 transition-all disabled:opacity-40 tracking-tight"
                 >
-                  Append Query Node
+                  Add Question
                 </button>
               </div>
 
@@ -522,7 +690,7 @@ export default function PostOpportunity() {
                     <input
                       value={question}
                       onChange={(e) => updateQuestion(index, e.target.value)}
-                      placeholder={`Interrogative vector prompt metric #${index + 1}`}
+                      placeholder={`Question #${index + 1}`}
                       className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-800 outline-none transition focus:border-neutral-950"
                     />
                     {form.questions.length > 1 && (
@@ -560,12 +728,12 @@ export default function PostOpportunity() {
                     : "cursor-not-allowed bg-neutral-100 text-neutral-400 border border-neutral-200/60"
                 }`}
               >
-                {posting ? "Compiling environment configuration payload..." : "Publish Campaign Parameters"}
+                {posting ? "Publishing opportunity..." : "Publish Opportunity"}
               </button>
 
               {!canPost && (
                 <p className="mt-3 text-center text-xs font-semibold text-neutral-400">
-                  Ensure all baseline configuration fields possess structured schema properties to deploy runtime nodes safely.
+                  Complete the required fields before publishing.
                 </p>
               )}
             </div>
@@ -612,9 +780,9 @@ function DraftStatusCard({ draftSavedAt, onClearDraft }) {
     <div className="rounded-2xl border border-neutral-200/70 bg-white p-5 space-y-4 shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-sm font-bold tracking-tight text-neutral-950">Storage Telemetry Layer</p>
+          <p className="text-sm font-bold tracking-tight text-neutral-950">Auto-save draft</p>
           <p className="text-xs font-medium text-neutral-400 leading-relaxed">
-            {draftSavedAt ? `Buffer checkpoint verified: ${formatTime(draftSavedAt)}` : "Automatic local backup active. Write to allocate cache segments."}
+            {draftSavedAt ? `Buffer checkpoint verified: ${formatTime(draftSavedAt)}` : "Automatic draft saving is active while you write."}
           </p>
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-neutral-200/60 bg-neutral-50 text-neutral-400">
@@ -629,7 +797,7 @@ function DraftStatusCard({ draftSavedAt, onClearDraft }) {
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-xs font-bold text-red-600 hover:border-red-200 hover:bg-red-50/20 transition"
         >
           <FaTrash className="text-[10px]" />
-          Purge local registry cache
+          Clear saved draft
         </button>
       )}
     </div>
@@ -640,8 +808,8 @@ function TemplatesCard({ onApply }) {
   return (
     <div className="rounded-2xl border border-neutral-200/70 bg-white p-5 space-y-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
       <div>
-        <p className="text-sm font-bold tracking-tight text-neutral-950">Runtime Template Hub</p>
-        <p className="text-xs font-medium text-neutral-400 mt-0.5">Hydrate staging blocks using regional industry schemas.</p>
+        <p className="text-sm font-bold tracking-tight text-neutral-950">Quick templates</p>
+        <p className="text-xs font-medium text-neutral-400 mt-0.5">Start faster with common Lebanon job posts.</p>
       </div>
       <div className="flex flex-wrap gap-1.5 pt-1">
         {templates.map((template) => (
@@ -660,13 +828,13 @@ function TemplatesCard({ onApply }) {
 }
 
 function QualityCard({ qualityScore }) {
-  const label = qualityScore >= 80 ? "Strong production profile" : qualityScore >= 55 ? "Acceptable composition status" : "Incomplete metrics profile";
+  const label = qualityScore >= 80 ? "Strong post" : qualityScore >= 55 ? "Good post" : "Needs details";
 
   return (
     <div className="rounded-[28px] border border-neutral-200/70 bg-white p-5 space-y-4 shadow-[0_12px_30px_rgba(0,0,0,0.015)]">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-bold tracking-tight text-neutral-950">Data Density Index</p>
+          <p className="text-sm font-bold tracking-tight text-neutral-950">Post quality</p>
           <p className="text-xs font-medium text-neutral-400 mt-0.5">{label}</p>
         </div>
         <span className="rounded-full forsa-button px-3 py-1 text-xs font-bold text-white shadow-sm">
@@ -680,9 +848,9 @@ function QualityCard({ qualityScore }) {
 
       <div className="grid gap-2 pt-1">
         <QualityItem active={qualityScore >= 20} text="Explicit role title format mapped" />
-        <QualityItem active={qualityScore >= 40} text="Location coordinates, validation context fields compiled" />
-        <QualityItem active={qualityScore >= 60} text="Core operational skillset properties assigned" />
-        <QualityItem active={qualityScore >= 80} text="Context string meets baseline entropy constraints" />
+        <QualityItem active={qualityScore >= 40} text="Location, pay, package, and contact details added" />
+        <QualityItem active={qualityScore >= 60} text="Skills, experience, and shift details selected" />
+        <QualityItem active={qualityScore >= 80} text="Description and requirements are clear" />
       </div>
     </div>
   );
@@ -725,6 +893,23 @@ function Dropdown({ refEl, label, value, open, setOpen, children }) {
   );
 }
 
+function SelectField({ label, value, options, onChange }) {
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-bold tracking-tight text-neutral-950">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full appearance-none rounded-2xl border border-neutral-200 bg-neutral-50/50 px-4 py-3.5 text-sm font-semibold text-neutral-800 outline-none transition focus:border-neutral-950 focus:bg-white"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>{option}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function Field({ label, placeholder, value, onChange }) {
   const isFilled = useMemo(() => Boolean(value?.trim?.()), [value]);
   return (
@@ -747,7 +932,7 @@ function PreviewCard({ form, qualityScore }) {
   return (
     <div className="rounded-[24px] border border-neutral-200/70 bg-gradient-to-br from-white to-neutral-50/40 p-5 space-y-5 shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
       <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-        <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">Dynamic UI Sync Mirror</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">Live preview</p>
         <span className="rounded-md bg-neutral-100 border border-neutral-200 px-2 py-0.5 text-[10px] font-extrabold text-neutral-600">
           INDEX {qualityScore}%
         </span>
@@ -758,24 +943,35 @@ function PreviewCard({ form, qualityScore }) {
           <FaBriefcase className="text-sm" />
         </div>
         <div className="min-w-0 space-y-1">
-          <h3 className="line-clamp-1 text-sm font-bold tracking-tight text-neutral-950">{form.title || "Untitled Staging Spec"}</h3>
+          <h3 className="line-clamp-1 text-sm font-bold tracking-tight text-neutral-950">{form.title || "Untitled job post"}</h3>
           <p className="flex items-center gap-1.5 text-xs font-semibold text-neutral-400">
             <FaMapMarkerAlt className="shrink-0 text-[10px]" />
-            <span className="truncate">{form.company || "Company Parameter"} · {form.location || "Coordinates Missing"}</span>
+            <span className="truncate">{form.company || "Company"} · {form.location || "Location missing"}</span>
           </p>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-1">
+        <PreviewPill>{form.category}</PreviewPill>
         <PreviewPill>{form.type}</PreviewPill>
-        <PreviewPill>{form.pay || "Awaiting pricing specs"}</PreviewPill>
+        <PreviewPill>{form.pay || "Pay not set"}</PreviewPill>
+        <PreviewPill>{form.experience || "Experience not set"}</PreviewPill>
+        <PreviewPill>{form.shift || "Shift not set"}</PreviewPill>
+        {form.gender && form.gender !== "Any" && <PreviewPill>{form.gender}</PreviewPill>}
         {form.urgent && <span className="rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-[10px] font-bold text-amber-700 uppercase tracking-wide">Urgent</span>}
         {form.featured && <span className="rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 text-[10px] font-bold text-blue-700 uppercase tracking-wide">Featured</span>}
       </div>
 
       <p className="line-clamp-4 text-xs font-medium leading-relaxed text-neutral-500">
-        {form.description || "The compiled system overview text block will append runtime data characters here inside this layout layer..."}
+        {form.description || "Job description preview will appear here..."}
       </p>
+
+      {form.requirements && (
+        <div className="rounded-2xl border border-neutral-100 bg-white p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-400">Requirements</p>
+          <p className="mt-1 line-clamp-3 text-xs font-medium leading-relaxed text-neutral-500">{form.requirements}</p>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-1 border-t border-neutral-100 pt-3">
         {form.tags.length > 0 ? (
@@ -785,12 +981,12 @@ function PreviewCard({ form, qualityScore }) {
             </span>
           ))
         ) : (
-          <span className="text-xs font-semibold text-neutral-400">No telemetry tags structural references loaded.</span>
+          <span className="text-xs font-semibold text-neutral-400">No tags selected yet.</span>
         )}
 
         {form.tags.length > 5 && (
           <span className="rounded-lg bg-neutral-100 border border-neutral-200 px-2 py-1 text-[11px] font-extrabold text-neutral-500">
-            +{form.tags.length - 5} overrides
+            +{form.tags.length - 5} more
           </span>
         )}
       </div>

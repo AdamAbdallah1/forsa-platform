@@ -61,17 +61,17 @@ export default function AppHeader() {
             <>
               {isHiring && (
                 <>
-                  <NavLink to="/post" className={linkClass}>
-                    <span className="flex items-center gap-1.5">
-                      <FaPlus className="text-[11px]" />
-                      Post
-                    </span>
-                  </NavLink>
 
                   <NavLink to="/applicants" className={linkClass}>
                     <span className="flex items-center gap-1.5">
                       <FaUsers className="text-[11px]" />
                       Applicants
+                    </span>
+                  </NavLink>
+                  <NavLink to="/post" className={linkClass}>
+                    <span className="flex items-center gap-1.5">
+                      <FaPlus className="text-[11px]" />
+                      Post
                     </span>
                   </NavLink>
                 </>

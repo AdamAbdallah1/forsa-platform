@@ -1132,7 +1132,9 @@ function FilterButton({ active, onClick, children }) {
   );
 }
 
-function RecentlyViewedSection({ items, onOpen }) {
+function RecentlyViewedSection({ items = [], onOpen }) {
+  if (!items.length) return null;
+
   return (
     <section className="mt-6">
       <div className="flex items-end justify-between gap-3">
@@ -1142,6 +1144,17 @@ function RecentlyViewedSection({ items, onOpen }) {
             Continue browsing
           </h2>
         </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            localStorage.removeItem("forsaRecentlyViewed");
+            location.reload();
+          }}
+          className="rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-xs font-semibold text-neutral-500"
+        >
+          Clear
+        </button>
       </div>
 
       <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
@@ -1152,7 +1165,9 @@ function RecentlyViewedSection({ items, onOpen }) {
             className="min-w-[260px] rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition hover:border-[var(--forsa-primary)]"
           >
             <p className="text-xs text-neutral-500">{item.company}</p>
-            <h3 className="mt-2 line-clamp-2 font-semibold tracking-[-0.02em]">{item.title}</h3>
+            <h3 className="mt-2 line-clamp-2 font-semibold tracking-[-0.02em]">
+              {item.title}
+            </h3>
             <p className="mt-3 text-sm text-neutral-600">{item.location}</p>
           </button>
         ))}
@@ -1160,7 +1175,6 @@ function RecentlyViewedSection({ items, onOpen }) {
     </section>
   );
 }
-
 function RecommendedSection({ items, savedJobs, appliedIds, canInteract, onSave, onDetails, onApply, onShare, navigate }) {
   const isSaved = (id) => savedJobs.some((job) => String(job.id) === String(id));
 
