@@ -762,7 +762,7 @@ export default function Explore() {
       <AppHeader />
       
 
-      <div className="mx-auto max-w-[1180px] px-4 pb-28 sm:px-6 lg:pb-20">
+      <div className="mx-auto max-w-[1180px] px-4 pb-40 sm:px-6 md:pb-28 lg:pb-20">
         <SearchPanel
           search={search}
           setSearch={setSearch}
@@ -1564,7 +1564,7 @@ function OpportunityCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_44px_1fr] gap-2 border-t border-[#eee8f7] bg-[#fbfaff] p-3">
+      <div className="grid grid-cols-[1fr_44px_1fr] gap-2 border-t border-[#eee8f7] bg-[#fbfaff] p-3 pb-5 md:pb-3">
         <button
           onClick={onDetails}
           className="rounded-full border border-[#e7e2f1] bg-white px-3 py-2.5 text-sm font-semibold transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
@@ -1836,7 +1836,7 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--forsa-primary)]/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
-      <div className="max-h-[90vh] w-full max-w-md overflow-auto rounded-[28px] bg-white p-5 shadow-xl sm:p-6">
+      <div className="max-h-[86vh] w-full max-w-md overflow-auto rounded-[28px] bg-white p-5 pb-28 shadow-xl sm:p-6 sm:pb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-white">
