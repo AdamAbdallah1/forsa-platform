@@ -19,6 +19,7 @@ import {
   FaUndo,
   FaTrash,
   FaPlus,
+  FaShieldAlt,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 
@@ -49,6 +50,9 @@ const categoryOptions = [
   "Beauty / Salon",
   "Hospitality",
   "Healthcare",
+  "Recruitment Agency",
+  "Abroad Opportunity",
+  "Visa / Placement",
   "Other",
 ];
 
@@ -67,6 +71,21 @@ const genderOptions = [
   "Male",
   "Female",
   "Not specified",
+];
+
+const postSourceOptions = [
+  "Direct company hiring",
+  "Recruitment agency / placement office",
+];
+
+const workCountryOptions = [
+  "Lebanon",
+  "UAE / Dubai",
+  "Germany",
+  "Qatar",
+  "Saudi Arabia",
+  "Remote / Online",
+  "Other",
 ];
 
 const experienceOptions = [
@@ -89,6 +108,7 @@ const tagOptions = [
   "Inventory", "Events", "Event staff", "Hostess", "Admin", "Office assistant",
   "Data entry", "Accounting", "Teaching", "Tutor", "English", "Arabic", "Math",
   "Receptionist", "Salon assistant", "Beauty", "Nurse", "Healthcare",
+  "Abroad job", "Dubai", "Germany", "Visa", "Recruitment agency", "Placement office",
 ];
 
 const templates = [
@@ -205,6 +225,28 @@ const templates = [
     },
   },
   {
+    label: "Abroad Agency",
+    data: {
+      postSource: "Recruitment agency / placement office",
+      title: "Assistant Manager - Abroad Opportunity",
+      agencyName: "Recruitment Agency",
+      hiringFor: "Restaurant / Employer",
+      workCountry: "UAE / Dubai",
+      company: "Restaurant / Employer",
+      category: "Abroad Opportunity",
+      type: "Full-time",
+      location: "Dubai",
+      pay: "Salary + benefits",
+      tags: ["Abroad job", "Dubai", "Assistant manager", "Customer service"],
+      packageDetails: "Salary + benefits depending on employer contract",
+      experience: "2+ years",
+      shift: "Flexible",
+      gender: "Any",
+      requirements: "Previous experience, valid documents, professional communication, and ability to confirm contract/visa details with the agency.",
+      description: "Recruitment/placement office is sharing an abroad opportunity. Applicants should confirm employer identity, fees, visa process, contract details, accommodation, and salary before applying.",
+    },
+  },
+  {
     label: "Delivery Driver",
     data: {
       title: "Delivery Driver",
@@ -225,6 +267,10 @@ const templates = [
 const emptyForm = (account) => ({
   title: "",
   questions: [""],
+  postSource: "Direct company hiring",
+  agencyName: account?.name || "",
+  hiringFor: "",
+  workCountry: "Lebanon",
   company: account?.name || "",
   location: account?.city || "",
   type: "Freelance",
@@ -373,6 +419,7 @@ export default function PostOpportunity() {
     return (
       form.title.trim() &&
       form.company.trim() &&
+      (!form.postSource.includes("Recruitment") || (form.agencyName.trim() && form.hiringFor.trim() && form.workCountry.trim())) &&
       form.location.trim() &&
       form.category.trim() &&
       form.pay.trim() &&
@@ -541,7 +588,13 @@ export default function PostOpportunity() {
         ownerUid: account?.uid || null,
         ownerEmail: account?.email || form.contact,
         ownerName: account?.name || form.company,
-        company: form.company.trim(),
+        postSource: form.postSource,
+        isAgencyPost: form.postSource.includes("Recruitment"),
+        agencyName: form.agencyName.trim(),
+        hiringFor: form.hiringFor.trim(),
+        workCountry: form.workCountry.trim(),
+        postedBy: form.postSource.includes("Recruitment") ? form.agencyName.trim() : form.company.trim(),
+        company: form.postSource.includes("Recruitment") ? form.hiringFor.trim() : form.company.trim(),
         location: form.location.trim(),
         title: form.title.trim(),
         type: form.type,
@@ -619,13 +672,82 @@ export default function PostOpportunity() {
               <RestoreDraftBanner draftSavedAt={draftSavedAt} onRestore={restoreDraft} onDismiss={dismissDraft} />
             )}
 
+            <div className="rounded-[26px] border border-neutral-200 bg-neutral-50/60 p-4 sm:p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold tracking-tight text-neutral-950">Posting mode</p>
+                  <p className="mt-1 max-w-2xl text-xs font-medium leading-5 text-neutral-500">
+                    Choose if this is a direct company job or an agency / abroad placement opportunity.
+                  </p>
+                </div>
+                {form.postSource.includes("Recruitment") && (
+                  <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-100">
+                    <FaShieldAlt className="text-[10px]" />
+                    Agency post
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {postSourceOptions.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      updateForm("postSource", option);
+                      if (option.includes("Recruitment")) {
+                        updateForm("category", "Abroad Opportunity");
+                        updateForm("agencyName", form.agencyName || account?.name || "");
+                        updateForm("hiringFor", form.hiringFor || form.company || "");
+                      }
+                    }}
+                    className={`rounded-2xl border p-4 text-left transition ${
+                      form.postSource === option
+                        ? "border-[var(--forsa-primary)] bg-white text-[var(--forsa-primary)] shadow-sm"
+                        : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+                    }`}
+                  >
+                    <p className="text-sm font-bold">{option}</p>
+                    <p className="mt-1 text-xs leading-5 text-neutral-500">
+                      {option.includes("Recruitment")
+                        ? "For recruitment offices, abroad jobs, visa or placement opportunities."
+                        : "For companies hiring directly for their own team."}
+                    </p>
+                  </button>
+                ))}
+              </div>
+
+              {form.postSource.includes("Recruitment") && (
+                <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                  <p className="text-sm font-bold text-amber-800">Applicant safety notice</p>
+                  <p className="mt-1 text-xs leading-5 text-amber-800">
+                    This will be shown as an agency/placement post. Applicants should confirm fees, contract details, visa process, employer identity, and work country before applying.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {form.postSource.includes("Recruitment") && (
+              <div className="grid gap-5 sm:grid-cols-3">
+                <Field label="Agency / Office name" placeholder="e.g., Recruitment Agency Freelance" value={form.agencyName} onChange={(val) => updateForm("agencyName", val)} />
+                <Field label="Hiring for / Employer" placeholder="e.g., Farouj Restaurant" value={form.hiringFor} onChange={(val) => {
+                  updateForm("hiringFor", val);
+                  updateForm("company", val);
+                }} />
+                <SelectField label="Work country" value={form.workCountry} options={workCountryOptions} onChange={(val) => updateForm("workCountry", val)} />
+              </div>
+            )}
+
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Opportunity title" placeholder="e.g., Assistant Manager" value={form.title} onChange={(val) => updateForm("title", val)} />
-              <Field label="Company / Restaurant / Entity" placeholder="e.g., Farouj Restaurant" value={form.company} onChange={(val) => updateForm("company", val)} />
-              <Field label="Work location" placeholder="e.g., Jal El Dib, Beirut, Remote" value={form.location} onChange={(val) => updateForm("location", val)} />
+              <Field label={form.postSource.includes("Recruitment") ? "Employer / Company abroad" : "Company / Restaurant / Entity"} placeholder="e.g., Farouj Restaurant" value={form.company} onChange={(val) => {
+                updateForm("company", val);
+                if (form.postSource.includes("Recruitment")) updateForm("hiringFor", val);
+              }} />
+              <Field label={form.postSource.includes("Recruitment") ? "Work city / destination" : "Work location"} placeholder="e.g., Jal El Dib, Dubai, Germany, Remote" value={form.location} onChange={(val) => updateForm("location", val)} />
               <Field label="Salary / Pay" placeholder="e.g., Salary + tips, $800/month" value={form.pay} onChange={(val) => updateForm("pay", val)} />
               <Field label="Package details" placeholder="e.g., Salary + tips + meals + transport" value={form.packageDetails} onChange={(val) => updateForm("packageDetails", val)} />
-              <Field label="Contact / CV destination" placeholder="e.g., WhatsApp 70582107 or jobs@email.com" value={form.contact} onChange={(val) => updateForm("contact", val)} />
+              <Field label="Contact / CV destination" placeholder={form.postSource.includes("Recruitment") ? "Agency WhatsApp / email for CVs" : "e.g., WhatsApp 70582107 or jobs@email.com"} value={form.contact} onChange={(val) => updateForm("contact", val)} />
             </div>
 
             <div className="grid gap-5 sm:grid-cols-3">
@@ -952,7 +1074,7 @@ function QualityCard({ qualityScore }) {
       </div>
 
       <div className="grid gap-2 pt-1">
-        <QualityItem active={qualityScore >= 20} text="Explicit role title format mapped" />
+        <QualityItem active={qualityScore >= 20} text="Clear role title added" />
         <QualityItem active={qualityScore >= 40} text="Location, pay, package, and contact details added" />
         <QualityItem active={qualityScore >= 60} text="Skills, experience, and shift details selected" />
         <QualityItem active={qualityScore >= 80} text="Description and requirements are clear" />
@@ -1048,15 +1170,23 @@ function PreviewCard({ form, qualityScore }) {
           <FaBriefcase className="text-sm" />
         </div>
         <div className="min-w-0 space-y-1">
-          <h3 className="line-clamp-1 text-sm font-bold tracking-tight text-neutral-950">{form.title || "Untitled job post"}</h3>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {form.postSource?.includes("Recruitment") && (
+              <span className="rounded-lg bg-amber-50 border border-amber-200 px-2 py-0.5 text-[9px] font-extrabold text-amber-700 uppercase tracking-wide">
+                Agency post
+              </span>
+            )}
+            <h3 className="line-clamp-1 text-sm font-bold tracking-tight text-neutral-950">{form.title || "Untitled job post"}</h3>
+          </div>
           <p className="flex items-center gap-1.5 text-xs font-semibold text-neutral-400">
             <FaMapMarkerAlt className="shrink-0 text-[10px]" />
-            <span className="truncate">{form.company || "Company"} · {form.location || "Location missing"}</span>
+            <span className="truncate">{form.postSource?.includes("Recruitment") ? `${form.agencyName || "Agency"} → ${form.hiringFor || "Employer"}` : form.company || "Company"} · {form.location || "Location missing"}</span>
           </p>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-1">
+        <PreviewPill>{form.postSource?.includes("Recruitment") ? form.workCountry : "Lebanon"}</PreviewPill>
         <PreviewPill>{form.category}</PreviewPill>
         <PreviewPill>{form.type}</PreviewPill>
         <PreviewPill>{form.pay || "Pay not set"}</PreviewPill>
@@ -1070,6 +1200,15 @@ function PreviewCard({ form, qualityScore }) {
       <p className="line-clamp-4 text-xs font-medium leading-relaxed text-neutral-500">
         {form.description || "Job description preview will appear here..."}
       </p>
+
+      {form.postSource?.includes("Recruitment") && (
+        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Agency / abroad notice</p>
+          <p className="mt-1 text-xs font-medium leading-relaxed text-amber-800">
+            Applicants should confirm fees, contract, visa process, employer identity, and work country before applying.
+          </p>
+        </div>
+      )}
 
       {form.requirements && (
         <div className="rounded-2xl border border-neutral-100 bg-white p-3">

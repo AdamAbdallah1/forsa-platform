@@ -46,18 +46,12 @@ export default function MobileNav() {
 
   const items = !account ? guestItems : isHiring ? hiringItems : seekerItems;
 
-  // Modern clean dynamic layout sizing map
-  const gridConfig = {
-    1: "grid-cols-1",
-    4: "grid-cols-4",
-    5: "grid-cols-5",
-  };
-  const currentGridClass = gridConfig[items.length] || "grid-cols-5";
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-5 md:hidden">
-      <div className="mx-auto max-w-md rounded-[24px] border border-neutral-200/50 bg-white/80 p-1 shadow-[0_16px_40px_rgba(0,0,0,0.06)] backdrop-blur-xl">
-        <div className={`grid gap-0.5 ${currentGridClass}`}>
+    // pb-[env(safe-area-inset-bottom,20px)] ensures it sits perfectly above iOS/Android home bars
+    <nav className="fixed bottom-0 left-0 right-0 z-50 px-6 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] md:hidden">
+      <div className="mx-auto max-w-sm rounded-[24px] border border-neutral-200/40 bg-white/75 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.05)] backdrop-blur-xl">
+        {/* flex instead of grid handles 1 item or 5 items flawlessly without stretching */}
+        <div className="flex items-center justify-around gap-1">
           {items.map((item) => {
             const Icon = item.icon;
 
@@ -66,29 +60,18 @@ export default function MobileNav() {
                 key={item.label}
                 to={item.to}
                 className={({ isActive }) =>
-                  `relative flex min-h-[56px] flex-col items-center justify-center rounded-[18px] px-1 py-1.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-300 active:scale-95 ${
+                  `relative flex h-12 w-12 items-center justify-center rounded-[18px] transition-all duration-300 active:scale-90 ${
                     isActive
-                      ? "text-[var(--forsa-primary)] font-bold"
-                      : "text-neutral-400 hover:text-neutral-600"
+                      ? "bg-[var(--forsa-primary)]/10 text-[var(--forsa-primary)]"
+                      : "text-neutral-400 active:bg-neutral-100"
                   }`
                 }
+                title={item.label}
               >
                 {({ isActive }) => (
-                  <>
-                    {/* Icon container handles scale transformation smoothly */}
-                    <div className={`transition-transform duration-300 ${isActive ? "-translate-y-0.5 scale-110 text-[var(--forsa-primary)]" : ""}`}>
-                      <Icon className="text-[15px]" />
-                    </div>
-                    
-                    <span className="mt-1.5 text-[9px] leading-none tracking-tight">
-                      {item.label}
-                    </span>
-
-                    {/* Minimal Underline Pill Micro Indicator */}
-                    {isActive && (
-                      <div className="absolute bottom-1 h-1 w-3 rounded-full bg-[var(--forsa-primary)] animate-fade-in" />
-                    )}
-                  </>
+                  <div className={`transition-transform duration-200 ${isActive ? "scale-110" : ""}`}>
+                    <Icon className="text-[18px]" />
+                  </div>
                 )}
               </NavLink>
             );

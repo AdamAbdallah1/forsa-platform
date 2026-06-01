@@ -30,7 +30,12 @@ import {
   FaUserCircle,
   FaShareAlt,
   FaFlag,
-  FaShieldAlt
+  FaShieldAlt,
+  FaMagic,
+  FaLightbulb,
+  FaExclamationTriangle,
+  FaGlobe,
+  FaBuilding
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import { opportunities } from "../data/opportunities";
@@ -48,6 +53,23 @@ const writeJson = (key, value) => {
 };
 
 const normalize = (value) => String(value || "").trim().toLowerCase();
+
+const isAgencyPost = (post) =>
+  post?.postSource === "agency" ||
+  post?.sourceType === "agency" ||
+  post?.category === "Recruitment Agency" ||
+  post?.type === "Recruitment Agency";
+
+const getWorkCountry = (post) =>
+  post?.workCountry || post?.country || (isAgencyPost(post) ? "Abroad" : "Lebanon");
+
+const isAbroadPost = (post) => {
+  const country = normalize(getWorkCountry(post));
+  return isAgencyPost(post) || (country && country !== "lebanon");
+};
+
+const getHiringFor = (post) =>
+  post?.hiringFor || post?.clientCompany || post?.employer || post?.company || "Employer";
 
 const getProfileStrength = (account, profile) => {
   const checks = [
@@ -169,7 +191,7 @@ const getDateValue = (value) => {
   return value;
 };
 
-const types = ["All", "Internship", "Freelance", "Part-time", "Project", "Remote"];
+const types = ["All", "Internship", "Freelance", "Part-time", "Project", "Remote", "Agency", "Abroad"];
 const sortOptions = ["Best match", "Newest", "Urgent", "Most applied"];
 
 export default function Explore() {
@@ -314,6 +336,10 @@ export default function Explore() {
         createdAt: getDateValue(post.createdAt || post.id || Date.now()),
         updatedAt: getDateValue(post.updatedAt || post.createdAt || Date.now()),
         source: "community",
+        postSource: post.postSource || post.sourceType || "direct",
+        workCountry: getWorkCountry(post),
+        hiringFor: getHiringFor(post),
+        agencyName: post.agencyName || post.posterName || post.company,
         ...getCompanyTrust(post),
       }));
 
@@ -326,6 +352,10 @@ export default function Explore() {
       source: "featured",
       verified: Boolean(item.verified || item.companyVerified),
       trusted: Boolean(item.trusted || item.companyTrusted),
+      postSource: item.postSource || item.sourceType || "direct",
+      workCountry: getWorkCountry(item),
+      hiringFor: getHiringFor(item),
+      agencyName: item.agencyName || item.posterName || item.company,
     }));
 
     return [...normalizedPosts, ...normalizedSeed];
@@ -363,9 +393,13 @@ export default function Explore() {
     const query = search.trim().toLowerCase();
 
     const filtered = allOpportunities.filter((item) => {
-      const searchText = `${item.title} ${item.company} ${item.location} ${item.type} ${(item.tags || []).join(" ")}`.toLowerCase();
+      const searchText = `${item.title} ${item.company} ${item.location} ${item.type} ${item.workCountry || ""} ${item.hiringFor || ""} ${item.agencyName || ""} ${(item.tags || []).join(" ")}`.toLowerCase();
       const matchesSearch = query.length === 0 || searchText.includes(query);
-      const matchesType = activeType === "All" || item.type === activeType;
+      const matchesType =
+        activeType === "All" ||
+        item.type === activeType ||
+        (activeType === "Agency" && isAgencyPost(item)) ||
+        (activeType === "Abroad" && isAbroadPost(item));
       const matchesLocation =
         locationFilter === "All" ||
         normalize(item.location).includes(normalize(locationFilter));
@@ -451,6 +485,7 @@ export default function Explore() {
     return {
       total: rankedOpportunities.length,
       urgent: rankedOpportunities.filter((item) => item.urgent).length,
+      abroad: rankedOpportunities.filter((item) => isAbroadPost(item)).length,
       saved: savedJobs.length,
       applied: appliedIds.size,
     };
@@ -590,7 +625,7 @@ export default function Explore() {
 
   const shareToWhatsApp = (item) => {
     const url = buildPostUrl(item.id);
-    const text = `Check this opportunity on Forsa:\n${item.title}\n${item.company}\n${url}`;
+    const text = `Check this opportunity on Forsa:\n${item.title}\n${isAgencyPost(item) ? `Agency post · Hiring for ${getHiringFor(item)}` : item.company}\n${isAbroadPost(item) ? `Work country: ${getWorkCountry(item)}\n` : ""}${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
     updatePostAnalytics(item.id, "shares");
   };
@@ -945,7 +980,7 @@ function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-7 text-neutral-600 sm:text-base">
-            Browse local jobs, internships, gigs, and projects across Lebanon with cleaner cards, better filtering, and organized application flow.
+            Browse local jobs, internships, gigs, agency posts, and abroad opportunities with cleaner cards, safety signals, and organized application flow.
           </p>
         </div>
 
@@ -958,9 +993,10 @@ function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
         </button>
       </div>
 
-      <div className="relative mt-7 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="relative mt-7 grid grid-cols-2 gap-2 sm:grid-cols-5">
         <MiniStat label="Results" value={stats.total} />
         <MiniStat label="Urgent" value={stats.urgent} />
+        <MiniStat label="Abroad" value={stats.abroad} />
         <MiniStat label="Saved" value={stats.saved} />
         <MiniStat label="Applied" value={stats.applied} />
       </div>
@@ -1326,6 +1362,8 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
             <span className="rounded-full bg-[var(--forsa-primary)] px-2.5 py-1 text-[11px] font-medium text-white">
               {item.matchScore}% match
             </span>
+            {isAgencyPost(item) && <AgencyBadge compact />}
+            {isAbroadPost(item) && <AbroadBadge compact country={getWorkCountry(item)} />}
             {item.urgent && <span className="rounded-full bg-white px-2.5 py-1 text-[11px] text-neutral-600">Urgent</span>}
           </div>
           <h3 className="mt-3 line-clamp-2 font-semibold tracking-[-0.02em]">{item.title}</h3>
@@ -1403,6 +1441,8 @@ function OpportunityCard({
                     Verified
                   </Badge>
                 )}
+                {isAgencyPost(item) && <Badge tone="amber">Agency</Badge>}
+                {isAbroadPost(item) && <Badge tone="blue">{getWorkCountry(item)}</Badge>}
                 {!item.verified && item.trusted && <Badge>Trusted</Badge>}
                 {item.source === "featured" && <Badge>Featured</Badge>}
                 {item.urgent && (
@@ -1442,9 +1482,9 @@ function OpportunityCard({
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2">
-          <MetaChip label="Type" value={item.type} />
+          <MetaChip label={isAgencyPost(item) ? "Source" : "Type"} value={isAgencyPost(item) ? "Agency" : item.type} />
           <MetaChip label="Pay" value={item.pay} />
-          <MetaChip label="Applicants" value={`${applicantCount}`} />
+          <MetaChip label={isAbroadPost(item) ? "Country" : "Applicants"} value={isAbroadPost(item) ? getWorkCountry(item) : `${applicantCount}`} />
         </div>
 
         <div className="mt-4 h-[64px]">
@@ -1463,6 +1503,8 @@ function OpportunityCard({
             </button>
           )}
         </div>
+
+        {isAgencyPost(item) && <AgencyMiniNotice item={item} />}
 
         <div className="mt-4 rounded-[22px] border border-[#eee8f7] bg-[#fbfaff] p-3">
           <div className="flex items-center justify-between gap-3">
@@ -1554,6 +1596,77 @@ function OpportunityCard({
   );
 }
 
+
+function AgencyBadge({ compact = false }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full bg-amber-50 font-semibold text-amber-700 ${
+        compact ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-xs"
+      }`}
+    >
+      <FaBuilding className="text-[9px]" />
+      Agency post
+    </span>
+  );
+}
+
+function AbroadBadge({ country = "Abroad", compact = false }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full bg-blue-50 font-semibold text-blue-700 ${
+        compact ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-xs"
+      }`}
+    >
+      <FaGlobe className="text-[9px]" />
+      {country || "Abroad"}
+    </span>
+  );
+}
+
+function AgencyMiniNotice({ item }) {
+  return (
+    <div className="mt-4 rounded-[20px] border border-amber-100 bg-amber-50 p-3">
+      <div className="flex items-start gap-2">
+        <FaBuilding className="mt-0.5 shrink-0 text-xs text-amber-700" />
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-amber-800">Posted by agency</p>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-amber-800">
+            Hiring for {getHiringFor(item)} · {getWorkCountry(item)}. Confirm details before applying.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AgencySafetyNotice({ item }) {
+  return (
+    <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-amber-700">
+          <FaExclamationTriangle className="text-sm" />
+        </div>
+
+        <div>
+          <p className="font-semibold text-amber-900">Recruitment agency notice</p>
+          <p className="mt-2 text-sm leading-6 text-amber-800">
+            This opportunity is posted by a recruitment or placement office, not necessarily the final employer. Confirm fees, employer identity, visa process, contract details, salary, and travel requirements before applying or sending documents.
+          </p>
+
+          <div className="mt-3 grid gap-2 text-sm text-amber-900">
+            <div className="rounded-xl bg-white/70 px-3 py-2">
+              Hiring for: <span className="font-semibold">{getHiringFor(item)}</span>
+            </div>
+            <div className="rounded-xl bg-white/70 px-3 py-2">
+              Work country: <span className="font-semibold">{getWorkCountry(item)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function VerifiedBadge() {
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-[var(--forsa-bg-soft)] px-2 py-1 text-[10px] font-semibold text-[var(--forsa-primary)]">
@@ -1577,6 +1690,8 @@ function Badge({ children, tone = "purple" }) {
     purple: "bg-[#f3edff] text-[var(--forsa-primary)]",
     red: "bg-red-50 text-red-600",
     green: "bg-emerald-50 text-emerald-700",
+    amber: "bg-amber-50 text-amber-700",
+    blue: "bg-blue-50 text-blue-700",
   };
 
   return (
@@ -1729,7 +1844,11 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
             </div>
 
             <div className="min-w-0">
-              <p className="text-sm text-neutral-500">{item.type}</p>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
+                <span>{item.type}</span>
+                {isAgencyPost(item) && <AgencyBadge compact />}
+                {isAbroadPost(item) && <AbroadBadge compact country={getWorkCountry(item)} />}
+              </div>
               <h2 className="mt-1 line-clamp-2 text-2xl font-semibold tracking-[-0.03em]">
                 {item.title}
               </h2>
@@ -1746,14 +1865,22 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
         </p>
 
         <div className="mt-5 rounded-2xl bg-[var(--forsa-bg)] p-4 text-sm">
-          <InfoLine label="Company" value={item.verified ? `${item.company} · Verified` : item.trusted ? `${item.company} · Trusted` : item.company} />
-          <InfoLine label="Location" value={item.location} />
+          <InfoLine label={isAgencyPost(item) ? "Posted by" : "Company"} value={item.verified ? `${item.company} · Verified` : item.trusted ? `${item.company} · Trusted` : item.company} />
+          {isAgencyPost(item) && <InfoLine label="Hiring for" value={getHiringFor(item)} />}
+          {isAgencyPost(item) && <InfoLine label="Post type" value="Recruitment / placement agency" />}
+          <InfoLine label={isAbroadPost(item) ? "Work location" : "Location"} value={isAbroadPost(item) ? `${item.location} · ${getWorkCountry(item)}` : item.location} />
           <InfoLine label="Pay" value={item.pay} />
           <InfoLine label="Match" value={item.matchScore ? `${item.matchScore}%` : "Complete profile for better matches"} />
           <InfoLine label="Contact" value={canInteract ? item.contact : "Create a seeker account to view"} breakAll />
         </div>
 
+        {isAgencyPost(item) && <AgencySafetyNotice item={item} />}
+
         <FitExplanation item={item} />
+
+        <div className="mt-4 rounded-2xl bg-[var(--forsa-bg-soft)] px-4 py-3 text-sm leading-6 text-[var(--forsa-primary)]">
+          <span className="font-semibold">Smart tip:</span> Use the match assistant before applying to improve your profile and increase your chances.
+        </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2">
           <button onClick={onShare} className="inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-4 py-3 text-sm font-medium transition hover:border-neutral-500">
@@ -1794,37 +1921,182 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
 }
 
 function FitExplanation({ item }) {
-  const reasons = [];
+  const account = safeJson("forsaAccount", null);
+  const profile = safeJson("forsaProfile", {
+    skills: [],
+    lookingFor: [],
+    cv: null,
+  });
 
-  if (item.matchScore) reasons.push(`${item.matchScore}% profile match`);
-  if (item.matchingSkills?.length) reasons.push(`Skill match: ${item.matchingSkills.slice(0, 3).join(", ")}`);
-  if (item.matchingType) reasons.push(`Goal match: ${item.type}`);
-  if (item.urgent) reasons.push("Urgent opportunity");
-  if (item.featured) reasons.push("Featured by poster");
+  const skills = profile.skills || [];
+  const goals = profile.lookingFor || [];
+  const postTags = item.tags || [];
+
+  const matchingSkills = postTags.filter((tag) =>
+    skills.some((skill) => normalize(skill) === normalize(tag))
+  );
+
+  const missingSkills = postTags
+    .filter((tag) => !matchingSkills.some((match) => normalize(match) === normalize(tag)))
+    .slice(0, 3);
+
+  const typeMatch = goals.some((goal) => {
+    const value = normalize(goal);
+    const type = normalize(item.type);
+    return (
+      value === type ||
+      value === `${type} work` ||
+      value === `${type} job` ||
+      value.includes(type) ||
+      type.includes(value)
+    );
+  });
+
+  const locationMatch =
+    account?.city &&
+    item.location &&
+    normalize(item.location).includes(normalize(account.city));
+
+  const hasCv = Boolean(profile.cv?.url || profile.cv?.name);
+  const matchScore = item.matchScore || calculateMatchScore(item, profile, account);
+
+  const positives = [
+    matchingSkills.length > 0 && {
+      title: "Skill match detected",
+      text: `${matchingSkills.slice(0, 3).join(", ")} match this opportunity.`,
+    },
+    typeMatch && {
+      title: "Goal match",
+      text: `This fits your selected interest: ${item.type}.`,
+    },
+    locationMatch && {
+      title: "Location advantage",
+      text: `This is close to your profile city: ${account.city}.`,
+    },
+    hasCv && {
+      title: "CV ready",
+      text: "You already have a CV attached, so applying will feel more complete.",
+    },
+    item.urgent && {
+      title: "Fast-moving role",
+      text: "This opportunity is marked urgent, so applying early may help.",
+    },
+    item.verified && {
+      title: "Verified company signal",
+      text: "This post has a verified company signal on Forsa.",
+    },
+    isAgencyPost(item) && {
+      title: "Agency post detected",
+      text: `This was posted by a recruitment or placement office for ${getHiringFor(item)}.`,
+    },
+    isAbroadPost(item) && {
+      title: "Abroad opportunity",
+      text: `This role may involve working outside Lebanon: ${getWorkCountry(item)}.`,
+    },
+  ].filter(Boolean);
+
+  const improvements = [
+    !hasCv && "Add a CV link to improve your application strength.",
+    matchingSkills.length === 0 && postTags.length > 0 && `Add relevant skills like ${missingSkills.join(", ")} if you have them.`,
+    !typeMatch && "Update your work interests so Forsa can recommend better roles.",
+    !locationMatch && account?.city && "Check commute/location before applying.",
+    isAgencyPost(item) && "Confirm employer identity, fees, contract, visa process, and salary before sharing personal documents.",
+  ].filter(Boolean);
+
+  const verdict =
+    matchScore >= 80
+      ? "Strong fit"
+      : matchScore >= 60
+      ? "Good fit"
+      : matchScore >= 40
+      ? "Possible fit"
+      : "Needs profile info";
 
   return (
-    <div className="mt-5 rounded-2xl border border-[var(--forsa-border)] bg-white p-4">
-      <div className="flex items-center gap-2">
-        <FaShieldAlt className="text-xs text-neutral-500" />
-        <p className="text-sm font-medium">Why this may fit you</p>
-      </div>
+    <div className="mt-5 overflow-hidden rounded-[24px] border border-[#eadfff] bg-[linear-gradient(135deg,#ffffff,#fbfaff)] shadow-[0_18px_55px_rgba(109,40,217,0.08)]">
+      <div className="relative p-4">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[var(--forsa-glow)]/20 blur-3xl" />
 
-      <div className="mt-3 grid gap-2">
-        {reasons.length > 0 ? (
-          reasons.map((reason) => (
-            <div key={reason} className="rounded-xl bg-[var(--forsa-bg)] px-3 py-2 text-sm text-neutral-700">
-              {reason}
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--forsa-primary)]">
+              <FaMagic className="text-[10px]" />
+              Forsa Match Assistant
             </div>
-          ))
-        ) : (
-          <p className="text-sm leading-6 text-neutral-600">
-            Complete your profile with skills and goals to see stronger match explanations.
-          </p>
+
+            <h3 className="mt-3 text-xl font-semibold tracking-[-0.04em]">
+              {verdict}
+            </h3>
+
+            <p className="mt-1 text-sm leading-6 text-neutral-600">
+              Forsa analyzed your profile against this opportunity.
+            </p>
+          </div>
+
+          <div className="shrink-0 text-right">
+            <p className="text-3xl font-semibold tracking-[-0.06em] text-[var(--forsa-primary)]">
+              {matchScore}%
+            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+              match
+            </p>
+          </div>
+        </div>
+
+        <div className="relative mt-4 h-2 overflow-hidden rounded-full bg-[#eee8ff]">
+          <div
+            className="h-full rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))]"
+            style={{ width: `${Math.min(100, Math.max(6, matchScore))}%` }}
+          />
+        </div>
+
+        <div className="relative mt-4 grid gap-2">
+          {positives.length > 0 ? (
+            positives.slice(0, 4).map((item) => (
+              <div key={item.title} className="rounded-2xl bg-white p-3 ring-1 ring-[#eee8ff]">
+                <div className="flex items-start gap-2">
+                  <FaCheck className="mt-1 text-xs text-[var(--forsa-primary)]" />
+                  <div>
+                    <p className="text-sm font-semibold">{item.title}</p>
+                    <p className="mt-1 text-xs leading-5 text-neutral-600">{item.text}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-2xl bg-white p-3 ring-1 ring-[#eee8ff]">
+              <div className="flex items-start gap-2">
+                <FaLightbulb className="mt-1 text-xs text-[var(--forsa-primary)]" />
+                <p className="text-sm leading-6 text-neutral-600">
+                  Complete your profile with skills, goals, city, and CV to unlock better match analysis.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {improvements.length > 0 && (
+          <div className="relative mt-3 rounded-2xl border border-amber-100 bg-amber-50 p-3">
+            <div className="flex items-start gap-2">
+              <FaExclamationTriangle className="mt-1 text-xs text-amber-600" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Before applying</p>
+                <div className="mt-2 grid gap-1">
+                  {improvements.slice(0, 3).map((tip) => (
+                    <p key={tip} className="text-xs leading-5 text-amber-800">
+                      {tip}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
   );
 }
+
 
 function InfoLine({ label, value, breakAll = false }) {
   return (

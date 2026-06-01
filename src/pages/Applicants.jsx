@@ -19,7 +19,7 @@ import {
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
-import { calculateApplicantScore } from "../lib/applicantScorejsx";
+import { calculateApplicantScore } from "../lib/applicantScore";
 import {
   listenUserThreads,
   updateThreadStatus,
