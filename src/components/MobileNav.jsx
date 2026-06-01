@@ -1,5 +1,4 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { useRef, useEffect, useState } from "react";
 import {
   FaBriefcase,
   FaCompass,
@@ -19,8 +18,6 @@ function safeJson(key, fallback) {
 
 export default function MobileNav() {
   const location = useLocation();
-  const containerRef = useRef(null);
-  const [pillStyle, setPillStyle] = useState({ left: 0, width: 0, opacity: 0 });
 
   const hiddenRoutes = ["/", "/auth", "/onboarding"];
   if (hiddenRoutes.includes(location.pathname)) return null;
@@ -41,52 +38,25 @@ export default function MobileNav() {
 
   const hiringItems = [
     { label: "Explore", to: "/explore", icon: FaCompass },
-    { label: "Post", to: "/post", icon: FaPlus },
     { label: "Applicants", to: "/applicants", icon: FaUsers },
+    { label: "Post", to: "/post", icon: FaPlus },
     { label: "Messages", to: "/messages", icon: FaPaperPlane },
     { label: "Profile", to: "/profile", icon: FaUser },
   ];
 
   const items = !account ? guestItems : isHiring ? hiringItems : seekerItems;
 
-  // Calculates the position of the active link to slide the liquid pill smoothly
-  useEffect(() => {
-    if (!containerRef.current) return;
-    
-    const activeEl = containerRef.current.querySelector(".nav-item-active");
-    
-    if (activeEl) {
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const activeRect = activeEl.getBoundingClientRect();
-      
-      setPillStyle({
-        left: activeRect.left - containerRect.left,
-        width: activeRect.width,
-        opacity: 1,
-      });
-    } else {
-      setPillStyle((prev) => ({ ...prev, opacity: 0 }));
-    }
-  }, [location.pathname, items.length]);
+  const gridConfig = {
+    1: "grid-cols-1 max-w-[120px]", 
+    4: "grid-cols-4",
+    5: "grid-cols-5",
+  };
+  const currentGridClass = gridConfig[items.length] || "grid-cols-5";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 px-6 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] md:hidden pointer-events-none">
-      <div 
-        ref={containerRef}
-        className="relative mx-auto max-w-sm rounded-[24px] pointer-events-auto border border-white/60 bg-white/60 p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.06),inset_0_1px_2px_rgba(255,255,255,0.6)] backdrop-blur-xl transition-all duration-300"
-      >
-        {/* iOS Fluid Liquid Active Background Pill */}
-        <div
-          style={{
-            transform: `translateX(${pillStyle.left}px)`,
-            width: `${pillStyle.width}px`,
-            opacity: pillStyle.opacity,
-          }}
-          className="absolute top-1.5 bottom-1.5 left-0 rounded-[18px] bg-[var(--forsa-primary)]/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] transition-all duration-500 cubic-bezier(0.25, 1, 0.5, 1)"
-        />
-
-        {/* Navigation Items Track */}
-        <div className="relative z-10 flex items-center justify-around gap-1">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] md:hidden">
+      <div className={`mx-auto rounded-[24px] border border-white/60 bg-white/70 p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.08),inset_0_1px_2px_rgba(255,255,255,0.7)] backdrop-blur-xl transition-all duration-300 ${items.length === 1 ? 'max-w-[100px]' : 'max-w-md'}`}>
+        <div className={`grid gap-0.5 ${currentGridClass} mx-auto`}>
           {items.map((item) => {
             const Icon = item.icon;
 
@@ -95,18 +65,27 @@ export default function MobileNav() {
                 key={item.label}
                 to={item.to}
                 className={({ isActive }) =>
-                  `relative flex h-12 w-12 items-center justify-center rounded-[18px] transition-colors duration-300 active:scale-90 ${
+                  `relative flex min-h-[56px] flex-col items-center justify-center rounded-[18px] px-1 py-1.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-300 active:scale-90 ${
                     isActive
-                      ? "text-[var(--forsa-primary)] nav-item-active"
-                      : "text-neutral-500/80 hover:text-neutral-800"
+                      ? "text-[var(--forsa-primary)] font-bold bg-[var(--forsa-primary)]/[0.04]"
+                      : "text-neutral-400 hover:text-neutral-600 active:bg-neutral-100/50"
                   }`
                 }
-                title={item.label}
               >
                 {({ isActive }) => (
-                  <div className={`transition-transform duration-300 cubic-bezier(0.34, 1.56, 0.64, 1) ${isActive ? "scale-110" : ""}`}>
-                    <Icon className="text-[18px]" />
-                  </div>
+                  <>
+                    <div className={`transition-transform duration-300 ${isActive ? "-translate-y-1 scale-110 text-[var(--forsa-primary)]" : ""}`}>
+                      <Icon className="text-[16px]" />
+                    </div>
+                    
+                    <span className="mt-1.5 text-[9px] leading-none tracking-tight font-semibold">
+                      {item.label}
+                    </span>
+
+                    {isActive && (
+                      <div className="absolute bottom-1 h-[3px] w-4 rounded-full bg-[var(--forsa-primary)] shadow-[0_1px_4px_rgba(0,0,0,0.15)] animate-fade-in" />
+                    )}
+                  </>
                 )}
               </NavLink>
             );
