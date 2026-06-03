@@ -16,6 +16,10 @@ import {
   FaTimesCircle,
   FaUser,
   FaUsers,
+  FaTrophy,
+  FaChartLine,
+  FaMagic,
+  FaSortAmountDown,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
@@ -60,6 +64,38 @@ const formatDate = (value) => {
   return date.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 };
 
+const getRankLabel = (rank, score) => {
+  if (rank === 1 && score >= 70) return "Top match";
+  if (rank <= 3 && score >= 60) return "Strong candidate";
+  if (score >= 50) return "Good potential";
+  return "Needs review";
+};
+
+const buildRanking = (threads) =>
+  threads
+    .map((thread) => {
+      const fit = calculateApplicantScore(thread);
+      const hasCv = Boolean(thread.cv?.name || thread.cv?.url);
+      const answered = Object.keys(thread.answers || {}).length;
+      const updatedAt = new Date(thread.updatedAt || thread.createdAt || 0).getTime() || 0;
+
+      return {
+        thread,
+        fit,
+        rankingScore:
+          fit.score +
+          (hasCv ? 6 : 0) +
+          (answered > 0 ? 4 : 0) +
+          Math.min(5, updatedAt / 1000000000000),
+      };
+    })
+    .sort((a, b) => b.rankingScore - a.rankingScore)
+    .map((item, index) => ({
+      ...item,
+      rank: index + 1,
+      label: getRankLabel(index + 1, item.fit.score),
+    }));
+
 export default function Applicants() {
   const navigate = useNavigate();
   const account = safeJson("forsaAccount", null);
@@ -68,6 +104,7 @@ export default function Applicants() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [sortMode, setSortMode] = useState("smart");
   const [busyId, setBusyId] = useState(null);
   const [statusConfirm, setStatusConfirm] = useState(null);
   const [interviewTarget, setInterviewTarget] = useState(null);
@@ -109,14 +146,37 @@ const [interviewForm, setInterviewForm] = useState({
   const filteredApplicants = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    return threads
-      .filter((thread) => {
-        const matchesStatus = statusFilter === "all" || (thread.status || "pending") === statusFilter;
-        const text = `${thread.title || ""} ${thread.company || ""} ${thread.seeker?.name || ""} ${thread.seeker?.email || ""} ${(thread.seeker?.skills || []).join(" ")}`.toLowerCase();
-        return matchesStatus && (!query || text.includes(query));
-      })
-      .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
-  }, [threads, statusFilter, search]);
+    const matches = threads.filter((thread) => {
+      const matchesStatus = statusFilter === "all" || (thread.status || "pending") === statusFilter;
+      const text = `${thread.title || ""} ${thread.company || ""} ${thread.seeker?.name || ""} ${thread.seeker?.email || ""} ${(thread.seeker?.skills || []).join(" ")}`.toLowerCase();
+      return matchesStatus && (!query || text.includes(query));
+    });
+
+    if (sortMode === "smart") {
+      return buildRanking(matches).map((item) => ({
+        ...item.thread,
+        _rank: item.rank,
+        _rankLabel: item.label,
+        _fit: item.fit,
+      }));
+    }
+
+    if (sortMode === "fit") {
+      return matches
+        .map((thread) => ({ ...thread, _fit: calculateApplicantScore(thread) }))
+        .sort((a, b) => (b._fit?.score || 0) - (a._fit?.score || 0));
+    }
+
+    return matches.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+  }, [threads, statusFilter, search, sortMode]);
+
+  const topRankedApplicants = useMemo(() => {
+    return buildRanking(
+      threads.filter((thread) =>
+        statusFilter === "all" ? true : (thread.status || "pending") === statusFilter
+      )
+    ).slice(0, 3);
+  }, [threads, statusFilter]);
 
   const stats = useMemo(() => ({
     interview: threads.filter((item) => item.status === "interview").length,
@@ -308,8 +368,17 @@ const [interviewForm, setInterviewForm] = useState({
 
       <div className="mx-auto max-w-[1180px] px-4 pb-28 sm:px-6 lg:pb-20">
         <HeroPanel stats={stats} />
+        <SmartRankingPanel rankedApplicants={topRankedApplicants} onOpenMessages={() => navigate("/messages")} />
         <JobStatsPanel jobStats={jobStats} />
-        <Toolbar search={search} setSearch={setSearch} statusFilter={statusFilter} setStatusFilter={setStatusFilter} stats={stats} />
+        <Toolbar
+          search={search}
+          setSearch={setSearch}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          stats={stats}
+          sortMode={sortMode}
+          setSortMode={setSortMode}
+        />
 
         {loading ? (
           <LoadingState />
@@ -330,6 +399,8 @@ const [interviewForm, setInterviewForm] = useState({
 }}
                 key={thread.id}
                 thread={thread}
+                rank={thread._rank}
+                rankLabel={thread._rankLabel}
                 busy={busyId === thread.id}
                 onMessage={() => navigate("/messages")}
                 onStatus={(status) =>
@@ -483,6 +554,81 @@ const [interviewForm, setInterviewForm] = useState({
   );
 }
 
+
+function SmartRankingPanel({ rankedApplicants, onOpenMessages }) {
+  if (!rankedApplicants.length) return null;
+
+  return (
+    <div className="mt-5 overflow-hidden rounded-[30px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_18px_65px_rgba(109,40,217,0.08)]">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="inline-flex items-center gap-2 rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--forsa-primary)]">
+            <FaMagic className="text-[10px]" />
+            Smart Applicant Ranking
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em]">
+            Top candidates to review first
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-neutral-600">
+            Forsa ranks applicants using profile fit, CV availability, answers, and activity so companies can decide faster.
+          </p>
+        </div>
+
+        <button
+          onClick={onOpenMessages}
+          className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700 sm:w-fit"
+        >
+          <FaEnvelope className="text-xs" />
+          Open messages
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        {rankedApplicants.map(({ thread, fit, rank, label }) => {
+          const seeker = thread.seeker || {};
+          return (
+            <div key={thread.id} className="rounded-[26px] border border-[var(--forsa-border)] bg-[linear-gradient(135deg,#ffffff,#fbfaff)] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--forsa-primary),var(--forsa-glow))] font-semibold text-white">
+                    #{rank}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold tracking-[-0.03em]">{seeker.name || "Applicant"}</p>
+                    <p className="mt-1 line-clamp-1 text-sm text-neutral-500">{thread.title}</p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-2xl font-semibold tracking-[-0.05em] text-[var(--forsa-primary)]">{fit.score}%</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-400">fit</p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2">
+                <FaTrophy className="text-xs text-[var(--forsa-primary)]" />
+                <span className="rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1 text-xs font-semibold text-[var(--forsa-primary)]">
+                  {label}
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-2">
+                {fit.reasons.slice(0, 3).map((reason) => (
+                  <div key={reason} className="flex items-start gap-2 rounded-2xl bg-white px-3 py-2 text-xs leading-5 text-neutral-700 ring-1 ring-[var(--forsa-border)]">
+                    <FaCheckCircle className="mt-1 shrink-0 text-[10px] text-[var(--forsa-primary)]" />
+                    {reason}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function JobStatsPanel({ jobStats }) {
   if (!jobStats.length) return null;
 
@@ -577,7 +723,7 @@ function HeroPanel({ stats }) {
   );
 }
 
-function Toolbar({ search, setSearch, statusFilter, setStatusFilter, stats }) {
+function Toolbar({ search, setSearch, statusFilter, setStatusFilter, stats, sortMode, setSortMode }) {
   return (
     <div className="sticky top-[74px] z-20 -mx-4 mt-5 border-y border-[var(--forsa-border)] bg-white/92 px-4 py-3 shadow-[0_12px_40px_rgba(109,40,217,0.06)] backdrop-blur-2xl sm:mx-0 sm:rounded-[28px] sm:border sm:p-3">
       <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
@@ -598,6 +744,30 @@ function Toolbar({ search, setSearch, statusFilter, setStatusFilter, stats }) {
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1 lg:pb-0">
+          <button
+            onClick={() => setSortMode(sortMode === "smart" ? "newest" : "smart")}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-[13px] font-semibold transition ${
+              sortMode === "smart"
+                ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-[0_12px_28px_rgba(109,40,217,0.20)]"
+                : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+            }`}
+          >
+            <FaSortAmountDown className="text-xs" />
+            {sortMode === "smart" ? "Smart rank" : "Newest"}
+          </button>
+
+          <button
+            onClick={() => setSortMode("fit")}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-[13px] font-semibold transition ${
+              sortMode === "fit"
+                ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-[0_12px_28px_rgba(109,40,217,0.20)]"
+                : "border-[var(--forsa-border)] bg-white text-neutral-600 hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+            }`}
+          >
+            <FaChartLine className="text-xs" />
+            Fit score
+          </button>
+
           {statusOptions.map((status) => (
             <button
               key={status}
@@ -619,13 +789,13 @@ function Toolbar({ search, setSearch, statusFilter, setStatusFilter, stats }) {
   );
 }
 
-function ApplicantCard({ thread, busy, onMessage, onStatus, onInterview }) {
+function ApplicantCard({ thread, rank, rankLabel, busy, onMessage, onStatus, onInterview }) {
   const seeker = thread.seeker || {};
   const status = thread.status || "pending";
   const answers = Object.entries(thread.answers || {}).filter(([question, answer]) => question?.trim() && answer?.trim());
   const skills = seeker.skills || [];
   const lookingFor = seeker.lookingFor || [];
-  const applicantFit = calculateApplicantScore(thread);
+  const applicantFit = thread._fit || calculateApplicantScore(thread);
 
   return (
     <article className="forsa-card overflow-hidden rounded-[30px] border border-[var(--forsa-border)] bg-white shadow-sm">
@@ -641,6 +811,7 @@ function ApplicantCard({ thread, busy, onMessage, onStatus, onInterview }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-xl font-semibold tracking-[-0.04em] text-neutral-950 sm:text-2xl">{seeker.name || "Applicant"}</h2>
                   <StatusPill status={status} />
+                  {rank && <RankPill rank={rank} label={rankLabel} />}
                 </div>
 
                 <p className="mt-1 break-all text-sm text-neutral-500">{seeker.email || "No email"} · {seeker.city || "Lebanon"}</p>
@@ -714,6 +885,16 @@ function ApplicantCard({ thread, busy, onMessage, onStatus, onInterview }) {
 }
 
 
+
+function RankPill({ rank, label }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1 text-xs font-semibold text-[var(--forsa-primary)] ring-1 ring-violet-100">
+      <FaTrophy className="text-[10px]" />
+      #{rank} {label}
+    </span>
+  );
+}
+
 function ApplicantFitCard({ fit }) {
   const score = fit?.score || 0;
   const reasons = fit?.reasons || [];
@@ -732,7 +913,7 @@ function ApplicantFitCard({ fit }) {
             </p>
 
             <span className="rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1 text-xs font-semibold text-[var(--forsa-primary)]">
-              {score >= 80 ? "Strong match" : score >= 60 ? "Good match" : "Review profile"}
+              {score >= 80 ? "High-priority applicant" : score >= 60 ? "Good candidate" : "Manual review"}
             </span>
           </div>
         </div>
