@@ -6,7 +6,7 @@ import Skeleton from "../components/Skeleton";
 import { FaWhatsapp, FaCopy } from "react-icons/fa";
 import SEO from "../components/SEO"
 import Modal from "../components/ui/Modal";
-import { getActivePosts } from "../lib/postService";
+import { getActivePosts } from "../lib/postService.js";
 import Footer from "../components/Footer";
 import { createNotification } from "../lib/notificationService";
 import { createApplicationThread } from "../lib/applicationService";

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { showToast } from "../lib/Toast";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
-import { createPost } from "../lib/postService";
+import { createPost } from "../lib/postService.js";
 import { createNotification } from "../lib/notificationService";
 import {
   FaBriefcase,

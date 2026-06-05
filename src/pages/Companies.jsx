@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { getActivePosts } from "../lib/postService";
+import { getActivePosts } from "../lib/postService.js";
 import {
   FaBriefcase,
   FaCheckCircle,

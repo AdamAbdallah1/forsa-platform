@@ -9,7 +9,7 @@ import {
   deletePost as deletePostFromFirestore,
   getPostsByOwner,
   updatePost,
-} from "../lib/postService";
+} from "../lib/postService.js";
 import { loadDemoActivity, clearDemoActivity } from "../lib/demoData";
 
 import { createVerificationRequest } from "../lib/verificationService";

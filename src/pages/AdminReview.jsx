@@ -5,7 +5,7 @@ import {
   deletePost as deletePostFromFirestore,
   getAdminPosts,
   updatePost,
-} from "../lib/postService";
+} from "../lib/postService.js";
 import { getReports, updateReportStatus } from "../lib/reportService";
 import {
   collection,
@@ -116,16 +116,40 @@ async function findUserByEmail(email) {
   return null;
 }
 
-async function verifyCompanyUser({ uid, email, verified }) {
-  const user = uid ? { id: uid } : await findUserByEmail(email);
+async function verifyCompanyUser(request, verified) {
+  const uid = request.uid || request.requestedByUid;
+
+  const email = (
+    request.companyEmail ||
+    request.requestedByEmail ||
+    request.email ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
+
+  if (uid) {
+    await updateDoc(doc(db, "users", uid), {
+      verified,
+      trusted: verified,
+      verificationStatus: verified ? "approved" : "rejected",
+      verifiedAt: verified ? serverTimestamp() : null,
+      updatedAt: serverTimestamp(),
+    });
+
+    return uid;
+  }
+
+  const user = await findUserByEmail(email);
 
   if (!user?.id) {
-    throw new Error("Company user was not found.");
+    throw new Error(`Company user not found for ${email}`);
   }
 
   await updateDoc(doc(db, "users", user.id), {
     verified,
-    trusted: verified ? true : false,
+    trusted: verified,
+    verificationStatus: verified ? "approved" : "rejected",
     verifiedAt: verified ? serverTimestamp() : null,
     updatedAt: serverTimestamp(),
   });
@@ -170,9 +194,13 @@ export default function AdminReview() {
       setVerificationRequests(remoteVerificationRequests);
       localStorage.setItem("forsaPostsCache", JSON.stringify(remotePosts));
     } catch (error) {
-      console.error("Admin review sync error:", error);
-      showToast("Could not sync dashboard items.", "error");
-    } finally {
+  console.error("Admin review sync error:", error);
+
+  showToast(
+    error?.message || error?.code || "Could not sync dashboard items.",
+    "error"
+  );
+} finally {
       setLoading(false);
     }
   }, [isAdmin]);
@@ -371,53 +399,51 @@ export default function AdminReview() {
   }, []);
 
   const approveVerification = useCallback(async (request) => {
-    try {
-      const uid = await verifyCompanyUser({
-        uid: request.uid,
-        email: request.companyEmail || request.requestedByEmail,
-        verified: true,
-      });
+  try {
+    const uid = await verifyCompanyUser(request, true);
 
-      await updateVerificationRequest(request.id, {
-        status: "approved",
-        reviewedBy: account.email,
-        reviewedAt: serverTimestamp(),
-        uid,
-      });
+    await updateVerificationRequest(request.id, {
+      status: "approved",
+      reviewedBy: account.email,
+      reviewedAt: serverTimestamp(),
+      uid,
+    });
 
-      setVerificationRequests((prev) =>
-        prev.map((item) =>
-          item.id === request.id ? { ...item, status: "approved", uid } : item
-        )
-      );
+    setVerificationRequests((prev) =>
+      prev.map((item) =>
+        item.id === request.id ? { ...item, status: "approved", uid } : item
+      )
+    );
 
-      showToast("Company verified");
-    } catch (error) {
-      console.error(error);
-      showToast(error.message || "Action failed.", "error");
-    }
-  }, [account?.email]);
+    showToast("Company verified");
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Action failed.", "error");
+  }
+}, [account?.email]);
 
   const rejectVerification = useCallback(async (request) => {
-    try {
-      await updateVerificationRequest(request.id, {
-        status: "rejected",
-        reviewedBy: account.email,
-        reviewedAt: serverTimestamp(),
-      });
+  try {
+    await verifyCompanyUser(request, false);
 
-      setVerificationRequests((prev) =>
-        prev.map((item) =>
-          item.id === request.id ? { ...item, status: "rejected" } : item
-        )
-      );
+    await updateVerificationRequest(request.id, {
+      status: "rejected",
+      reviewedBy: account.email,
+      reviewedAt: serverTimestamp(),
+    });
 
-      showToast("Request rejected");
-    } catch (error) {
-      console.error(error);
-      showToast("Action failed.", "error");
-    }
-  }, [account?.email]);
+    setVerificationRequests((prev) =>
+      prev.map((item) =>
+        item.id === request.id ? { ...item, status: "rejected" } : item
+      )
+    );
+
+    showToast("Request rejected");
+  } catch (error) {
+    console.error(error);
+    showToast("Action failed.", "error");
+  }
+}, [account?.email]);
 
   if (!isAdmin) {
     return (
@@ -447,10 +473,6 @@ export default function AdminReview() {
       <div className="mx-auto max-w-6xl px-4 pb-24 pt-10 sm:px-6">
         <div className="flex flex-col gap-6 border-b border-neutral-200/60 pb-8 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-500">
-              <FaShieldAlt className="text-[10px]" />
-              Forsa Trust Center
-            </p>
             <h1 className="mt-4 text-3xl font-bold tracking-tight text-neutral-950">
               Moderation Desk
             </h1>
