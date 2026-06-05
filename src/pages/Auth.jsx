@@ -241,7 +241,8 @@ export default function Auth() {
     <main className="min-h-screen bg-[#f7f7f5] text-[#111111]">
       <SEO title="Join" />
 
-      <section className="mx-auto grid min-h-screen max-w-6xl gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[0.85fr_1fr] lg:items-center lg:gap-10 lg:py-8">
+      {/* Grid container with optimized vertical mobile spacing (py-8 to py-12) */}
+      <section className="mx-auto grid min-h-screen max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.85fr_1fr] lg:items-center lg:gap-10 lg:py-8">
         <div className="hidden lg:block">
           <p className="w-fit rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-xs font-medium text-neutral-600">
             Local work platform for Lebanon
@@ -262,10 +263,12 @@ export default function Auth() {
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[500px] rounded-[28px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:p-5">
-          <div className="mb-5 lg:hidden">
-            <p className="text-sm font-semibold tracking-[-0.03em]">forsa</p>
-            <h1 className="mt-4 text-3xl font-semibold leading-[1] tracking-[-0.05em]">
+        {/* Clean, minimalist form box with refined organic mobile padding (p-5 sm:p-6) */}
+        <div className="mx-auto w-full max-w-[460px] rounded-[24px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:rounded-[28px] sm:p-6">
+          {/* Mobile Heading optimized with strict tracking and proper baseline leading */}
+          <div className="mb-6 lg:hidden">
+            <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--forsa-primary)]">forsa</p>
+            <h1 className="mt-2 text-3xl font-semibold leading-[1.05] tracking-[-0.04em] text-neutral-900">
               Work and hiring, organized.
             </h1>
           </div>
@@ -318,7 +321,7 @@ export default function Auth() {
 
 function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
   return (
-    <div className="mt-2 py-2">
+    <div className="py-1">
       <h2 className="text-2xl font-semibold tracking-[-0.04em] text-neutral-900">
         Welcome to Forsa
       </h2>
@@ -331,7 +334,7 @@ function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
           type="button"
           onClick={() => onChooseMode("signup")}
           disabled={loading}
-          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--forsa-primary-light)]"
+          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[var(--forsa-primary-light)]"
         >
           Create an Account
           <FaArrowRight className="text-xs" />
@@ -341,7 +344,7 @@ function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
           type="button"
           onClick={() => onChooseMode("login")}
           disabled={loading}
-          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50"
+          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3.5 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50"
         >
           Log in to your Account
         </button>
@@ -356,7 +359,7 @@ function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
           type="button"
           onClick={onGoogleLogin}
           disabled={loading}
-          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)] disabled:cursor-wait disabled:opacity-60"
+          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3.5 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)] disabled:cursor-wait disabled:opacity-60"
         >
           <FaGoogle className="text-sm" />
           Continue with Google
@@ -371,14 +374,14 @@ function SpotlightCard({ active, children, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-[28px] border p-[1px] text-left transition duration-300 hover:-translate-y-1 ${
+      className={`group relative w-full overflow-hidden rounded-[24px] border p-[1px] text-left transition duration-300 sm:rounded-[28px] ${
         active
-          ? "border-transparent shadow-[0_22px_60px_rgba(109,40,217,0.20)]"
-          : "border-[var(--forsa-border)] shadow-sm hover:shadow-[0_18px_50px_rgba(109,40,217,0.10)]"
+          ? "border-transparent shadow-[0_14px_40px_rgba(109,40,217,0.15)]"
+          : "border-[var(--forsa-border)] shadow-sm hover:shadow-[0_12px_30px_rgba(109,40,217,0.06)]"
       }`}
     >
       <div
-        className={`relative h-full rounded-[27px] p-5 transition ${
+        className={`relative h-full rounded-[23px] p-5 transition sm:rounded-[27px] ${
           active
             ? "bg-[linear-gradient(135deg,var(--forsa-primary),var(--forsa-glow))] text-white"
             : "bg-white text-[var(--forsa-text)]"
@@ -392,26 +395,27 @@ function SpotlightCard({ active, children, onClick }) {
 
 function ChoiceStep({ accountType, setAccountType, onContinue, onBack }) {
   return (
-    <div className="mt-5">
+    <div className="mt-2">
       <button
         onClick={onBack}
-        className="mb-4 flex items-center gap-2 text-sm text-neutral-500 transition hover:text-black"
+        className="mb-4 inline-flex items-center gap-2 text-xs font-medium text-neutral-500 transition hover:text-black"
       >
-        <FaArrowLeft className="text-xs" />
+        <FaArrowLeft className="text-[10px]" />
         Back to welcome
       </button>
 
-      <div className="rounded-[24px] bg-[var(--forsa-bg-soft)] p-4">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--forsa-primary)]">
+      <div className="rounded-[20px] bg-[var(--forsa-bg-soft)] p-4">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--forsa-primary)]">
           Step 1 of 2
         </p>
 
-        <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
+        <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-neutral-900">
           How will you use Forsa?
         </h2>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+      {/* Stack cards natively on mobile layouts to avoid overflow and cramping */}
+      <div className="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2">
         <TypeCard
           active={accountType === "finder"}
           icon={<FaUserPlus />}
@@ -431,7 +435,7 @@ function ChoiceStep({ accountType, setAccountType, onContinue, onBack }) {
 
       <button
         onClick={onContinue}
-        className="forsa-click mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-primary-light)]"
+        className="forsa-click mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[var(--forsa-primary-light)]"
       >
         Continue
         <FaArrowRight className="text-xs" />
@@ -456,29 +460,30 @@ function FormStep({
   const isHiring = accountType === "hiring";
 
   return (
-    <div className="mt-5">
+    <div className="mt-2">
       <button
         onClick={onBack}
         disabled={loading}
-        className="mb-4 flex items-center gap-2 text-sm text-neutral-500 transition hover:text-black"
+        className="mb-4 inline-flex items-center gap-2 text-xs font-medium text-neutral-500 transition hover:text-black"
       >
-        <FaArrowLeft className="text-xs" />
+        <FaArrowLeft className="text-[10px]" />
         {isSignup ? "Change type" : "Back to welcome"}
       </button>
 
-      <p className="text-xs font-medium text-neutral-500">
+      <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-neutral-400">
         {isSignup ? "Step 2 of 2" : "Welcome back"}
       </p>
 
-      <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
+      <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-neutral-900">
         {isSignup
           ? isHiring
-            ? "Create company account."
-            : "Create your work profile."
-          : "Log in to Forsa."}
+            ? "Create company account"
+            : "Create your work profile"
+          : "Log in to Forsa"}
       </h2>
 
-      <div className="mt-5 grid gap-3">
+      {/* Grid optimized with compact minimal gaps for cleaner mobile vertical rhythm */}
+      <div className="mt-5 grid gap-4">
         {isSignup && isHiring && (
           <>
             <Field icon={<FaBuilding />} label="Company name" placeholder="Pixel House" value={form.companyName} onChange={(value) => updateField("companyName", value)} />
@@ -508,14 +513,14 @@ function FormStep({
         {!isSignup && (
           <Link
             to="/forgot-password"
-            className="w-fit text-xs font-semibold text-[var(--forsa-primary)]"
+            className="w-fit text-xs font-semibold text-[var(--forsa-primary)] hover:underline"
           >
             Forgot password?
           </Link>
         )}
 
         {isSignup && passwordIssue && form.password && (
-          <p className="text-xs leading-5 text-neutral-500">{passwordIssue}</p>
+          <p className="rounded-xl bg-neutral-50 p-3 text-xs leading-5 text-neutral-500 border border-[var(--forsa-border)]">{passwordIssue}</p>
         )}
 
         {isSignup && (
@@ -525,10 +530,10 @@ function FormStep({
         <button
           disabled={!canContinue || loading}
           onClick={onSubmit}
-          className={`forsa-click mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition ${
+          className={`forsa-click mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-semibold transition ${
             canContinue && !loading
-              ? "bg-[var(--forsa-primary)] text-white hover:bg-[var(--forsa-primary-light)]"
-              : "cursor-not-allowed bg-neutral-200 text-neutral-400"
+              ? "bg-[var(--forsa-primary)] text-white hover:bg-[var(--forsa-primary-light)] shadow-sm"
+              : "cursor-not-allowed bg-neutral-100 text-neutral-400"
           }`}
         >
           {loading
@@ -549,9 +554,9 @@ function FormStep({
 function TypeCard({ active, icon, title, text, onClick }) {
   return (
     <SpotlightCard active={active} onClick={onClick}>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <div
-          className={`flex h-12 w-12 items-center justify-center rounded-2xl text-lg shadow-sm ${
+          className={`flex h-11 w-11 items-center justify-center rounded-xl text-base shadow-sm ${
             active
               ? "bg-white/18 text-white ring-1 ring-white/25"
               : "bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
@@ -561,7 +566,7 @@ function TypeCard({ active, icon, title, text, onClick }) {
         </div>
 
         <span
-          className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
             active
               ? "bg-white/15 text-white"
               : "bg-[var(--forsa-bg)] text-neutral-500"
@@ -571,13 +576,13 @@ function TypeCard({ active, icon, title, text, onClick }) {
         </span>
       </div>
 
-      <p className="mt-5 text-lg font-semibold tracking-[-0.03em]">{title}</p>
+      <p className="mt-4 text-base font-semibold tracking-[-0.02em]">{title}</p>
 
-      <p className={`mt-2 text-sm leading-6 ${active ? "text-white/75" : "text-neutral-500"}`}>
+      <p className={`mt-1.5 text-xs leading-5 ${active ? "text-white/85" : "text-neutral-500"}`}>
         {text}
       </p>
 
-      <div className={`mt-5 h-1.5 overflow-hidden rounded-full ${active ? "bg-white/20" : "bg-[var(--forsa-bg)]"}`}>
+      <div className={`mt-4 h-1 overflow-hidden rounded-full ${active ? "bg-white/20" : "bg-[var(--forsa-bg)]"}`}>
         <div className={`h-full rounded-full transition-all duration-500 ${active ? "w-full bg-white" : "w-1/3 bg-[var(--forsa-soft)]"}`} />
       </div>
     </SpotlightCard>
@@ -586,18 +591,18 @@ function TypeCard({ active, icon, title, text, onClick }) {
 
 function Field({ label, placeholder, value, onChange, type = "text", icon }) {
   return (
-    <div>
-      <label className="text-sm font-medium">{label}</label>
+    <div className="w-full">
+      <label className="text-xs font-semibold tracking-tight text-neutral-700">{label}</label>
 
-      <div className="forsa-focus mt-2 flex items-center gap-3 rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3">
-        {icon && <span className="text-neutral-400">{icon}</span>}
+      <div className="forsa-focus mt-1.5 flex items-center gap-3 rounded-xl border border-[var(--forsa-border)] bg-white px-3.5 py-3">
+        {icon && <span className="text-neutral-400 text-sm">{icon}</span>}
 
         <input
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-transparent text-sm outline-none"
+          className="w-full bg-transparent text-sm text-neutral-900 placeholder-neutral-400 outline-none"
         />
       </div>
     </div>
@@ -606,24 +611,24 @@ function Field({ label, placeholder, value, onChange, type = "text", icon }) {
 
 function PasswordField({ value, onChange, showPassword, setShowPassword }) {
   return (
-    <div>
-      <label className="text-sm font-medium">Password</label>
+    <div className="w-full">
+      <label className="text-xs font-semibold tracking-tight text-neutral-700">Password</label>
 
-      <div className="forsa-focus mt-2 flex items-center gap-3 rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3">
+      <div className="forsa-focus mt-1.5 flex items-center gap-3 rounded-xl border border-[var(--forsa-border)] bg-white px-3.5 py-3">
         <input
           type={showPassword ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="8+ chars, number, symbol"
-          className="w-full bg-transparent text-sm outline-none"
+          className="w-full bg-transparent text-sm text-neutral-900 placeholder-neutral-400 outline-none"
         />
 
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="text-neutral-400"
+          className="text-neutral-400 p-0.5 hover:text-neutral-600 active:scale-95 transition"
         >
-          {showPassword ? <FaEyeSlash /> : <FaEye />}
+          {showPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
         </button>
       </div>
     </div>

@@ -865,6 +865,16 @@ function ApplicantCard({ thread, rank, rankLabel, busy, onMessage, onStatus, onI
               <FaEnvelope className="text-xs" />
               Open messages
             </button>
+
+            {seeker.uid && (
+              <Link
+                to={`/seeker/${seeker.uid}`}
+                className="forsa-click inline-flex items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm font-semibold text-neutral-700 hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+              >
+                <FaUser className="text-xs" />
+                View profile
+              </Link>
+            )}
             <button
   onClick={onInterview}
   disabled={busy}

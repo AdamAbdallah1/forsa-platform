@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
 import AppHeader from "../components/AppHeader";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 import Modal from "../components/ui/Modal";
 import { showToast } from "../lib/Toast";
 import {
@@ -586,13 +588,44 @@ const displayEmail =
     showToast("CV removed");
   };
 
-  const saveChanges = () => {
-    localStorage.setItem("forsaAccount", JSON.stringify(account));
+const saveChanges = async () => {
+  const nextAccount = {
+    ...account,
+    bio: account.bio || "",
+    experience: account.experience || "",
+    education: account.education || "",
+    portfolioLinks: account.portfolioLinks || "",
+  };
+
+  const publicProfileData = {
+    ...nextAccount,
+    skills: profile.skills || [],
+    lookingFor: profile.lookingFor || [],
+    cv: profile.cv || null,
+    publicSkills: profile.skills || [],
+    publicLookingFor: profile.lookingFor || [],
+    publicCv: profile.cv || null,
+  };
+
+  try {
+    if (account?.uid) {
+      await setDoc(doc(db, "users", account.uid), publicProfileData, {
+        merge: true,
+      });
+    }
+
+    setAccount(nextAccount);
+    localStorage.setItem("forsaAccount", JSON.stringify(nextAccount));
     localStorage.setItem("forsaProfile", JSON.stringify(profile));
-    syncUserRecord(account);
+    syncUserRecord(nextAccount);
+
     showToast("Profile updated");
     setIsEditing(false);
-  };
+  } catch (error) {
+    console.error("Profile save error:", error);
+    showToast("Could not save profile.", "error");
+  }
+};
 
   const cancelEdit = () => {
     setAccount(savedAccount);
@@ -2225,6 +2258,47 @@ function ProfileEdit({
               onChange={(value) => updateAccount("city", value)}
             />
           </div>
+          <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
+  <label className="text-sm font-medium">Public summary</label>
+  <textarea
+    value={account.bio || ""}
+    onChange={(e) => updateAccount("bio", e.target.value)}
+    placeholder="Example: Motivated computer science student looking for internships, part-time work, and freelance projects."
+    className="mt-2 min-h-28 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
+  />
+</div>
+
+<div className="mt-6 grid gap-4 md:grid-cols-2">
+  <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
+    <label className="text-sm font-medium">Experience</label>
+    <textarea
+      value={account.experience || ""}
+      onChange={(e) => updateAccount("experience", e.target.value)}
+      placeholder="One item per line. Example: Cashier — handled POS, customers, and daily closing."
+      className="mt-2 min-h-32 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
+    />
+  </div>
+
+  <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
+    <label className="text-sm font-medium">Education</label>
+    <textarea
+      value={account.education || ""}
+      onChange={(e) => updateAccount("education", e.target.value)}
+      placeholder="One item per line. Example: TS1 MIS / IT — CIS College"
+      className="mt-2 min-h-32 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
+    />
+  </div>
+</div>
+
+<div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
+  <label className="text-sm font-medium">Portfolio links</label>
+  <textarea
+    value={account.portfolioLinks || ""}
+    onChange={(e) => updateAccount("portfolioLinks", e.target.value)}
+    placeholder="One link per line. Example: https://github.com/yourname"
+    className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
+  />
+</div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <EditBox

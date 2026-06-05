@@ -135,3 +135,7 @@ select {
   border-color: var(--forsa-primary);
   box-shadow: 0 0 0 4px rgba(109, 40, 217, 0.09);
 }
+
+.input {
+  @apply w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100;
+}
