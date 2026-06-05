@@ -763,6 +763,12 @@ export default function Explore() {
       
 
       <div className="mx-auto max-w-[1180px] px-4 pb-40 sm:px-6 md:pb-28 lg:pb-20">
+                <HeroBar
+          isHiring={isHiring}
+          isLoggedIn={isLoggedIn}
+          navigate={navigate}
+          stats={stats}
+        />
         <SearchPanel
           search={search}
           setSearch={setSearch}
@@ -777,12 +783,6 @@ export default function Explore() {
           setShowFilters={setShowFilters}
           hasActiveFilters={Boolean(hasActiveFilters)}
           clearFilters={clearFilters}
-        />
-        <HeroBar
-          isHiring={isHiring}
-          isLoggedIn={isLoggedIn}
-          navigate={navigate}
-          stats={stats}
         />
 
         <StatusCard

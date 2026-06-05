@@ -80,8 +80,8 @@ const getFriendlyAuthError = (error, isSignup) => {
 export default function Auth() {
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState("signup");
-  const [step, setStep] = useState("choice");
+  const [step, setStep] = useState("welcome"); 
+  const [mode, setMode] = useState("signup"); 
   const [accountType, setAccountType] = useState("finder");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -123,6 +123,16 @@ export default function Auth() {
     setError("");
     setMode(nextMode);
     setStep(nextMode === "signup" ? "choice" : "form");
+  };
+
+  const handleInitialChoice = (chosenMode) => {
+    setError("");
+    setMode(chosenMode);
+    if (chosenMode === "signup") {
+      setStep("choice");
+    } else {
+      setStep("form");
+    }
   };
 
   const validateBeforeSubmit = () => {
@@ -260,80 +270,99 @@ export default function Auth() {
             </h1>
           </div>
 
-          <div className="rounded-[22px] bg-[#f7f7f5] p-1.5">
-            <div className="grid grid-cols-2 gap-1.5">
-              <button
-                onClick={() => switchMode("signup")}
-                disabled={loading}
-                className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
-                  mode === "signup" ? "bg-white shadow-sm" : "text-neutral-500"
-                }`}
-              >
-                Create
-              </button>
-
-              <button
-                onClick={() => switchMode("login")}
-                disabled={loading}
-                className={`rounded-full px-3 py-2.5 text-sm font-medium transition ${
-                  mode === "login" ? "bg-white shadow-sm" : "text-neutral-500"
-                }`}
-              >
-                Log in
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="forsa-click mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)] disabled:cursor-wait disabled:opacity-60"
-          >
-            <FaGoogle className="text-sm" />
-            Continue with Google
-          </button>
-
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-[var(--forsa-border)]" />
-            <span className="text-xs font-medium text-neutral-400">
-              or continue with email
-            </span>
-            <div className="h-px flex-1 bg-[var(--forsa-border)]" />
-          </div>
-
-          {error && (
-            <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm leading-6 text-red-600">
-              {error}
-            </div>
-          )}
-
-          {isSignup && step === "choice" ? (
-            <ChoiceStep
-              accountType={accountType}
-              setAccountType={setAccountType}
-              onContinue={() => setStep("form")}
+          {step === "welcome" ? (
+            <WelcomeStep 
+              onChooseMode={handleInitialChoice} 
+              onGoogleLogin={handleGoogleLogin} 
+              loading={loading} 
             />
           ) : (
-            <FormStep
-              isSignup={isSignup}
-              accountType={accountType}
-              form={form}
-              updateField={updateField}
-              canContinue={Boolean(canContinue)}
-              onSubmit={handleSubmit}
-              onBack={() => setStep("choice")}
-              showPassword={showPassword}
-              setShowPassword={setShowPassword}
-              loading={loading}
-              passwordIssue={passwordIssue}
-            />
+            <>
+              {error && (
+                <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm leading-6 text-red-600">
+                  {error}
+                </div>
+              )}
+
+              {isSignup && step === "choice" ? (
+                <ChoiceStep
+                  accountType={accountType}
+                  setAccountType={setAccountType}
+                  onContinue={() => setStep("form")}
+                  onBack={() => setStep("welcome")}
+                />
+              ) : (
+                <FormStep
+                  isSignup={isSignup}
+                  accountType={accountType}
+                  form={form}
+                  updateField={updateField}
+                  canContinue={Boolean(canContinue)}
+                  onSubmit={handleSubmit}
+                  onBack={() => isSignup ? setStep("choice") : setStep("welcome")}
+                  showPassword={showPassword}
+                  setShowPassword={setShowPassword}
+                  loading={loading}
+                  passwordIssue={passwordIssue}
+                />
+              )}
+            </>
           )}
         </div>
       </section>
 
       <Footer />
     </main>
+  );
+}
+
+function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
+  return (
+    <div className="mt-2 py-2">
+      <h2 className="text-2xl font-semibold tracking-[-0.04em] text-neutral-900">
+        Welcome to Forsa
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-neutral-500">
+        Join the network connecting job seekers and local businesses across Lebanon.
+      </p>
+
+      <div className="mt-6 flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={() => onChooseMode("signup")}
+          disabled={loading}
+          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--forsa-primary-light)]"
+        >
+          Create an Account
+          <FaArrowRight className="text-xs" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onChooseMode("login")}
+          disabled={loading}
+          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50"
+        >
+          Log in to your Account
+        </button>
+
+        <div className="my-2 flex items-center gap-3">
+          <div className="h-px flex-1 bg-[var(--forsa-border)]" />
+          <span className="text-xs font-medium text-neutral-400">or</span>
+          <div className="h-px flex-1 bg-[var(--forsa-border)]" />
+        </div>
+
+        <button
+          type="button"
+          onClick={onGoogleLogin}
+          disabled={loading}
+          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)] disabled:cursor-wait disabled:opacity-60"
+        >
+          <FaGoogle className="text-sm" />
+          Continue with Google
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -361,9 +390,17 @@ function SpotlightCard({ active, children, onClick }) {
   );
 }
 
-function ChoiceStep({ accountType, setAccountType, onContinue }) {
+function ChoiceStep({ accountType, setAccountType, onContinue, onBack }) {
   return (
     <div className="mt-5">
+      <button
+        onClick={onBack}
+        className="mb-4 flex items-center gap-2 text-sm text-neutral-500 transition hover:text-black"
+      >
+        <FaArrowLeft className="text-xs" />
+        Back to welcome
+      </button>
+
       <div className="rounded-[24px] bg-[var(--forsa-bg-soft)] p-4">
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--forsa-primary)]">
           Step 1 of 2
@@ -420,16 +457,14 @@ function FormStep({
 
   return (
     <div className="mt-5">
-      {isSignup && (
-        <button
-          onClick={onBack}
-          disabled={loading}
-          className="mb-4 flex items-center gap-2 text-sm text-neutral-500 transition hover:text-black"
-        >
-          <FaArrowLeft className="text-xs" />
-          Change type
-        </button>
-      )}
+      <button
+        onClick={onBack}
+        disabled={loading}
+        className="mb-4 flex items-center gap-2 text-sm text-neutral-500 transition hover:text-black"
+      >
+        <FaArrowLeft className="text-xs" />
+        {isSignup ? "Change type" : "Back to welcome"}
+      </button>
 
       <p className="text-xs font-medium text-neutral-500">
         {isSignup ? "Step 2 of 2" : "Welcome back"}
