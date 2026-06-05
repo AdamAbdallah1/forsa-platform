@@ -20,6 +20,11 @@ import {
   FaTrash,
   FaPlus,
   FaShieldAlt,
+  FaBuilding,
+  FaHandshake,
+  FaLock,
+  FaPhone,
+  FaEnvelope,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 
@@ -286,6 +291,11 @@ const emptyForm = (account) => ({
   tags: [],
   urgent: false,
   featured: false,
+
+  postingMode: "company",
+  managedCompanyEmail: "",
+  managedCompanyPhone: "",
+  managedSource: "",
 });
 
 function safeJson(key, fallback) {
@@ -317,6 +327,10 @@ function formatTime(iso) {
 export default function PostOpportunity() {
   const navigate = useNavigate();
   const [account] = useState(() => safeJson("forsaAccount", null));
+  const isForsaAdmin =
+    account?.email === "support.forsa@gmail.com" ||
+    account?.email === "adamabdallahayln1@gmail.com" ||
+    account?.role === "admin";
   const draftKey = useMemo(() => `forsaOpportunityDraft:${account?.email || "guest"}`, [account?.email]);
 
   const typeRef = useRef(null);
@@ -420,6 +434,7 @@ export default function PostOpportunity() {
       form.title.trim() &&
       form.company.trim() &&
       (!form.postSource.includes("Recruitment") || (form.agencyName.trim() && form.hiringFor.trim() && form.workCountry.trim())) &&
+      (form.postingMode !== "managed" || !isForsaAdmin || ((form.managedCompanyEmail.trim() || form.managedCompanyPhone.trim()) && form.managedSource.trim())) &&
       form.location.trim() &&
       form.category.trim() &&
       form.pay.trim() &&
@@ -429,7 +444,7 @@ export default function PostOpportunity() {
       form.shift.trim() &&
       form.tags.length > 0
     );
-  }, [form]);
+  }, [form, isForsaAdmin]);
 
   const updateForm = (field, value) => {
     setDraftIgnored(false);
@@ -584,10 +599,24 @@ export default function PostOpportunity() {
 
     try {
       const cleanQuestions = form.questions.filter((q) => q.trim());
+      const isManagedPost = isForsaAdmin && form.postingMode === "managed";
+
       const newPost = {
         ownerUid: account?.uid || null,
         ownerEmail: account?.email || form.contact,
-        ownerName: account?.name || form.company,
+        ownerName: isManagedPost ? "Forsa Jobs" : account?.name || form.company,
+
+        postingMode: isManagedPost ? "managed" : "company",
+        managedByForsa: isManagedPost,
+        managedBy: isManagedPost ? account?.email : null,
+        managementStatus: isManagedPost ? "managed_unclaimed" : "owner_posted",
+        companyClaimed: false,
+        claimEmail: isManagedPost ? form.managedCompanyEmail.trim().toLowerCase() : "",
+        claimPhone: isManagedPost ? form.managedCompanyPhone.trim() : "",
+        managedSource: isManagedPost ? form.managedSource.trim() : "",
+        claimInstructions: isManagedPost
+          ? "This post was added by Forsa Jobs. The real company can request ownership and edit it after admin approval."
+          : "",
         postSource: form.postSource,
         isAgencyPost: form.postSource.includes("Recruitment"),
         agencyName: form.agencyName.trim(),
@@ -610,8 +639,8 @@ export default function PostOpportunity() {
         tags: form.tags || [],
         urgent: Boolean(form.urgent),
         featured: Boolean(form.featured),
-        trusted: Boolean(account?.trusted),
-        verified: Boolean(account?.verified),
+        trusted: isManagedPost ? true : Boolean(account?.trusted),
+        verified: isManagedPost ? true : Boolean(account?.verified),
         
         questions: cleanQuestions,
         reports: 0, views: 0, applications: 0,
@@ -670,6 +699,9 @@ export default function PostOpportunity() {
           <div className="overflow-hidden rounded-[34px] border border-neutral-200/70 bg-white p-5 shadow-[0_20px_50px_rgba(0,0,0,0.015)] sm:p-8 space-y-6">
             {showRestoreDraft && (
               <RestoreDraftBanner draftSavedAt={draftSavedAt} onRestore={restoreDraft} onDismiss={dismissDraft} />
+            )}
+{isForsaAdmin && (
+              <ManagedPostingPanel form={form} updateForm={updateForm} />
             )}
 
             <div className="rounded-[26px] border border-neutral-200 bg-neutral-50/60 p-4 sm:p-5">
@@ -973,6 +1005,145 @@ export default function PostOpportunity() {
   );
 }
 
+
+function ManagedPostingPanel({ form, updateForm }) {
+  const isManaged = form.postingMode === "managed";
+
+  return (
+    <div className="relative overflow-hidden rounded-[30px] border border-violet-100 bg-[linear-gradient(135deg,#ffffff,#fbfaff)] p-5 shadow-[0_18px_60px_rgba(109,40,217,0.08)] sm:p-6">
+      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[var(--forsa-glow)]/15 blur-3xl" />
+
+      <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-violet-100 bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--forsa-primary)] shadow-sm">
+            <FaShieldAlt className="text-[10px]" />
+            Admin workflow
+          </span>
+
+          <h2 className="mt-4 text-2xl font-bold tracking-[-0.05em] text-neutral-950">
+            Publish on behalf of a company.
+          </h2>
+
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-neutral-500">
+            Use Managed by Forsa for real opportunities collected from WhatsApp, calls, or outreach. The job stays under Forsa until the company claims it and gets approved.
+          </p>
+        </div>
+
+        {isManaged && (
+          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-xs font-bold text-white shadow-sm">
+            <FaHandshake className="text-[11px]" />
+            Managed by Forsa
+          </span>
+        )}
+      </div>
+
+      <div className="relative mt-5 grid gap-3 sm:grid-cols-2">
+        <ModeButton
+          active={form.postingMode === "company"}
+          icon={<FaBuilding />}
+          title="Company-owned post"
+          text="Normal post owned by the logged-in hiring account."
+          onClick={() => updateForm("postingMode", "company")}
+        />
+
+        <ModeButton
+          active={isManaged}
+          icon={<FaHandshake />}
+          title="Managed by Forsa"
+          text="Forsa publishes first. The real company can claim ownership later."
+          onClick={() => updateForm("postingMode", "managed")}
+        />
+      </div>
+
+      {isManaged && (
+        <div className="relative mt-5 rounded-[24px] border border-violet-100 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-bold text-neutral-950">Claim details</p>
+              <p className="mt-1 text-xs font-medium leading-5 text-neutral-500">
+                Save the company contact and original source so you can verify ownership later.
+              </p>
+            </div>
+
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-neutral-50 px-3 py-1 text-xs font-bold text-neutral-500 ring-1 ring-neutral-100">
+              <FaLock className="text-[10px]" />
+              Hidden from seekers
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Field
+              label="Claim email"
+              placeholder="manager@company.com"
+              value={form.managedCompanyEmail}
+              onChange={(val) => updateForm("managedCompanyEmail", val)}
+            />
+
+            <Field
+              label="Claim phone"
+              placeholder="70582107"
+              value={form.managedCompanyPhone}
+              onChange={(val) => updateForm("managedCompanyPhone", val)}
+            />
+
+            <Field
+              label="Original source"
+              placeholder="WhatsApp group / call / outreach"
+              value={form.managedSource}
+              onChange={(val) => updateForm("managedSource", val)}
+            />
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <TrustMini icon={<FaCheck />} label="Public badge" text="Managed by Forsa" />
+            <TrustMini icon={<FaEnvelope />} label="Claim email" text={form.managedCompanyEmail || "Not added"} />
+            <TrustMini icon={<FaPhone />} label="Claim phone" text={form.managedCompanyPhone || "Not added"} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModeButton({ active, icon, title, text, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group rounded-[22px] border p-4 text-left transition-all duration-200 ${
+        active
+          ? "border-[var(--forsa-primary)] bg-white text-[var(--forsa-primary)] shadow-[0_14px_34px_rgba(109,40,217,0.12)]"
+          : "border-neutral-200 bg-white text-neutral-700 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-sm"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${active ? "bg-[var(--forsa-bg-soft)]" : "bg-neutral-50 text-neutral-500"}`}>
+          {icon}
+        </div>
+
+        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${active ? "bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]" : "bg-neutral-50 text-neutral-400"}`}>
+          {active ? "Selected" : "Choose"}
+        </span>
+      </div>
+
+      <p className="mt-4 text-sm font-bold tracking-tight">{title}</p>
+      <p className="mt-1 text-xs font-medium leading-5 text-neutral-500">{text}</p>
+    </button>
+  );
+}
+
+function TrustMini({ icon, label, text }) {
+  return (
+    <div className="rounded-2xl border border-neutral-100 bg-neutral-50/70 p-3">
+      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-400">
+        <span className="text-[var(--forsa-primary)]">{icon}</span>
+        {label}
+      </div>
+      <p className="mt-2 truncate text-xs font-semibold text-neutral-700">{text}</p>
+    </div>
+  );
+}
+
 function RestoreDraftBanner({ draftSavedAt, onRestore, onDismiss }) {
   return (
     <div className="rounded-2xl border border-neutral-200/80 bg-neutral-50/50 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.01)] animate-fade-in">
@@ -1171,6 +1342,11 @@ function PreviewCard({ form, qualityScore }) {
         </div>
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-1.5">
+            {form.postingMode === "managed" && (
+              <span className="rounded-lg border border-violet-200 bg-violet-50 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-[var(--forsa-primary)]">
+                Managed by Forsa
+              </span>
+            )}
             {form.postSource?.includes("Recruitment") && (
               <span className="rounded-lg bg-amber-50 border border-amber-200 px-2 py-0.5 text-[9px] font-extrabold text-amber-700 uppercase tracking-wide">
                 Agency post
