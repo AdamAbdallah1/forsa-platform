@@ -4,7 +4,6 @@ import {
   deleteDoc,
   doc,
   getDocs,
-  orderBy,
   query,
   serverTimestamp,
   updateDoc,
@@ -21,6 +20,7 @@ const toIso = (value) => {
 export async function createNotification(data) {
   const ref = await addDoc(collection(db, "notifications"), {
     ...data,
+    targetEmail: String(data.targetEmail || "").trim().toLowerCase(),
     read: false,
     createdAt: serverTimestamp(),
   });
