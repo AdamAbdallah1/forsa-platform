@@ -5,6 +5,7 @@ import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import MyApplications from "./pages/MyApplications";
 import Auth from "./pages/Auth";
+import People from "./pages/People";
 import NotFound from "./pages/NotFound";
 import Companies from "./pages/Companies";
 import PostOpportunity from "./pages/PostOpportunity";
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/companies" element={<Companies />} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/people"element={<SeekerRoute><People /></SeekerRoute>}/>
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/text" element={<Text />} />
