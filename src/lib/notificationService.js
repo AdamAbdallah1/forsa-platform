@@ -34,23 +34,26 @@ export async function createNotification(data) {
 }
 
 export async function getUserNotifications(email) {
+  const cleanEmail = String(email || "").trim().toLowerCase();
+
   const q = query(
     collection(db, "notifications"),
-    where("targetEmail", "==", email),
-    orderBy("createdAt", "desc")
+    where("targetEmail", "==", cleanEmail)
   );
 
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((item) => {
-    const data = item.data();
+  return snapshot.docs
+    .map((item) => {
+      const data = item.data();
 
-    return {
-      id: item.id,
-      ...data,
-      createdAt: toIso(data.createdAt),
-    };
-  });
+      return {
+        id: item.id,
+        ...data,
+        createdAt: toIso(data.createdAt),
+      };
+    })
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 }
 
 export async function markNotificationRead(id) {

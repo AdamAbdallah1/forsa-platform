@@ -10,6 +10,7 @@ import {
   FaUsers,
 } from "react-icons/fa";
 import BrandLogo from "./BrandLogo";
+import { BsFillPeopleFill } from "react-icons/bs";
 
 function safeJson(key, fallback) {
   try {
@@ -88,10 +89,10 @@ export default function AppHeader() {
 )}
 
 {!isHiring && (
-  <NavLink to="/applications" className={linkClass}>
+  <NavLink to="/people" className={linkClass}>
     <span className="flex items-center gap-1.5">
-      <FaClipboardList className="text-[11px]" />
-      Applications
+      <BsFillPeopleFill className="text-[11px]" />
+      Connect
     </span>
   </NavLink>
 )}

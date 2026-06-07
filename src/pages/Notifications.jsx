@@ -42,7 +42,9 @@ export default function Notifications() {
     let isMounted = true;
     const loadNotifications = async () => {
       try {
-        const data = await getUserNotifications(account.email);
+        const data = await getUserNotifications(
+  String(account.email || "").trim().toLowerCase()
+);
         if (isMounted) {
           setNotifications(data);
           localStorage.setItem(CACHE_KEY, JSON.stringify(data));
@@ -62,7 +64,11 @@ export default function Notifications() {
   const filteredNotifications = useMemo(() => {
     if (!account?.email) return [];
     return notifications
-      .filter((item) => !item.targetEmail || item.targetEmail === account.email)
+      .filter((item) => {
+  const target = String(item.targetEmail || "").trim().toLowerCase();
+  const email = String(account.email || "").trim().toLowerCase();
+  return !target || target === email;
+})
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }, [notifications, account?.email]);
 

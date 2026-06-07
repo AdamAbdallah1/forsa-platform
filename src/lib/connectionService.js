@@ -9,6 +9,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { createNotification } from "./notificationService";
 
 export const connectionId = (fromUid, toUid) => `${fromUid}_${toUid}`;
 
@@ -34,6 +35,19 @@ export async function followUser({ fromUser, toUser }) {
     status: "following",
     createdAt: serverTimestamp(),
   });
+
+  if (toUser.email) {
+    await createNotification({
+      type: "new_connection",
+      title: "New connection",
+      text: `${fromUser.name || "Someone"} connected with you.`,
+      targetEmail: toUser.email,
+      actionUrl: `/seeker/${fromUser.uid}`,
+      fromUid: fromUser.uid,
+      fromName: fromUser.name || "User",
+    });
+    console.log("Connection notification created for:", toUser.email);
+  }
 
   return id;
 }

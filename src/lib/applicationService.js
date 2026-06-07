@@ -11,6 +11,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { createNotification } from "./notificationService";
 
 const toIso = (value) => {
   if (!value) return null;
@@ -84,7 +85,7 @@ export async function createApplicationThread(threadData) {
   };
 }
 
-export async function sendThreadReply(threadId, { message, lastMessage }) {
+export async function sendThreadReply(threadId, { message, lastMessage, thread }) {
   await updateDoc(doc(db, "applications", threadId), {
     lastMessage,
     updatedAt: serverTimestamp(),
@@ -93,6 +94,24 @@ export async function sendThreadReply(threadId, { message, lastMessage }) {
       createdAt: message.createdAt || new Date().toISOString(),
     }),
   });
+
+  const senderEmail = message.email || message.fromEmail || "";
+  const seekerEmail = thread?.seeker?.email || "";
+  const ownerEmail = thread?.ownerEmail || "";
+
+  const targetEmail =
+    senderEmail === seekerEmail ? ownerEmail : seekerEmail;
+
+  if (targetEmail && targetEmail !== senderEmail) {
+    await createNotification({
+      type: "new_message",
+      title: "New message",
+      text: `${message.from || "Someone"} sent you a message about ${thread?.title || "an application"}.`,
+      targetEmail,
+      actionUrl: "/messages",
+      applicationId: threadId,
+    });
+  }
 }
 
 export async function updateThreadStatus(threadId, { status, by, systemMessage }) {
