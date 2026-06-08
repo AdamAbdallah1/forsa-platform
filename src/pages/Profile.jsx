@@ -6,6 +6,7 @@ import AppHeader from "../components/AppHeader";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import Modal from "../components/ui/Modal";
+import { deleteCurrentAccount } from "../lib/accountDeletionService";
 import { showToast } from "../lib/Toast";
 import {
   deletePost as deletePostFromFirestore,
@@ -290,6 +291,10 @@ function FollowedCompaniesTab({ companies, onUnfollow }) {
 export default function Profile() {
   const navigate = useNavigate();
 
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
   const savedAccount = safeJson("forsaAccount", null);
   const savedProfile = safeJson("forsaProfile", {
     skills: [],
@@ -394,6 +399,58 @@ export default function Profile() {
             </Link>
           </div>
         </div>
+        <Modal
+  open={deleteModalOpen}
+  title="Delete account"
+  onClose={() => {
+    if (!deletingAccount) {
+      setDeleteModalOpen(false);
+      setDeleteConfirmText("");
+    }
+  }}
+>
+  <div>
+    <p className="text-sm leading-7 text-neutral-600">
+      This will permanently delete your Forsa account, profile, posts,
+      applications, saved jobs, connections, notifications, and login account.
+      This action cannot be undone.
+    </p>
+
+    <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4">
+      <p className="text-sm font-semibold text-red-700">
+        Type DELETE to confirm.
+      </p>
+
+      <input
+        value={deleteConfirmText}
+        onChange={(e) => setDeleteConfirmText(e.target.value)}
+        placeholder="DELETE"
+        className="mt-3 w-full rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-red-500"
+      />
+    </div>
+
+    <div className="mt-6 grid grid-cols-2 gap-2">
+      <button
+        disabled={deletingAccount}
+        onClick={() => {
+          setDeleteModalOpen(false);
+          setDeleteConfirmText("");
+        }}
+        className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700 disabled:opacity-50"
+      >
+        Cancel
+      </button>
+
+      <button
+        disabled={deletingAccount || deleteConfirmText !== "DELETE"}
+        onClick={handleDeleteAccount}
+        className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {deletingAccount ? "Deleting..." : "Delete forever"}
+      </button>
+    </div>
+  </div>
+</Modal>
       </section>
     );
   }
@@ -549,6 +606,31 @@ const displayEmail =
       };
     });
   };
+
+const handleDeleteAccount = async () => {
+  if (deleteConfirmText !== "DELETE") {
+    showToast("Type DELETE to confirm.", "error");
+    return;
+  }
+
+  setDeletingAccount(true);
+
+  try {
+    await deleteCurrentAccount(account);
+    showToast("Account deleted");
+    window.location.href = "/";
+  } catch (error) {
+    console.error("Delete account error:", error);
+
+    if (error.code === "auth/requires-recent-login") {
+      showToast("Please logout, login again, then delete your account.", "error");
+    } else {
+      showToast(error.message || "Could not delete account.", "error");
+    }
+  } finally {
+    setDeletingAccount(false);
+  }
+};
 
   const handleCvLinkSave = (url) => {
     const cleanUrl = String(url || "").trim();
@@ -1065,7 +1147,16 @@ const saveChanges = async () => {
 )}
 
               {tab === "settings" && (
-                <SettingsTab logout={logout} resetDemoAccount={resetDemoAccount} loadDemo={loadDemo} clearDemo={clearDemo} isHiring={isHiring} account={account} onRequestVerification={requestVerification} />
+                <SettingsTab
+  logout={logout}
+  resetDemoAccount={resetDemoAccount}
+  loadDemo={loadDemo}
+  clearDemo={clearDemo}
+  isHiring={isHiring}
+  account={account}
+  onRequestVerification={requestVerification}
+  onDeleteAccount={() => setDeleteModalOpen(true)}
+/>
               )}
             </>
           )}
@@ -1082,7 +1173,58 @@ const saveChanges = async () => {
         onClose={() => setVerificationOpen(false)}
         onSubmit={submitVerificationRequest}
       />
+<Modal
+  open={deleteModalOpen}
+  title="Delete account"
+  onClose={() => {
+    if (!deletingAccount) {
+      setDeleteModalOpen(false);
+      setDeleteConfirmText("");
+    }
+  }}
+>
+  <div>
+    <p className="text-sm leading-7 text-neutral-600">
+      This will permanently delete your Forsa account, profile, posts,
+      applications, saved jobs, connections, notifications, and login account.
+      This action cannot be undone.
+    </p>
 
+    <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4">
+      <p className="text-sm font-semibold text-red-700">
+        Type DELETE to confirm.
+      </p>
+
+      <input
+        value={deleteConfirmText}
+        onChange={(e) => setDeleteConfirmText(e.target.value)}
+        placeholder="DELETE"
+        className="mt-3 w-full rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-red-500"
+      />
+    </div>
+
+    <div className="mt-6 grid grid-cols-2 gap-2">
+      <button
+        disabled={deletingAccount}
+        onClick={() => {
+          setDeleteModalOpen(false);
+          setDeleteConfirmText("");
+        }}
+        className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700 disabled:opacity-50"
+      >
+        Cancel
+      </button>
+
+      <button
+        disabled={deletingAccount || deleteConfirmText !== "DELETE"}
+        onClick={handleDeleteAccount}
+        className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {deletingAccount ? "Deleting..." : "Delete forever"}
+      </button>
+    </div>
+  </div>
+</Modal>
       <Footer />
 
       {selectedApplicantsPost && (
@@ -2691,7 +2833,16 @@ function InterviewSummary({ interview }) {
   );
 }
 
-function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo, isHiring, account, onRequestVerification }) {
+function SettingsTab({
+  logout,
+  resetDemoAccount,
+  loadDemo,
+  clearDemo,
+  isHiring,
+  account,
+  onRequestVerification,
+  onDeleteAccount,
+}) {
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-2">
       {isHiring && (
@@ -2731,9 +2882,12 @@ function SettingsTab({ logout, resetDemoAccount, loadDemo, clearDemo, isHiring, 
           Reset this demo account and remove saved local data.
         </p>
 
-        <button onClick={resetDemoAccount} className="mt-5 w-full rounded-full border border-red-200 bg-white px-5 py-3 text-sm font-medium text-red-600 sm:w-fit">
-          Reset demo account
-        </button>
+        <button
+  onClick={onDeleteAccount}
+  className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
+>
+  Delete account
+</button>
       </div>
     </div>
   );
