@@ -109,9 +109,12 @@ export default function Applicants() {
   const [statusConfirm, setStatusConfirm] = useState(null);
   const [interviewTarget, setInterviewTarget] = useState(null);
 const [interviewForm, setInterviewForm] = useState({
+  type: "online",
   date: "",
   time: "",
-  location: "",
+  meetingLink: "",
+  locationName: "",
+  mapsLink: "",
   notes: "",
 });
 
@@ -275,27 +278,43 @@ const [interviewForm, setInterviewForm] = useState({
   const inviteInterview = async () => {
   if (!interviewTarget || busyId) return;
 
-  if (!interviewForm.date || !interviewForm.time || !interviewForm.location.trim()) {
-    showToast("Add date, time, and location.", "error");
-    return;
-  }
+  if (!interviewForm.date || !interviewForm.time) {
+  showToast("Add interview date and time.", "error");
+  return;
+}
+
+if (interviewForm.type === "online" && !interviewForm.meetingLink.trim()) {
+  showToast("Add the online meeting link.", "error");
+  return;
+}
+
+if (interviewForm.type === "in_person" && !interviewForm.locationName.trim()) {
+  showToast("Add the interview location.", "error");
+  return;
+}
 
   const now = new Date().toISOString();
 
   const interview = {
-    date: interviewForm.date,
-    time: interviewForm.time,
-    location: interviewForm.location.trim(),
-    notes: interviewForm.notes.trim(),
-    createdAt: now,
-    createdBy: account.email,
-  };
+  type: interviewForm.type,
+  date: interviewForm.date,
+  time: interviewForm.time,
+  meetingLink: interviewForm.meetingLink.trim(),
+  locationName: interviewForm.locationName.trim(),
+  mapsLink: interviewForm.mapsLink.trim(),
+  notes: interviewForm.notes.trim(),
+  createdAt: now,
+  createdBy: account.email,
+};
 
   const systemMessage = {
     id: Date.now(),
     from: "Forsa",
     role: "system",
-    text: `Interview invited for ${interview.date} at ${interview.time}.`,
+    text:
+  interview.type === "online"
+    ? `Online interview invited for ${interview.date} at ${interview.time}.`
+    : `In-person interview invited for ${interview.date} at ${interview.time}.`,
     createdAt: now,
   };
 
@@ -334,7 +353,10 @@ const [interviewForm, setInterviewForm] = useState({
   await createNotification({
     type: "interview_invite",
     title: "Interview invitation",
-    text: `${interviewTarget.company || account.companyName || account.name} invited you to interview for ${interviewTarget.title} on ${interview.date} at ${interview.time}.`,
+    text:
+  interview.type === "online"
+    ? `${interviewTarget.company || account.companyName || account.name} invited you to an online interview for ${interviewTarget.title} on ${interview.date} at ${interview.time}.`
+    : `${interviewTarget.company || account.companyName || account.name} invited you to an in-person interview for ${interviewTarget.title} on ${interview.date} at ${interview.time}.`,
     targetEmail: interviewTarget.seeker.email,
     actionUrl: "/applications",
     applicationId: interviewTarget.id,
@@ -343,7 +365,15 @@ const [interviewForm, setInterviewForm] = useState({
 
     showToast("Interview invitation sent");
     setInterviewTarget(null);
-    setInterviewForm({ date: "", time: "", location: "", notes: "" });
+    setInterviewForm({
+  type: "online",
+  date: "",
+  time: "",
+  meetingLink: "",
+  locationName: "",
+  mapsLink: "",
+  notes: "",
+});
   } catch (error) {
     console.error("Interview invite error:", error);
     setThreads(previousThreads);
@@ -391,11 +421,14 @@ const [interviewForm, setInterviewForm] = useState({
               onInterview={() => {
   setInterviewTarget(thread);
   setInterviewForm({
-    date: "",
-    time: "",
-    location: thread.opportunity?.location || thread.location || "",
-    notes: "",
-  });
+  type: "online",
+  date: "",
+  time: "",
+  meetingLink: "",
+  locationName: thread.opportunity?.location || thread.location || "",
+  mapsLink: "",
+  notes: "",
+});
 }}
                 key={thread.id}
                 thread={thread}
@@ -503,16 +536,121 @@ const [interviewForm, setInterviewForm] = useState({
         />
       </div>
 
-      <div className="mt-3">
-        <InterviewField
-          label="Location"
-          value={interviewForm.location}
-          placeholder="Farouj Restaurant - Jal El Dib"
-          onChange={(value) =>
-            setInterviewForm((prev) => ({ ...prev, location: value }))
-          }
-        />
-      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+  <button
+    type="button"
+    onClick={() =>
+      setInterviewForm((prev) => ({
+        ...prev,
+        type: "online",
+      }))
+    }
+    className={`rounded-2xl border px-4 py-3 ${
+      interviewForm.type === "online"
+        ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)]"
+        : "border-[var(--forsa-border)]"
+    }`}
+  >
+    Online
+  </button>
+
+  <button
+    type="button"
+    onClick={() =>
+      setInterviewForm((prev) => ({
+        ...prev,
+        type: "in_person",
+      }))
+    }
+    className={`rounded-2xl border px-4 py-3 ${
+      interviewForm.type === "in_person"
+        ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)]"
+        : "border-[var(--forsa-border)]"
+    }`}
+  >
+    In Person
+  </button>
+</div>
+<div className="mt-4 grid grid-cols-2 gap-2">
+  <button
+    type="button"
+    onClick={() =>
+      setInterviewForm((prev) => ({
+        ...prev,
+        type: "online",
+      }))
+    }
+    className={`rounded-2xl border px-4 py-3 ${
+      interviewForm.type === "online"
+        ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)]"
+        : "border-[var(--forsa-border)]"
+    }`}
+  >
+    Online
+  </button>
+
+  <button
+    type="button"
+    onClick={() =>
+      setInterviewForm((prev) => ({
+        ...prev,
+        type: "in_person",
+      }))
+    }
+    className={`rounded-2xl border px-4 py-3 ${
+      interviewForm.type === "in_person"
+        ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)]"
+        : "border-[var(--forsa-border)]"
+    }`}
+  >
+    In Person
+  </button>
+</div>
+{interviewForm.type === "online" ? (
+  <div className="mt-3">
+    <InterviewField
+      label="Meeting Link"
+      value={interviewForm.meetingLink}
+      placeholder="https://meet.google.com/..."
+      onChange={(value) =>
+        setInterviewForm((prev) => ({
+          ...prev,
+          meetingLink: value,
+        }))
+      }
+    />
+  </div>
+) : (
+  <>
+    <div className="mt-3">
+      <InterviewField
+        label="Location Name"
+        value={interviewForm.locationName}
+        placeholder="Cedars Tech Office"
+        onChange={(value) =>
+          setInterviewForm((prev) => ({
+            ...prev,
+            locationName: value,
+          }))
+        }
+      />
+    </div>
+
+    <div className="mt-3">
+      <InterviewField
+        label="Google Maps Link"
+        value={interviewForm.mapsLink}
+        placeholder="https://maps.app.goo.gl/..."
+        onChange={(value) =>
+          setInterviewForm((prev) => ({
+            ...prev,
+            mapsLink: value,
+          }))
+        }
+      />
+    </div>
+  </>
+)}
 
       <div className="mt-3">
         <label className="text-sm font-semibold">Notes</label>

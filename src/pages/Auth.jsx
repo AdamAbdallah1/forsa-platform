@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser, registerUser, loginWithGoogle } from "../lib/auth";
-import Footer from "../components/Footer";
 import { showToast } from "../lib/Toast";
 import SEO from "../components/SEO";
 import {
@@ -16,6 +15,7 @@ import {
   FaBuilding,
   FaEnvelope,
   FaUser,
+  FaCheckCircle,
 } from "react-icons/fa";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -80,8 +80,8 @@ const getFriendlyAuthError = (error, isSignup) => {
 export default function Auth() {
   const navigate = useNavigate();
 
-  const [step, setStep] = useState("welcome"); 
-  const [mode, setMode] = useState("signup"); 
+  const [step, setStep] = useState("welcome");
+  const [mode, setMode] = useState("signup");
   const [accountType, setAccountType] = useState("finder");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -119,20 +119,10 @@ export default function Auth() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const switchMode = (nextMode) => {
-    setError("");
-    setMode(nextMode);
-    setStep(nextMode === "signup" ? "choice" : "form");
-  };
-
   const handleInitialChoice = (chosenMode) => {
     setError("");
     setMode(chosenMode);
-    if (chosenMode === "signup") {
-      setStep("choice");
-    } else {
-      setStep("form");
-    }
+    setStep(chosenMode === "signup" ? "choice" : "form");
   };
 
   const validateBeforeSubmit = () => {
@@ -149,7 +139,11 @@ export default function Auth() {
     if (passError) return passError;
 
     if (isHiring) {
-      return validateCompanyName(form.companyName) || validateName(form.contactPerson, "Contact person") || validateCity(form.city);
+      return (
+        validateCompanyName(form.companyName) ||
+        validateName(form.contactPerson, "Contact person") ||
+        validateCity(form.city)
+      );
     }
 
     return validateName(form.name, "Full name") || validateCity(form.city);
@@ -238,95 +232,130 @@ export default function Auth() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f7f5] text-[#111111]">
-      <SEO title="Join" />
+    <main className="min-h-screen overflow-hidden bg-[#f7f7f5] text-[#111111]">
+      <SEO title="Join Forsa" />
 
-      {/* Grid container with optimized vertical mobile spacing (py-8 to py-12) */}
-      <section className="mx-auto grid min-h-screen max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.85fr_1fr] lg:items-center lg:gap-10 lg:py-8">
-        <div className="hidden lg:block">
-          <p className="w-fit rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-xs font-medium text-neutral-600">
-            Local work platform for Lebanon
-          </p>
+      <section className="relative mx-auto grid min-h-screen w-full max-w-6xl gap-8 px-4 py-5 sm:px-6 sm:py-8 lg:grid-cols-[0.9fr_1fr] lg:items-center lg:gap-12 lg:py-10">
+        <div className="pointer-events-none absolute left-[-140px] top-[-140px] h-80 w-80 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-[-160px] right-[-120px] h-96 w-96 rounded-full bg-neutral-300/40 blur-3xl" />
 
-          <h1 className="mt-5 max-w-xl text-5xl font-semibold leading-[0.98] tracking-[-0.055em]">
-            Find work. Hire people. Skip the chaos.
+        <div className="relative hidden lg:block">
+
+          <h1 className="mt-6 max-w-xl text-6xl font-semibold leading-[0.92] tracking-[-0.065em] text-neutral-950">
+            Find work.
+            <br />
+            Hire people.
+            <br />
+            <span className="text-[var(--forsa-primary)]">Skip the chaos.</span>
           </h1>
 
-          <p className="mt-5 max-w-md text-sm leading-7 text-neutral-600">
-            Forsa connects students, freelancers, creators, and small businesses
-            through local jobs, gigs, internships, and projects.
+          <p className="mt-6 max-w-md text-base leading-8 text-neutral-600">
+            A local opportunity platform for students, freelancers, creators, and businesses across Lebanon.
           </p>
 
-          <div className="mt-7 grid max-w-md gap-3">
-            <TrustItem title="For seekers" text="Save jobs, apply, and track conversations." />
-            <TrustItem title="For companies" text="Post opportunities and manage applicants." />
+          <div className="mt-8 grid max-w-md gap-3">
+            <TrustItem
+              title="For seekers"
+              text="Build a profile, save opportunities, apply, and track replies."
+            />
+            <TrustItem
+              title="For companies"
+              text="Post opportunities, review applicants, and manage conversations."
+            />
           </div>
         </div>
 
-        {/* Clean, minimalist form box with refined organic mobile padding (p-5 sm:p-6) */}
-        <div className="mx-auto w-full max-w-[460px] rounded-[24px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:rounded-[28px] sm:p-6">
-          {/* Mobile Heading optimized with strict tracking and proper baseline leading */}
+        <div className="relative mx-auto flex min-h-[calc(100vh-40px)] w-full max-w-[470px] flex-col justify-center lg:min-h-0">
           <div className="mb-6 lg:hidden">
-            <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--forsa-primary)]">forsa</p>
-            <h1 className="mt-2 text-3xl font-semibold leading-[1.05] tracking-[-0.04em] text-neutral-900">
-              Work and hiring, organized.
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--forsa-primary)]">
+              forsa.digital
+            </p>
+
+            <h1 className="mt-3 text-[40px] font-semibold leading-[0.95] tracking-[-0.06em] text-neutral-950">
+              Work and hiring,
+              <span className="block text-[var(--forsa-primary)]">organized.</span>
             </h1>
+
+            <p className="mt-4 text-sm leading-6 text-neutral-600">
+              Find jobs, internships, freelance gigs, and local projects across Lebanon.
+            </p>
           </div>
 
-          {step === "welcome" ? (
-            <WelcomeStep 
-              onChooseMode={handleInitialChoice} 
-              onGoogleLogin={handleGoogleLogin} 
-              loading={loading} 
-            />
-          ) : (
-            <>
-              {error && (
-                <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm leading-6 text-red-600">
-                  {error}
-                </div>
-              )}
+          <div className="w-full rounded-[28px] border border-[var(--forsa-border)] bg-white/90 p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-6">
+            {step === "welcome" ? (
+              <>
+                {error && (
+                  <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-600">
+                    {error}
+                  </div>
+                )}
 
-              {isSignup && step === "choice" ? (
-                <ChoiceStep
-                  accountType={accountType}
-                  setAccountType={setAccountType}
-                  onContinue={() => setStep("form")}
-                  onBack={() => setStep("welcome")}
-                />
-              ) : (
-                <FormStep
-                  isSignup={isSignup}
-                  accountType={accountType}
-                  form={form}
-                  updateField={updateField}
-                  canContinue={Boolean(canContinue)}
-                  onSubmit={handleSubmit}
-                  onBack={() => isSignup ? setStep("choice") : setStep("welcome")}
-                  showPassword={showPassword}
-                  setShowPassword={setShowPassword}
+                <WelcomeStep
+                  onChooseMode={handleInitialChoice}
+                  onGoogleLogin={handleGoogleLogin}
                   loading={loading}
-                  passwordIssue={passwordIssue}
                 />
-              )}
-            </>
-          )}
+              </>
+            ) : (
+              <>
+                {error && (
+                  <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-600">
+                    {error}
+                  </div>
+                )}
+
+                {isSignup && step === "choice" ? (
+                  <ChoiceStep
+                    accountType={accountType}
+                    setAccountType={setAccountType}
+                    onContinue={() => setStep("form")}
+                    onBack={() => setStep("welcome")}
+                  />
+                ) : (
+                  <FormStep
+                    isSignup={isSignup}
+                    accountType={accountType}
+                    form={form}
+                    updateField={updateField}
+                    canContinue={Boolean(canContinue)}
+                    onSubmit={handleSubmit}
+                    onBack={() => (isSignup ? setStep("choice") : setStep("welcome"))}
+                    showPassword={showPassword}
+                    setShowPassword={setShowPassword}
+                    loading={loading}
+                    passwordIssue={passwordIssue}
+                  />
+                )}
+              </>
+            )}
+          </div>
+
+          <p className="mt-5 text-center text-xs leading-5 text-neutral-400">
+            By continuing, you agree to Forsa’s{" "}
+            <Link to="/terms" className="font-semibold text-neutral-600 hover:underline">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="font-semibold text-neutral-600 hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </div>
       </section>
-
-      <Footer />
     </main>
   );
 }
 
 function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
   return (
-    <div className="py-1">
+    <div>
       <h2 className="text-2xl font-semibold tracking-[-0.04em] text-neutral-900">
         Welcome to Forsa
       </h2>
+
       <p className="mt-2 text-sm leading-6 text-neutral-500">
-        Join the network connecting job seekers and local businesses across Lebanon.
+        Create your account or log in to continue.
       </p>
 
       <div className="mt-6 flex flex-col gap-3">
@@ -334,7 +363,7 @@ function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
           type="button"
           onClick={() => onChooseMode("signup")}
           disabled={loading}
-          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[var(--forsa-primary-light)]"
+          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--forsa-primary-light)] disabled:cursor-wait disabled:opacity-60"
         >
           Create an Account
           <FaArrowRight className="text-xs" />
@@ -344,7 +373,7 @@ function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
           type="button"
           onClick={() => onChooseMode("login")}
           disabled={loading}
-          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3.5 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50"
+          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3.5 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50 disabled:cursor-wait disabled:opacity-60"
         >
           Log in to your Account
         </button>
@@ -363,6 +392,213 @@ function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
         >
           <FaGoogle className="text-sm" />
           Continue with Google
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ChoiceStep({ accountType, setAccountType, onContinue, onBack }) {
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onBack}
+        className="mb-4 inline-flex items-center gap-2 text-xs font-medium text-neutral-500 transition hover:text-black"
+      >
+        <FaArrowLeft className="text-[10px]" />
+        Back to welcome
+      </button>
+
+      <div className="rounded-[20px] bg-[var(--forsa-bg-soft)] p-4">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--forsa-primary)]">
+          Step 1 of 2
+        </p>
+
+        <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-neutral-900">
+          How will you use Forsa?
+        </h2>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <TypeCard
+          active={accountType === "finder"}
+          icon={<FaUserPlus />}
+          title="Find opportunities"
+          text="For students, freelancers, and people looking for work."
+          onClick={() => setAccountType("finder")}
+        />
+
+        <TypeCard
+          active={accountType === "hiring"}
+          icon={<FaBriefcase />}
+          title="Company / hiring"
+          text="For businesses, creators, and teams posting opportunities."
+          onClick={() => setAccountType("hiring")}
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={onContinue}
+        className="forsa-click mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[var(--forsa-primary-light)]"
+      >
+        Continue
+        <FaArrowRight className="text-xs" />
+      </button>
+    </div>
+  );
+}
+
+function FormStep({
+  isSignup,
+  accountType,
+  form,
+  updateField,
+  canContinue,
+  onSubmit,
+  onBack,
+  showPassword,
+  setShowPassword,
+  loading,
+  passwordIssue,
+}) {
+  const isHiring = accountType === "hiring";
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onBack}
+        disabled={loading}
+        className="mb-4 inline-flex items-center gap-2 text-xs font-medium text-neutral-500 transition hover:text-black disabled:cursor-wait disabled:opacity-60"
+      >
+        <FaArrowLeft className="text-[10px]" />
+        {isSignup ? "Change type" : "Back to welcome"}
+      </button>
+
+      <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-neutral-400">
+        {isSignup ? "Step 2 of 2" : "Welcome back"}
+      </p>
+
+      <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-neutral-900">
+        {isSignup
+          ? isHiring
+            ? "Create company account"
+            : "Create your work profile"
+          : "Log in to Forsa"}
+      </h2>
+
+      <div className="mt-5 grid gap-4">
+        {isSignup && isHiring && (
+          <>
+            <Field
+              icon={<FaBuilding />}
+              label="Company name"
+              placeholder="Pixel House"
+              value={form.companyName}
+              onChange={(value) => updateField("companyName", value)}
+            />
+
+            <Field
+              icon={<FaEnvelope />}
+              label="Company email"
+              type="email"
+              placeholder="jobs@company.com"
+              value={form.companyEmail}
+              onChange={(value) => updateField("companyEmail", value)}
+            />
+
+            <Field
+              icon={<FaUser />}
+              label="Contact person"
+              placeholder="Enter your full name"
+              value={form.contactPerson}
+              onChange={(value) => updateField("contactPerson", value)}
+            />
+          </>
+        )}
+
+        {isSignup && !isHiring && (
+          <>
+            <Field
+              label="Full name"
+              placeholder="Enter your full name"
+              value={form.name}
+              onChange={(value) => updateField("name", value)}
+            />
+
+            <Field
+              label="Email"
+              type="email"
+              placeholder="you@example.com"
+              value={form.email}
+              onChange={(value) => updateField("email", value)}
+            />
+          </>
+        )}
+
+        {!isSignup && (
+          <Field
+            label="Email"
+            type="email"
+            placeholder="you@example.com"
+            value={form.email}
+            onChange={(value) => updateField("email", value)}
+          />
+        )}
+
+        <PasswordField
+          value={form.password}
+          onChange={(value) => updateField("password", value)}
+          showPassword={showPassword}
+          setShowPassword={setShowPassword}
+        />
+
+        {!isSignup && (
+          <Link
+            to="/forgot-password"
+            className="w-fit text-xs font-semibold text-[var(--forsa-primary)] hover:underline"
+          >
+            Forgot password?
+          </Link>
+        )}
+
+        {isSignup && passwordIssue && form.password && (
+          <p className="rounded-xl border border-[var(--forsa-border)] bg-neutral-50 p-3 text-xs leading-5 text-neutral-500">
+            {passwordIssue}
+          </p>
+        )}
+
+        {isSignup && (
+          <Field
+            icon={<FaMapMarkerAlt />}
+            label={isHiring ? "Company location" : "City"}
+            placeholder="Beirut, Tripoli, Saida..."
+            value={form.city}
+            onChange={(value) => updateField("city", value)}
+          />
+        )}
+
+        <button
+          type="button"
+          disabled={!canContinue || loading}
+          onClick={onSubmit}
+          className={`forsa-click mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-semibold transition ${
+            canContinue && !loading
+              ? "bg-[var(--forsa-primary)] text-white shadow-sm hover:bg-[var(--forsa-primary-light)]"
+              : "cursor-not-allowed bg-neutral-100 text-neutral-400"
+          }`}
+        >
+          {loading
+            ? "Please wait..."
+            : isSignup
+            ? isHiring
+              ? "Continue to post"
+              : "Continue to profile"
+            : "Log in"}
+
+          {!loading && <FaArrowRight className="text-xs" />}
         </button>
       </div>
     </div>
@@ -393,164 +629,6 @@ function SpotlightCard({ active, children, onClick }) {
   );
 }
 
-function ChoiceStep({ accountType, setAccountType, onContinue, onBack }) {
-  return (
-    <div className="mt-2">
-      <button
-        onClick={onBack}
-        className="mb-4 inline-flex items-center gap-2 text-xs font-medium text-neutral-500 transition hover:text-black"
-      >
-        <FaArrowLeft className="text-[10px]" />
-        Back to welcome
-      </button>
-
-      <div className="rounded-[20px] bg-[var(--forsa-bg-soft)] p-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--forsa-primary)]">
-          Step 1 of 2
-        </p>
-
-        <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-neutral-900">
-          How will you use Forsa?
-        </h2>
-      </div>
-
-      {/* Stack cards natively on mobile layouts to avoid overflow and cramping */}
-      <div className="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2">
-        <TypeCard
-          active={accountType === "finder"}
-          icon={<FaUserPlus />}
-          title="Find opportunities"
-          text="For students, freelancers, and people looking for work."
-          onClick={() => setAccountType("finder")}
-        />
-
-        <TypeCard
-          active={accountType === "hiring"}
-          icon={<FaBriefcase />}
-          title="Company / hiring"
-          text="For businesses, creators, and teams posting opportunities."
-          onClick={() => setAccountType("hiring")}
-        />
-      </div>
-
-      <button
-        onClick={onContinue}
-        className="forsa-click mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[var(--forsa-primary-light)]"
-      >
-        Continue
-        <FaArrowRight className="text-xs" />
-      </button>
-    </div>
-  );
-}
-
-function FormStep({
-  isSignup,
-  accountType,
-  form,
-  updateField,
-  canContinue,
-  onSubmit,
-  onBack,
-  showPassword,
-  setShowPassword,
-  loading,
-  passwordIssue,
-}) {
-  const isHiring = accountType === "hiring";
-
-  return (
-    <div className="mt-2">
-      <button
-        onClick={onBack}
-        disabled={loading}
-        className="mb-4 inline-flex items-center gap-2 text-xs font-medium text-neutral-500 transition hover:text-black"
-      >
-        <FaArrowLeft className="text-[10px]" />
-        {isSignup ? "Change type" : "Back to welcome"}
-      </button>
-
-      <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-neutral-400">
-        {isSignup ? "Step 2 of 2" : "Welcome back"}
-      </p>
-
-      <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-neutral-900">
-        {isSignup
-          ? isHiring
-            ? "Create company account"
-            : "Create your work profile"
-          : "Log in to Forsa"}
-      </h2>
-
-      {/* Grid optimized with compact minimal gaps for cleaner mobile vertical rhythm */}
-      <div className="mt-5 grid gap-4">
-        {isSignup && isHiring && (
-          <>
-            <Field icon={<FaBuilding />} label="Company name" placeholder="Pixel House" value={form.companyName} onChange={(value) => updateField("companyName", value)} />
-            <Field icon={<FaEnvelope />} label="Company email" type="email" placeholder="jobs@company.com" value={form.companyEmail} onChange={(value) => updateField("companyEmail", value)} />
-            <Field icon={<FaUser />} label="Contact person" placeholder="Enter your full name" value={form.contactPerson} onChange={(value) => updateField("contactPerson", value)} />
-          </>
-        )}
-
-        {isSignup && !isHiring && (
-          <>
-            <Field label="Full name" placeholder="Enter your full name" value={form.name} onChange={(value) => updateField("name", value)} />
-            <Field label="Email" type="email" placeholder="you@example.com" value={form.email} onChange={(value) => updateField("email", value)} />
-          </>
-        )}
-
-        {!isSignup && (
-          <Field label="Email" type="email" placeholder="you@example.com" value={form.email} onChange={(value) => updateField("email", value)} />
-        )}
-
-        <PasswordField
-          value={form.password}
-          onChange={(value) => updateField("password", value)}
-          showPassword={showPassword}
-          setShowPassword={setShowPassword}
-        />
-
-        {!isSignup && (
-          <Link
-            to="/forgot-password"
-            className="w-fit text-xs font-semibold text-[var(--forsa-primary)] hover:underline"
-          >
-            Forgot password?
-          </Link>
-        )}
-
-        {isSignup && passwordIssue && form.password && (
-          <p className="rounded-xl bg-neutral-50 p-3 text-xs leading-5 text-neutral-500 border border-[var(--forsa-border)]">{passwordIssue}</p>
-        )}
-
-        {isSignup && (
-          <Field icon={<FaMapMarkerAlt />} label={isHiring ? "Company location" : "City"} placeholder="Beirut, Tripoli, Saida..." value={form.city} onChange={(value) => updateField("city", value)} />
-        )}
-
-        <button
-          disabled={!canContinue || loading}
-          onClick={onSubmit}
-          className={`forsa-click mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-semibold transition ${
-            canContinue && !loading
-              ? "bg-[var(--forsa-primary)] text-white hover:bg-[var(--forsa-primary-light)] shadow-sm"
-              : "cursor-not-allowed bg-neutral-100 text-neutral-400"
-          }`}
-        >
-          {loading
-            ? "Please wait..."
-            : isSignup
-            ? isHiring
-              ? "Continue to post"
-              : "Continue to profile"
-            : "Log in"}
-
-          {!loading && <FaArrowRight className="text-xs" />}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function TypeCard({ active, icon, title, text, onClick }) {
   return (
     <SpotlightCard active={active} onClick={onClick}>
@@ -567,9 +645,7 @@ function TypeCard({ active, icon, title, text, onClick }) {
 
         <span
           className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-            active
-              ? "bg-white/15 text-white"
-              : "bg-[var(--forsa-bg)] text-neutral-500"
+            active ? "bg-white/15 text-white" : "bg-[var(--forsa-bg)] text-neutral-500"
           }`}
         >
           {active ? "Selected" : "Choose"}
@@ -582,8 +658,16 @@ function TypeCard({ active, icon, title, text, onClick }) {
         {text}
       </p>
 
-      <div className={`mt-4 h-1 overflow-hidden rounded-full ${active ? "bg-white/20" : "bg-[var(--forsa-bg)]"}`}>
-        <div className={`h-full rounded-full transition-all duration-500 ${active ? "w-full bg-white" : "w-1/3 bg-[var(--forsa-soft)]"}`} />
+      <div
+        className={`mt-4 h-1 overflow-hidden rounded-full ${
+          active ? "bg-white/20" : "bg-[var(--forsa-bg)]"
+        }`}
+      >
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            active ? "w-full bg-white" : "w-1/3 bg-[var(--forsa-soft)]"
+          }`}
+        />
       </div>
     </SpotlightCard>
   );
@@ -592,16 +676,19 @@ function TypeCard({ active, icon, title, text, onClick }) {
 function Field({ label, placeholder, value, onChange, type = "text", icon }) {
   return (
     <div className="w-full">
-      <label className="text-xs font-semibold tracking-tight text-neutral-700">{label}</label>
+      <label className="text-xs font-semibold tracking-tight text-neutral-700">
+        {label}
+      </label>
 
       <div className="forsa-focus mt-1.5 flex items-center gap-3 rounded-xl border border-[var(--forsa-border)] bg-white px-3.5 py-3">
-        {icon && <span className="text-neutral-400 text-sm">{icon}</span>}
+        {icon && <span className="text-sm text-neutral-400">{icon}</span>}
 
         <input
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          autoComplete={type === "email" ? "email" : "off"}
           className="w-full bg-transparent text-sm text-neutral-900 placeholder-neutral-400 outline-none"
         />
       </div>
@@ -612,7 +699,9 @@ function Field({ label, placeholder, value, onChange, type = "text", icon }) {
 function PasswordField({ value, onChange, showPassword, setShowPassword }) {
   return (
     <div className="w-full">
-      <label className="text-xs font-semibold tracking-tight text-neutral-700">Password</label>
+      <label className="text-xs font-semibold tracking-tight text-neutral-700">
+        Password
+      </label>
 
       <div className="forsa-focus mt-1.5 flex items-center gap-3 rounded-xl border border-[var(--forsa-border)] bg-white px-3.5 py-3">
         <input
@@ -620,13 +709,14 @@ function PasswordField({ value, onChange, showPassword, setShowPassword }) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="8+ chars, number, symbol"
+          autoComplete="current-password"
           className="w-full bg-transparent text-sm text-neutral-900 placeholder-neutral-400 outline-none"
         />
 
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="text-neutral-400 p-0.5 hover:text-neutral-600 active:scale-95 transition"
+          className="p-0.5 text-neutral-400 transition hover:text-neutral-600 active:scale-95"
         >
           {showPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
         </button>
@@ -637,9 +727,14 @@ function PasswordField({ value, onChange, showPassword, setShowPassword }) {
 
 function TrustItem({ title, text }) {
   return (
-    <div className="rounded-2xl border border-[var(--forsa-border)] bg-white p-4">
-      <p className="text-sm font-medium">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-neutral-500">{text}</p>
+    <div className="rounded-2xl border border-[var(--forsa-border)] bg-white/80 p-4 shadow-sm backdrop-blur-xl">
+      <div className="flex items-start gap-3">
+        <FaCheckCircle className="mt-1 text-sm text-[var(--forsa-primary)]" />
+        <div>
+          <p className="text-sm font-semibold text-neutral-900">{title}</p>
+          <p className="mt-1 text-sm leading-6 text-neutral-500">{text}</p>
+        </div>
+      </div>
     </div>
   );
 }
