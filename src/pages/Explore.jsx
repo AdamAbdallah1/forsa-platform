@@ -252,6 +252,23 @@ export default function Explore() {
   };
 
   useEffect(() => {
+  const hasModal =
+    Boolean(selectedOpportunity) ||
+    Boolean(applyOpportunity) ||
+    Boolean(authModal) ||
+    Boolean(shareItem) ||
+    Boolean(showFilters);
+
+  document.body.classList.toggle("forsa-modal-open", hasModal);
+  document.documentElement.classList.toggle("forsa-modal-open", hasModal);
+
+  return () => {
+    document.body.classList.remove("forsa-modal-open");
+    document.documentElement.classList.remove("forsa-modal-open");
+  };
+}, [selectedOpportunity, applyOpportunity, authModal, shareItem, showFilters]);
+
+  useEffect(() => {
     let active = true;
 
     const loadPosts = async () => {

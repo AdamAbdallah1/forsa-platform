@@ -20,6 +20,12 @@ export default function MobileNav() {
   const location = useLocation();
 
   const hiddenRoutes = ["/", "/auth", "/onboarding"];
+
+const modalOpen =
+  document.body.classList.contains("forsa-modal-open") ||
+  document.documentElement.classList.contains("forsa-modal-open");
+
+if (modalOpen) return null;
   if (hiddenRoutes.includes(location.pathname)) return null;
 
   const account = safeJson("forsaAccount", null);
