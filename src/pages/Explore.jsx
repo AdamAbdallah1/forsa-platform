@@ -268,6 +268,23 @@ export default function Explore() {
   };
 }, [selectedOpportunity, applyOpportunity, authModal, shareItem, showFilters]);
 
+useEffect(() => {
+  const hasModal =
+    Boolean(selectedOpportunity) ||
+    Boolean(applyOpportunity) ||
+    Boolean(authModal) ||
+    Boolean(shareItem) ||
+    Boolean(showFilters);
+
+  document.body.classList.toggle("forsa-modal-open", hasModal);
+  document.documentElement.classList.toggle("forsa-modal-open", hasModal);
+
+  return () => {
+    document.body.classList.remove("forsa-modal-open");
+    document.documentElement.classList.remove("forsa-modal-open");
+  };
+}, [selectedOpportunity, applyOpportunity, authModal, shareItem, showFilters]);
+
   useEffect(() => {
     let active = true;
 
@@ -1853,7 +1870,7 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--forsa-primary)]/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
-      <div className="max-h-[86vh] w-full max-w-md overflow-auto rounded-[28px] bg-white p-5 pb-28 shadow-xl sm:p-6 sm:pb-6">
+      <div className="max-h-[86vh] w-full max-w-md overflow-auto rounded-[28px] bg-white p-5 pb-28 shadow-xl sm:p-6 sm:pb-6 pb-32">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-white">

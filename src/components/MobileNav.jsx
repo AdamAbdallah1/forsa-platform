@@ -21,6 +21,7 @@ export default function MobileNav() {
 
   const hiddenRoutes = ["/", "/auth", "/onboarding"];
 
+
 const modalOpen =
   document.body.classList.contains("forsa-modal-open") ||
   document.documentElement.classList.contains("forsa-modal-open");

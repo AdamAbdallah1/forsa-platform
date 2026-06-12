@@ -1,3 +1,4 @@
+// Imports
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser, registerUser, loginWithGoogle } from "../lib/auth";
@@ -232,10 +233,10 @@ export default function Auth() {
   };
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#f7f7f5] text-[#111111]">
+    <main className="min-h-screen overflow-y-auto overflow-x-hidden bg-[#f7f7f5]">
       <SEO title="Join Forsa" />
 
-      <section className="relative mx-auto grid min-h-screen w-full max-w-6xl gap-8 px-4 py-5 sm:px-6 sm:py-8 lg:grid-cols-[0.9fr_1fr] lg:items-center lg:gap-12 lg:py-10">
+      <section className="relative mx-auto grid min-h-[100dvh] w-full max-w-6xl gap-6 px-4 py-4 sm:px-6 sm:py-8 lg:grid-cols-[0.9fr_1fr] lg:items-center lg:gap-12 lg:py-10">
         <div className="pointer-events-none absolute left-[-140px] top-[-140px] h-80 w-80 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
         <div className="pointer-events-none absolute bottom-[-160px] right-[-120px] h-96 w-96 rounded-full bg-neutral-300/40 blur-3xl" />
 
@@ -265,13 +266,13 @@ export default function Auth() {
           </div>
         </div>
 
-        <div className="relative mx-auto flex min-h-[calc(100vh-40px)] w-full max-w-[470px] flex-col justify-center lg:min-h-0">
+        <div className="relative mx-auto flex w-full max-w-[470px] flex-col justify-center py-4 lg:min-h-0 lg:py-0">
           <div className="mb-6 lg:hidden">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--forsa-primary)]">
               forsa.digital
             </p>
 
-            <h1 className="mt-3 text-[40px] font-semibold leading-[0.95] tracking-[-0.06em] text-neutral-950">
+            <h1 className="mt-3 text-[32px] sm:text-[40px] font-semibold leading-[0.95] tracking-[-0.06em] text-neutral-950">
               Work and hiring,
               <span className="block text-[var(--forsa-primary)]">organized.</span>
             </h1>
@@ -281,7 +282,7 @@ export default function Auth() {
             </p>
           </div>
 
-          <div className="w-full rounded-[28px] border border-[var(--forsa-border)] bg-white/90 p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-6">
+          <div className="w-full rounded-[24px] border border-[var(--forsa-border)] bg-white/90 p-4 shadow-[0_20px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-5">
             {step === "welcome" ? (
               <>
                 {error && (
@@ -358,12 +359,12 @@ function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
         Create your account or log in to continue.
       </p>
 
-      <div className="mt-6 flex flex-col gap-3">
+      <div className="mt-5 flex flex-col gap-2.5">
         <button
           type="button"
           onClick={() => onChooseMode("signup")}
           disabled={loading}
-          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--forsa-primary-light)] disabled:cursor-wait disabled:opacity-60"
+          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--forsa-primary-light)] disabled:cursor-wait disabled:opacity-60"
         >
           Create an Account
           <FaArrowRight className="text-xs" />
@@ -373,7 +374,7 @@ function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
           type="button"
           onClick={() => onChooseMode("login")}
           disabled={loading}
-          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3.5 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50 disabled:cursor-wait disabled:opacity-60"
+          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50 disabled:cursor-wait disabled:opacity-60"
         >
           Log in to your Account
         </button>
@@ -388,7 +389,7 @@ function WelcomeStep({ onChooseMode, onGoogleLogin, loading }) {
           type="button"
           onClick={onGoogleLogin}
           disabled={loading}
-          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3.5 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)] disabled:cursor-wait disabled:opacity-60"
+          className="forsa-click flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)] disabled:cursor-wait disabled:opacity-60"
         >
           <FaGoogle className="text-sm" />
           Continue with Google
@@ -441,7 +442,7 @@ function ChoiceStep({ accountType, setAccountType, onContinue, onBack }) {
       <button
         type="button"
         onClick={onContinue}
-        className="forsa-click mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[var(--forsa-primary-light)]"
+        className="forsa-click mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--forsa-primary-light)]"
       >
         Continue
         <FaArrowRight className="text-xs" />
@@ -489,7 +490,7 @@ function FormStep({
           : "Log in to Forsa"}
       </h2>
 
-      <div className="mt-5 grid gap-4">
+      <div className="mt-4 grid gap-3">
         {isSignup && isHiring && (
           <>
             <Field
@@ -584,7 +585,7 @@ function FormStep({
           type="button"
           disabled={!canContinue || loading}
           onClick={onSubmit}
-          className={`forsa-click mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-semibold transition ${
+          className={`forsa-click mt-2 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${
             canContinue && !loading
               ? "bg-[var(--forsa-primary)] text-white shadow-sm hover:bg-[var(--forsa-primary-light)]"
               : "cursor-not-allowed bg-neutral-100 text-neutral-400"
@@ -680,7 +681,7 @@ function Field({ label, placeholder, value, onChange, type = "text", icon }) {
         {label}
       </label>
 
-      <div className="forsa-focus mt-1.5 flex items-center gap-3 rounded-xl border border-[var(--forsa-border)] bg-white px-3.5 py-3">
+      <div className="forsa-focus mt-1.5 flex items-center gap-3 rounded-xl border border-[var(--forsa-border)] bg-white px-3 py-2.5">
         {icon && <span className="text-sm text-neutral-400">{icon}</span>}
 
         <input
@@ -703,7 +704,7 @@ function PasswordField({ value, onChange, showPassword, setShowPassword }) {
         Password
       </label>
 
-      <div className="forsa-focus mt-1.5 flex items-center gap-3 rounded-xl border border-[var(--forsa-border)] bg-white px-3.5 py-3">
+      <div className="forsa-focus mt-1.5 flex items-center gap-2.5 rounded-xl border border-[var(--forsa-border)] bg-white px-3 py-2.5">
         <input
           type={showPassword ? "text" : "password"}
           value={value}
