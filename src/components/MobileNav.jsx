@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   FaBriefcase,
@@ -18,23 +19,52 @@ function safeJson(key, fallback) {
 
 export default function MobileNav() {
   const location = useLocation();
+  const [hiddenOnScroll, setHiddenOnScroll] = useState(false);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let ticking = false;
+
+    const onScroll = () => {
+      if (ticking) return;
+
+      window.requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        const diff = currentY - lastY;
+
+        if (currentY < 40) {
+          setHiddenOnScroll(false);
+        } else if (diff > 8) {
+          setHiddenOnScroll(true);
+        } else if (diff < -8) {
+          setHiddenOnScroll(false);
+        }
+
+        lastY = currentY;
+        ticking = false;
+      });
+
+      ticking = true;
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [location.pathname]);
 
   const hiddenRoutes = ["/", "/auth", "/onboarding"];
 
+  const modalOpen =
+    document.body.classList.contains("forsa-modal-open") ||
+    document.documentElement.classList.contains("forsa-modal-open");
 
-const modalOpen =
-  document.body.classList.contains("forsa-modal-open") ||
-  document.documentElement.classList.contains("forsa-modal-open");
-
-if (modalOpen) return null;
+  if (modalOpen) return null;
   if (hiddenRoutes.includes(location.pathname)) return null;
 
   const account = safeJson("forsaAccount", null);
   const isHiring = account?.accountType === "hiring";
 
-  const guestItems = [
-    { label: "Explore", to: "/explore", icon: FaCompass },
-  ];
+  const guestItems = [{ label: "Explore", to: "/explore", icon: FaCompass }];
 
   const seekerItems = [
     { label: "Explore", to: "/explore", icon: FaCompass },
@@ -54,15 +84,26 @@ if (modalOpen) return null;
   const items = !account ? guestItems : isHiring ? hiringItems : seekerItems;
 
   const gridConfig = {
-    1: "grid-cols-1 max-w-[120px]", 
+    1: "grid-cols-1 max-w-[120px]",
     4: "grid-cols-4",
     5: "grid-cols-5",
   };
+
   const currentGridClass = gridConfig[items.length] || "grid-cols-5";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] md:hidden">
-      <div className={`mx-auto rounded-[24px] border border-white/60 bg-white/70 p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.08),inset_0_1px_2px_rgba(255,255,255,0.7)] backdrop-blur-xl transition-all duration-300 ${items.length === 1 ? 'max-w-[100px]' : 'max-w-md'}`}>
+    <nav
+      className={`fixed bottom-0 left-0 right-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] transition-all duration-300 ease-out md:hidden ${
+        hiddenOnScroll
+          ? "translate-y-[120%] opacity-0 pointer-events-none"
+          : "translate-y-0 opacity-100"
+      }`}
+    >
+      <div
+        className={`mx-auto rounded-[24px] border border-white/60 bg-white/70 p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.08),inset_0_1px_2px_rgba(255,255,255,0.7)] backdrop-blur-xl transition-all duration-300 ${
+          items.length === 1 ? "max-w-[100px]" : "max-w-md"
+        }`}
+      >
         <div className={`grid gap-0.5 ${currentGridClass} mx-auto`}>
           {items.map((item) => {
             const Icon = item.icon;
@@ -81,10 +122,16 @@ if (modalOpen) return null;
               >
                 {({ isActive }) => (
                   <>
-                    <div className={`transition-transform duration-300 ${isActive ? "-translate-y-1 scale-110 text-[var(--forsa-primary)]" : ""}`}>
+                    <div
+                      className={`transition-transform duration-300 ${
+                        isActive
+                          ? "-translate-y-1 scale-110 text-[var(--forsa-primary)]"
+                          : ""
+                      }`}
+                    >
                       <Icon className="text-[16px]" />
                     </div>
-                    
+
                     <span className="mt-1.5 text-[9px] leading-none tracking-tight font-semibold">
                       {item.label}
                     </span>
