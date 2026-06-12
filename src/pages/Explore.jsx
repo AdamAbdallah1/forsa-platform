@@ -788,7 +788,7 @@ useEffect(() => {
   };
 
   return (
-    <section className="min-h-screen">
+    <section className="min-h-screen bg-[#fbfafc]">
       <SEO
     title="Explore"
     description="Explore jobs, internships, freelance gigs, and local opportunities in Lebanon on Forsa."
@@ -796,7 +796,7 @@ useEffect(() => {
       <AppHeader />
       
 
-      <div className="mx-auto max-w-[1180px] px-4 pb-40 sm:px-6 md:pb-28 lg:pb-20">
+      <div className="mx-auto max-w-[1180px] px-3 pb-36 pt-1 sm:px-6 md:pb-28 lg:pb-20">
                 <HeroBar
           isHiring={isHiring}
           isLoggedIn={isLoggedIn}
@@ -997,38 +997,36 @@ useEffect(() => {
 
 function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
   return (
-    <div className="relative mt-5 overflow-hidden rounded-[34px] border border-white/70 bg-white/85 p-5 shadow-[0_24px_80px_rgba(109,40,217,0.10)] backdrop-blur-2xl sm:mt-8 sm:p-6 md:p-8">
-      <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[var(--forsa-glow)]/18 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-28 -left-28 h-72 w-72 rounded-full bg-[var(--forsa-gold)]/12 blur-3xl" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(139,92,246,0.10),transparent_42%)]" />
+    <div className="relative mt-3 overflow-hidden rounded-[30px] border border-white bg-white p-4 shadow-[0_16px_55px_rgba(109,40,217,0.08)] sm:mt-8 sm:rounded-[34px] sm:p-7">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-60 w-60 rounded-full bg-[var(--forsa-glow)]/18 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
 
-      <div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white/80 px-3 py-2 text-xs font-medium text-[var(--forsa-primary)] shadow-sm">
+      <div className="relative flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1.5 text-[11px] font-bold text-[var(--forsa-primary)]">
             <FaBolt className="text-[10px]" />
-            Smart opportunity discovery
+            Smart discovery
           </div>
 
-          <h1 className="mt-4 max-w-3xl text-3xl font-semibold leading-[0.96] tracking-[-0.06em] sm:text-4xl md:text-5xl">
-            Explore work that matches your profile, city, and goals.
+          <h1 className="mt-3 max-w-2xl text-[28px] font-semibold leading-[0.96] tracking-[-0.065em] text-neutral-950 sm:text-5xl">
+            Find work without the noise.
           </h1>
 
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-neutral-600 sm:text-base">
-            Browse local jobs, internships, gigs, agency posts, and abroad opportunities with cleaner cards, safety signals, and organized application flow.
+          <p className="mt-3 max-w-xl text-[13px] leading-6 text-neutral-600 sm:text-base sm:leading-7">
+            Jobs, internships, freelance gigs, agency posts, and abroad opportunities — organized for mobile.
           </p>
         </div>
 
         <button
           onClick={() => navigate(isHiring ? "/post" : isLoggedIn ? "/profile" : "/auth")}
-          className="forsa-button group inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-medium text-white transition hover:-translate-y-0.5 sm:w-fit"
+          className="hidden shrink-0 rounded-full forsa-button px-5 py-3 text-sm font-semibold text-white sm:inline-flex"
         >
-          {isHiring ? "Post opportunity" : isLoggedIn ? "Improve profile" : "Join Forsa"}
-          <FaArrowRight className="text-xs transition group-hover:translate-x-0.5" />
+          {isHiring ? "Post" : isLoggedIn ? "Profile" : "Join"}
         </button>
       </div>
 
-      <div className="relative mt-7 grid grid-cols-2 gap-2 sm:grid-cols-5">
-        <MiniStat label="Results" value={stats.total} />
+      <div className="relative mt-5 grid grid-cols-5 gap-1.5 sm:gap-2">
+        <MiniStat label="Jobs" value={stats.total} />
         <MiniStat label="Urgent" value={stats.urgent} />
         <MiniStat label="Abroad" value={stats.abroad} />
         <MiniStat label="Saved" value={stats.saved} />
@@ -1040,9 +1038,9 @@ function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
 
 function MiniStat({ label, value }) {
   return (
-    <div className="rounded-[22px] border border-[var(--forsa-border)] bg-white/78 p-4 shadow-sm backdrop-blur-xl">
-      <p className="text-2xl font-semibold tracking-[-0.05em]">{value}</p>
-      <p className="mt-1 text-xs font-medium text-neutral-500">{label}</p>
+    <div className="rounded-[18px] border border-[var(--forsa-border)] bg-white/80 px-2 py-3 text-center shadow-sm backdrop-blur-xl sm:rounded-[22px] sm:p-4">
+      <p className="text-lg font-semibold tracking-[-0.05em] sm:text-2xl">{value}</p>
+      <p className="mt-0.5 truncate text-[10px] font-semibold text-neutral-400 sm:text-xs">{label}</p>
     </div>
   );
 }
@@ -1062,103 +1060,61 @@ function SearchPanel({
   hasActiveFilters,
   clearFilters,
 }) {
+  const quickTypes = ["All", "Internship", "Part-time", "Remote", "Agency", "Abroad"];
+
   return (
     <>
-      <div className="sticky top-[76px] z-30 -mx-4 mt-4 border-y border-[var(--forsa-border)]/80 bg-white/92 px-4 py-3 shadow-[0_12px_40px_rgba(109,40,217,0.06)] backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[28px] sm:border sm:p-3">
-        <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="forsa-focus flex items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-[var(--forsa-bg-soft)]/65 px-4 py-3.5 transition">
-            <FaSearch className="text-sm text-[var(--forsa-primary)]" />
-
+      <div className="sticky top-[72px] z-30 -mx-3 mt-3 border-y border-[var(--forsa-border)]/70 bg-[#fbfafc]/92 px-3 py-3 backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[28px] sm:border sm:bg-white/90 sm:p-3 sm:shadow-[0_12px_40px_rgba(109,40,217,0.06)]">
+        <div className="flex items-center gap-2">
+          <div className="forsa-focus flex min-w-0 flex-1 items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-3 shadow-sm transition focus-within:border-[var(--forsa-primary)]">
+            <FaSearch className="shrink-0 text-sm text-[var(--forsa-primary)]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search role, skill, company, city..."
-              className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-400"
+              placeholder="Search jobs, skill, city..."
+              className="w-full bg-transparent text-[15px] outline-none placeholder:text-neutral-400"
             />
-
             {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="forsa-click rounded-full bg-white px-2 py-1 text-xs text-neutral-500"
-              >
+              <button type="button" onClick={() => setSearch("")} className="rounded-full bg-[var(--forsa-bg)] px-2 py-1 text-[11px] font-semibold text-neutral-500">
                 Clear
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowFilters(true)}
-              className="forsa-click inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm font-semibold text-neutral-700 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)] lg:hidden"
-            >
-              <FaSlidersH className="text-xs" />
-              Filters
-              {hasActiveFilters && (
-                <span className="h-2 w-2 rounded-full bg-[var(--forsa-primary)]" />
-              )}
-            </button>
-
-            <div className="hidden gap-2 overflow-x-auto lg:flex">
-              {sortOptions.map((option) => (
-                <FilterButton key={option} active={sortBy === option} onClick={() => setSortBy(option)}>
-                  <span className="inline-flex items-center gap-2">
-                    {option === "Best match" && <FaSlidersH className="text-xs" />}
-                    {option}
-                  </span>
-                </FilterButton>
-              ))}
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowFilters(true)}
+            className="forsa-click flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border border-[var(--forsa-border)] bg-white text-neutral-700 shadow-sm"
+            aria-label="Open filters"
+          >
+            <FaSlidersH className="text-sm" />
+          </button>
         </div>
 
-        <div className="mt-3 hidden gap-2 overflow-x-auto pb-1 lg:flex">
-          {types.map((type) => (
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {quickTypes.map((type) => (
             <FilterButton key={type} active={activeType === type} onClick={() => setActiveType(type)}>
               {type}
             </FilterButton>
           ))}
-
-          <div className="mx-1 h-9 w-px shrink-0 bg-[var(--forsa-border)]" />
-
-          {availableLocations.slice(0, 8).map((city) => (
-            <FilterButton key={city} active={locationFilter === city} onClick={() => setLocationFilter(city)}>
-              <span className="inline-flex items-center gap-1.5">
-                <FaMapMarkerAlt className="text-[10px]" />
-                {city}
-              </span>
-            </FilterButton>
-          ))}
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="forsa-click shrink-0 rounded-full border border-red-100 bg-red-50 px-4 py-2.5 text-[13px] font-semibold text-red-600"
-            >
-              Clear all
-            </button>
-          )}
         </div>
 
         {hasActiveFilters && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1 text-xs [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <span className="shrink-0 font-semibold text-neutral-400">Active</span>
             {search.trim() && <ActiveChip label={`Search: ${search}`} onClear={() => setSearch("")} />}
             {activeType !== "All" && <ActiveChip label={activeType} onClear={() => setActiveType("All")} />}
             {locationFilter !== "All" && <ActiveChip label={locationFilter} onClear={() => setLocationFilter("All")} />}
             {sortBy !== "Best match" && <ActiveChip label={sortBy} onClear={() => setSortBy("Best match")} />}
+            <button type="button" onClick={clearFilters} className="shrink-0 rounded-full bg-red-50 px-3 py-1.5 font-semibold text-red-600">
+              Reset
+            </button>
           </div>
         )}
       </div>
 
-      <Modal
-        open={showFilters}
-        title="Filter opportunities"
-        onClose={() => setShowFilters(false)}
-        maxWidth="max-w-lg"
-      >
-        <div className="grid gap-6">
+      <Modal open={showFilters} title="Filters" onClose={() => setShowFilters(false)} maxWidth="max-w-lg">
+        <div className="grid gap-5">
           <FilterGroup title="Sort by">
             <div className="grid grid-cols-2 gap-2">
               {sortOptions.map((option) => (
@@ -1189,20 +1145,11 @@ function SearchPanel({
             </div>
           </FilterGroup>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="forsa-click rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700"
-            >
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button type="button" onClick={clearFilters} className="forsa-click rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700">
               Clear
             </button>
-
-            <button
-              type="button"
-              onClick={() => setShowFilters(false)}
-              className="forsa-click forsa-button rounded-full px-5 py-3 text-sm font-semibold text-white"
-            >
+            <button type="button" onClick={() => setShowFilters(false)} className="forsa-click forsa-button rounded-full px-5 py-3 text-sm font-semibold text-white">
               Show results
             </button>
           </div>
@@ -1457,10 +1404,10 @@ function OpportunityCard({
     : "Improve profile";
 
   return (
-    <article className="group relative flex min-h-[430px] flex-col overflow-hidden rounded-[30px] border border-[#e9e3f3] bg-white shadow-[0_12px_38px_rgba(17,17,17,0.055)] transition duration-300 hover:-translate-y-1 hover:border-[var(--forsa-soft)] hover:shadow-[0_24px_75px_rgba(109,40,217,0.13)]">
+    <article className="group relative flex min-h-0 flex-col overflow-hidden rounded-[28px] border border-[#ece6f5] bg-white shadow-[0_10px_32px_rgba(17,17,17,0.045)] transition duration-300 sm:min-h-[430px] sm:rounded-[30px] sm:hover:-translate-y-1 sm:hover:border-[var(--forsa-soft)] sm:hover:shadow-[0_24px_75px_rgba(109,40,217,0.13)]">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow),#d946ef)]" />
 
-      <div className="flex flex-1 flex-col p-4">
+      <div className="flex flex-1 flex-col p-4 sm:p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#f4efff] text-[var(--forsa-primary)] ring-1 ring-[#e8ddff]">
@@ -1598,7 +1545,7 @@ function OpportunityCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_44px_1fr] gap-2 border-t border-[#eee8f7] bg-[#fbfaff] p-3 pb-5 md:pb-3">
+      <div className="sticky bottom-0 grid grid-cols-[1fr_44px_1fr] gap-2 border-t border-[#eee8f7] bg-[#fbfaff]/95 p-3 pb-[calc(env(safe-area-inset-bottom,0px)+14px)] backdrop-blur-xl md:static md:pb-3">
         <button
           onClick={onDetails}
           className="rounded-full border border-[#e7e2f1] bg-white px-3 py-2.5 text-sm font-semibold transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
@@ -1869,7 +1816,7 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
   const Icon = item.icon || FaBriefcase;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--forsa-primary)]/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-[var(--forsa-primary)]/25 px-3 pb-0 backdrop-blur-sm sm:items-center sm:px-6">
       <div className="max-h-[86vh] w-full max-w-md overflow-auto rounded-[28px] bg-white p-5 pb-28 shadow-xl sm:p-6 sm:pb-6 pb-32">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
@@ -2172,8 +2119,8 @@ function ApplyModal({ item, account, profile, profileStrength, onClose, onSubmit
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--forsa-primary)]/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-[28px] bg-white p-5 shadow-xl sm:p-6">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-[var(--forsa-primary)]/25 px-3 pb-0 backdrop-blur-sm sm:items-center sm:px-6">
+      <div className="max-h-[88dvh] w-full max-w-lg overflow-auto rounded-t-[30px] bg-white p-5 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] shadow-xl sm:rounded-[28px] sm:p-6 sm:pb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-sm text-neutral-500">Apply to</p>
@@ -2337,7 +2284,7 @@ function AuthRequiredModal({ type, onClose, onCreateAccount }) {
   const seekerOnly = type === "seeker-only";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--forsa-primary)]/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-[var(--forsa-primary)]/25 px-3 pb-0 backdrop-blur-sm sm:items-center sm:px-6">
       <div className="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-xl sm:p-6">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-primary)] text-white">
           <FaLock />
