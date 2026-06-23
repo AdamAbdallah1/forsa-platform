@@ -1,4 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "./lib/firebase";
+import { setSession } from "./lib/auth";
 import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
 import Explore from "./pages/Explore";
@@ -28,7 +33,39 @@ import PublicSeekerProfile from "./pages/PublicSeekerProfile";
 import AdminReview from "./pages/AdminReview";
 import Toast from "./components/Toast";
 
+const toIso = (value) => {
+  if (!value) return new Date().toISOString();
+  if (typeof value?.toDate === "function") return value.toDate().toISOString();
+  return value;
+};
+
 export default function App() {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        localStorage.removeItem("forsaAccount");
+        return;
+      }
+
+      try {
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        if (!userDoc.exists()) return;
+
+        const data = userDoc.data();
+        setSession({
+          uid: currentUser.uid,
+          ...data,
+          createdAt: toIso(data.createdAt),
+          updatedAt: toIso(data.updatedAt),
+        });
+      } catch (error) {
+        console.error("Auth sync failed:", error);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   return (
     <BrowserRouter>
       <main className="min-h-screen overflow-x-hidden bg-[var(--forsa-bg)] pb-24 text-[#111111] md:pb-0">

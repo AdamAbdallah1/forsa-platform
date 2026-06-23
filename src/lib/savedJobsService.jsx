@@ -8,7 +8,7 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { auth, db } from "./firebase";
 
 const toIso = (value) => {
   if (!value) return new Date().toISOString();
@@ -17,12 +17,19 @@ const toIso = (value) => {
 };
 
 export async function saveJob({ userUid, userEmail, post }) {
-  const id = `${userUid}_${post.id}`;
+  const uid = userUid || auth.currentUser?.uid;
+  const email = userEmail || auth.currentUser?.email;
+
+  if (!uid) {
+    throw new Error("Authentication required to save job.");
+  }
+
+  const id = `${uid}_${post.id}`;
 
   await setDoc(doc(db, "savedJobs", id), {
     id,
-    userUid,
-    userEmail,
+    userUid: uid,
+    userEmail: email || null,
     postId: post.id,
     post,
     savedAt: serverTimestamp(),
@@ -30,8 +37,8 @@ export async function saveJob({ userUid, userEmail, post }) {
 
   return {
     id,
-    userUid,
-    userEmail,
+    userUid: uid,
+    userEmail: email || null,
     postId: post.id,
     post,
     savedAt: new Date().toISOString(),
@@ -39,12 +46,24 @@ export async function saveJob({ userUid, userEmail, post }) {
 }
 
 export async function unsaveJob({ userUid, postId }) {
-  const id = `${userUid}_${postId}`;
+  const uid = userUid || auth.currentUser?.uid;
+
+  if (!uid) {
+    throw new Error("Authentication required to remove saved job.");
+  }
+
+  const id = `${uid}_${postId}`;
   await deleteDoc(doc(db, "savedJobs", id));
 }
 
 export async function getUserSavedJobs(userUid) {
-  const q = query(collection(db, "savedJobs"), where("userUid", "==", userUid));
+  const uid = userUid || auth.currentUser?.uid;
+
+  if (!uid) {
+    throw new Error("Authentication required to load saved jobs.");
+  }
+
+  const q = query(collection(db, "savedJobs"), where("userUid", "==", uid));
   const snapshot = await getDocs(q);
 
   return snapshot.docs.map((item) => {
