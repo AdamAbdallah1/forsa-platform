@@ -180,10 +180,17 @@ const readSharedPostId = (searchParams, location) => {
   return fromLocation;
 };
 
-const cleanPostForStorage = (post) => ({
-  ...post,
-  icon: undefined,
-});
+const cleanPostForStorage = (post) => {
+  const normalized = { ...post };
+  delete normalized.icon;
+
+  return Object.entries(normalized).reduce((acc, [key, value]) => {
+    if (value !== undefined) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {});
+};
 
 const getDateValue = (value) => {
   if (!value) return Date.now();

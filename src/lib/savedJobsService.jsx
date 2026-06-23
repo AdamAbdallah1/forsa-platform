@@ -16,6 +16,15 @@ const toIso = (value) => {
   return value;
 };
 
+const sanitizeFirestoreObject = (data) => {
+  return Object.entries(data).reduce((acc, [key, value]) => {
+    if (value !== undefined) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {});
+};
+
 export async function saveJob({ userUid, userEmail, post }) {
   const uid = userUid || auth.currentUser?.uid;
   const email = userEmail || auth.currentUser?.email;
@@ -25,13 +34,14 @@ export async function saveJob({ userUid, userEmail, post }) {
   }
 
   const id = `${uid}_${post.id}`;
+  const safePost = sanitizeFirestoreObject(post);
 
   await setDoc(doc(db, "savedJobs", id), {
     id,
     userUid: uid,
     userEmail: email || null,
     postId: post.id,
-    post,
+    post: safePost,
     savedAt: serverTimestamp(),
   });
 
