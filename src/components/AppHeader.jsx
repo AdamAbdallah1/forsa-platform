@@ -46,7 +46,6 @@ export default function AppHeader() {
     <header className="sticky top-0 z-40 border-[var(--forsa-border)]/80 bg-[var(--forsa-bg)]/85 backdrop-blur-2xl">
       <div className="mx-auto flex max-w-[1180px] items-center justify-between px-5 py-5 sm:px-6">
 
-        {/* Logo */}
         <button
           onClick={() => navigate("/")}
           className="group flex shrink-0 items-center gap-2"
@@ -54,7 +53,6 @@ export default function AppHeader() {
           <BrandLogo />
         </button>
 
-        {/* NAV */}
         <nav className="hidden items-center gap-1.5 rounded-full border border-[var(--forsa-border)] bg-white/65 p-1 shadow-sm lg:flex">
 
           {account && isHiring && (
@@ -89,9 +87,6 @@ export default function AppHeader() {
             </>
           )}
 
-          {/* ===================== */}
-          {/* SEEKER ACCOUNT NAV */}
-          {/* ===================== */}
           {account && !isHiring && (
             <>
               <NavLink to="/explore" className={linkClass}>
@@ -126,7 +121,6 @@ export default function AppHeader() {
 
         </nav>
 
-        {/* RIGHT SIDE */}
         <div className="flex items-center gap-2">
 
           {account ? (

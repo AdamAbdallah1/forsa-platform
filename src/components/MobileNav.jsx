@@ -7,6 +7,7 @@ import {
   FaPlus,
   FaUser,
   FaUsers,
+  FaTachometerAlt,
 } from "react-icons/fa";
 
 function safeJson(key, fallback) {
@@ -64,24 +65,70 @@ export default function MobileNav() {
   const account = safeJson("forsaAccount", null);
   const isHiring = account?.accountType === "hiring";
 
-  const guestItems = [{ label: "Explore", to: "/explore", icon: FaCompass }];
+  const guestItems = [
+    {
+      label: "Explore",
+      to: "/explore",
+      icon: FaCompass,
+    },
+  ];
 
   const seekerItems = [
-    { label: "Explore", to: "/explore", icon: FaCompass },
-    { label: "Saved", to: "/saved", icon: FaBriefcase },
-    { label: "Messages", to: "/messages", icon: FaPaperPlane },
-    { label: "Profile", to: "/profile", icon: FaUser },
+    {
+      label: "Explore",
+      to: "/explore",
+      icon: FaCompass,
+    },
+    {
+      label: "Saved",
+      to: "/saved",
+      icon: FaBriefcase,
+    },
+    {
+      label: "Messages",
+      to: "/messages",
+      icon: FaPaperPlane,
+    },
+    {
+      label: "Profile",
+      to: "/profile",
+      icon: FaUser,
+    },
   ];
 
   const hiringItems = [
-    { label: "Explore", to: "/explore", icon: FaCompass },
-    { label: "Applicants", to: "/applicants", icon: FaUsers },
-    { label: "Post", to: "/post", icon: FaPlus },
-    { label: "Messages", to: "/messages", icon: FaPaperPlane },
-    { label: "Profile", to: "/profile", icon: FaUser },
-  ];
+  {
+    label: "Dashboard",
+    to: "/dashboard",
+    icon: FaTachometerAlt,
+  },
+  {
+    label: "Applicants",
+    to: "/applicants",
+    icon: FaUsers,
+  },
+  {
+    label: "Post",
+    to: "/post",
+    icon: FaPlus,
+  },
+  {
+    label: "Messages",
+    to: "/messages",
+    icon: FaPaperPlane,
+  },
+  {
+    label: "Profile",
+    to: "/profile",
+    icon: FaUser,
+  },
+];
 
-  const items = !account ? guestItems : isHiring ? hiringItems : seekerItems;
+  const items = !account
+    ? guestItems
+    : isHiring
+    ? hiringItems
+    : seekerItems;
 
   const gridConfig = {
     1: "grid-cols-1 max-w-[120px]",
@@ -89,7 +136,8 @@ export default function MobileNav() {
     5: "grid-cols-5",
   };
 
-  const currentGridClass = gridConfig[items.length] || "grid-cols-5";
+  const currentGridClass =
+    gridConfig[items.length] || "grid-cols-5";
 
   return (
     <nav
@@ -101,10 +149,14 @@ export default function MobileNav() {
     >
       <div
         className={`mx-auto rounded-[24px] border border-white/60 bg-white/70 p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.08),inset_0_1px_2px_rgba(255,255,255,0.7)] backdrop-blur-xl transition-all duration-300 ${
-          items.length === 1 ? "max-w-[100px]" : "max-w-md"
+          items.length === 1
+            ? "max-w-[100px]"
+            : "max-w-md"
         }`}
       >
-        <div className={`grid gap-0.5 ${currentGridClass} mx-auto`}>
+        <div
+          className={`grid gap-0.5 ${currentGridClass} mx-auto`}
+        >
           {items.map((item) => {
             const Icon = item.icon;
 
