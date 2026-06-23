@@ -9,6 +9,7 @@ import {
   where,
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
+import { incrementPostMetric } from "./postService";
 
 const toIso = (value) => {
   if (!value) return new Date().toISOString();
@@ -45,6 +46,8 @@ export async function saveJob({ userUid, userEmail, post }) {
     savedAt: serverTimestamp(),
   });
 
+  await incrementPostMetric(post.id, "saves");
+
   return {
     id,
     userUid: uid,
@@ -64,6 +67,7 @@ export async function unsaveJob({ userUid, postId }) {
 
   const id = `${uid}_${postId}`;
   await deleteDoc(doc(db, "savedJobs", id));
+  await incrementPostMetric(postId, "saves", -1);
 }
 
 export async function getUserSavedJobs(userUid) {

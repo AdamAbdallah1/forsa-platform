@@ -5,7 +5,7 @@ export default function Button({
   ...props
 }) {
   const variants = {
-    primary: "bg-black text-white hover:bg-neutral-800",
+    primary: "bg-[var(--forsa-primary)] text-white hover:bg-[var(--forsa-primary-dark)]",
     secondary:
       "border border-neutral-300 bg-white text-black hover:border-neutral-500",
     ghost: "text-neutral-600 hover:bg-white hover:text-black",

@@ -6,7 +6,8 @@ import Skeleton from "../components/Skeleton";
 import { FaWhatsapp, FaCopy } from "react-icons/fa";
 import SEO from "../components/SEO"
 import Modal from "../components/ui/Modal";
-import { getActivePosts } from "../lib/postService.js";
+import Button from "../components/ui/Button";
+import { getActivePosts, incrementPostMetric } from "../lib/postService.js";
 import Footer from "../components/Footer";
 import { createNotification } from "../lib/notificationService";
 import { createApplicationThread } from "../lib/applicationService";
@@ -142,24 +143,12 @@ const getMatchMeta = (post, profile) => {
   return { matchingSkills, matchingType };
 };
 
-const getPostAnalytics = () => safeJson("forsaPostAnalytics", {});
-
-const updatePostAnalytics = (postId, field) => {
-  const analytics = getPostAnalytics();
-  const current = analytics[postId] || {
-    views: 0,
-    saves: 0,
-    applications: 0,
-    shares: 0,
-    reports: 0,
-  };
-
-  analytics[postId] = {
-    ...current,
-    [field]: (current[field] || 0) + 1,
-  };
-
-  writeJson("forsaPostAnalytics", analytics);
+const updatePostAnalytics = async (postId, field) => {
+  try {
+    await incrementPostMetric(postId, field);
+  } catch (error) {
+    console.error("Post analytics increment failed:", error);
+  }
 };
 
 const buildPostUrl = (postId) => {
@@ -259,38 +248,21 @@ export default function Explore() {
   };
 
   useEffect(() => {
-  const hasModal =
-    Boolean(selectedOpportunity) ||
-    Boolean(applyOpportunity) ||
-    Boolean(authModal) ||
-    Boolean(shareItem) ||
-    Boolean(showFilters);
+    const hasModal =
+      Boolean(selectedOpportunity) ||
+      Boolean(applyOpportunity) ||
+      Boolean(authModal) ||
+      Boolean(shareItem) ||
+      Boolean(showFilters);
 
-  document.body.classList.toggle("forsa-modal-open", hasModal);
-  document.documentElement.classList.toggle("forsa-modal-open", hasModal);
+    document.body.classList.toggle("forsa-modal-open", hasModal);
+    document.documentElement.classList.toggle("forsa-modal-open", hasModal);
 
-  return () => {
-    document.body.classList.remove("forsa-modal-open");
-    document.documentElement.classList.remove("forsa-modal-open");
-  };
-}, [selectedOpportunity, applyOpportunity, authModal, shareItem, showFilters]);
-
-useEffect(() => {
-  const hasModal =
-    Boolean(selectedOpportunity) ||
-    Boolean(applyOpportunity) ||
-    Boolean(authModal) ||
-    Boolean(shareItem) ||
-    Boolean(showFilters);
-
-  document.body.classList.toggle("forsa-modal-open", hasModal);
-  document.documentElement.classList.toggle("forsa-modal-open", hasModal);
-
-  return () => {
-    document.body.classList.remove("forsa-modal-open");
-    document.documentElement.classList.remove("forsa-modal-open");
-  };
-}, [selectedOpportunity, applyOpportunity, authModal, shareItem, showFilters]);
+    return () => {
+      document.body.classList.remove("forsa-modal-open");
+      document.documentElement.classList.remove("forsa-modal-open");
+    };
+  }, [selectedOpportunity, applyOpportunity, authModal, shareItem, showFilters]);
 
   useEffect(() => {
     let active = true;
@@ -508,6 +480,16 @@ useEffect(() => {
       .slice(0, 6);
   }, [rankedOpportunities]);
 
+  const freshOpportunities = useMemo(() => {
+    if (!canInteract) return [];
+
+    const oneWeekAgo = Date.now() - 1000 * 60 * 60 * 24 * 7;
+
+    return rankedOpportunities
+      .filter((item) => new Date(item.createdAt || 0).getTime() >= oneWeekAgo)
+      .slice(0, 4);
+  }, [rankedOpportunities, canInteract]);
+
   useEffect(() => {
     const postId = readSharedPostId(searchParams, location);
     if (!postId) return;
@@ -529,8 +511,9 @@ useEffect(() => {
       abroad: rankedOpportunities.filter((item) => isAbroadPost(item)).length,
       saved: savedJobs.length,
       applied: appliedIds.size,
+      recommended: recommendedOpportunities.length,
     };
-  }, [rankedOpportunities, savedJobs.length, appliedIds]);
+  }, [rankedOpportunities, savedJobs.length, appliedIds, recommendedOpportunities.length]);
 
   const isSaved = (id) => savedJobs.some((job) => String(job.id) === String(id));
 
@@ -589,8 +572,6 @@ useEffect(() => {
           userEmail: account.email,
           post: cleanPost,
         });
-
-        updatePostAnalytics(item.id, "saves");
       }
 
       showToast(alreadySaved ? "Removed from saved jobs" : "Saved to profile");
@@ -783,7 +764,9 @@ useEffect(() => {
         targetEmail: item.ownerEmail || item.contact || null,
       });
 
-      updatePostAnalytics(item.id, "applications");
+      if (!existing) {
+        updatePostAnalytics(item.id, "applications");
+      }
 
       setApplyOpportunity(null);
       showToast(existing ? "Application updated" : "Application sent");
@@ -850,6 +833,20 @@ useEffect(() => {
             onDetails={openDetails}
             onApply={openApply}
             onShare={(item) => setShareItem(item)}
+            navigate={navigate}
+          />
+        )}
+
+        {freshOpportunities.length > 0 && (
+          <FreshSection
+            items={freshOpportunities}
+            savedJobs={savedJobs}
+            appliedIds={appliedIds}
+            canInteract={canInteract}
+            onSave={toggleSave}
+            onDetails={openDetails}
+            onApply={openApply}
+            onShare={shareOpportunity}
             navigate={navigate}
           />
         )}
@@ -1022,14 +1019,20 @@ function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
           <p className="mt-3 max-w-xl text-[13px] leading-6 text-neutral-600 sm:text-base sm:leading-7">
             Jobs, internships, freelance gigs, agency posts, and abroad opportunities — organized for mobile.
           </p>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <HeroChip label="Personalized jobs" value={`${stats.recommended} recommended`} icon={<FaLightbulb />} />
+            <HeroChip label="Trusted sources" value={`${stats.total} filtered`} icon={<FaShieldAlt />} />
+            <HeroChip label="Fast apply" value="Quick one-tap flow" icon={<FaBolt />} />
+          </div>
         </div>
 
-        <button
+        <Button
           onClick={() => navigate(isHiring ? "/post" : isLoggedIn ? "/profile" : "/auth")}
-          className="hidden shrink-0 rounded-full forsa-button px-5 py-3 text-sm font-semibold text-white sm:inline-flex"
+          className="hidden shrink-0 sm:inline-flex"
         >
           {isHiring ? "Post" : isLoggedIn ? "Profile" : "Join"}
-        </button>
+        </Button>
       </div>
 
       <div className="relative mt-5 grid grid-cols-5 gap-1.5 sm:gap-2">
@@ -1048,6 +1051,18 @@ function MiniStat({ label, value }) {
     <div className="rounded-[18px] border border-[var(--forsa-border)] bg-white/80 px-2 py-3 text-center shadow-sm backdrop-blur-xl sm:rounded-[22px] sm:p-4">
       <p className="text-lg font-semibold tracking-[-0.05em] sm:text-2xl">{value}</p>
       <p className="mt-0.5 truncate text-[10px] font-semibold text-neutral-400 sm:text-xs">{label}</p>
+    </div>
+  );
+}
+
+function HeroChip({ label, value, icon }) {
+  return (
+    <div className="rounded-[24px] border border-[#ebe5ff] bg-white px-4 py-3 shadow-sm">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
+        {icon}
+        {label}
+      </div>
+      <p className="mt-3 text-sm font-semibold text-neutral-950">{value}</p>
     </div>
   );
 }
@@ -1307,6 +1322,40 @@ function FeaturedSection({
   );
 }
 
+function FreshSection({ items, savedJobs, appliedIds, canInteract, onSave, onDetails, onApply, onShare, navigate }) {
+  return (
+    <section className="mt-6 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_20px_80px_rgba(109,40,217,0.08)] sm:p-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-neutral-500">Fresh this week</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">
+            New arrivals you should check
+          </h2>
+        </div>
+        <span className="rounded-full bg-[var(--forsa-bg-soft)] px-4 py-2 text-xs font-semibold text-[var(--forsa-primary)]">
+          {items.length} new
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        {items.map((item) => (
+          <CompactRecommendationCard
+            key={`fresh-${item.id}`}
+            item={item}
+            saved={savedJobs.some((job) => String(job.id) === String(item.id))}
+            applied={appliedIds.has(item.id)}
+            canInteract={canInteract}
+            onSave={() => onSave(item)}
+            onDetails={() => onDetails(item)}
+            onApply={() => (appliedIds.has(item.id) ? navigate("/messages") : onApply(item))}
+            onShare={() => onShare(item)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function RecommendedSection({ items, savedJobs, appliedIds, canInteract, onSave, onDetails, onApply, onShare, navigate }) {
   const isSaved = (id) => savedJobs.some((job) => String(job.id) === String(id));
 
@@ -1360,6 +1409,19 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
             {item.verified && <VerifiedBadge />}
             {!item.verified && item.trusted && <TrustedBadge />}
           </div>
+
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-[11px] text-neutral-500">
+              <span>Match score</span>
+              <span className="font-semibold text-neutral-900">{item.matchScore}%</span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#e8e2ff]">
+              <div
+                className="h-full rounded-full bg-[var(--forsa-primary)]"
+                style={{ width: `${Math.min(100, Math.max(6, item.matchScore || 6))}%` }}
+              />
+            </div>
+          </div>
         </div>
 
         <button
@@ -1371,15 +1433,15 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
-        <button onClick={onDetails} className="rounded-full border border-neutral-300 bg-white px-3 py-2.5 text-sm font-medium">
+        <Button onClick={onDetails} variant="secondary" className="w-full">
           Details
-        </button>
-        <button onClick={onShare} className="inline-flex items-center justify-center rounded-full border border-neutral-300 bg-white px-3 py-2.5 text-sm font-medium">
+        </Button>
+        <Button onClick={onShare} variant="secondary" className="inline-flex w-full items-center justify-center gap-2">
           <FaShareAlt className="text-xs" />
-        </button>
-        <button onClick={onApply} className={`rounded-full px-3 py-2.5 text-sm font-medium ${canInteract ? "bg-[var(--forsa-primary)] text-white" : "bg-neutral-200 text-neutral-500"}`}>
+        </Button>
+        <Button onClick={onApply} disabled={!canInteract} className="w-full">
           {applied ? "Open" : "Apply"}
-        </button>
+        </Button>
       </div>
     </article>
   );

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import AppHeader from "../components/AppHeader";
+import Button from "../components/ui/Button";
+import Card from "../components/ui/Card";
 import {
   FaPlus,
   FaBriefcase,
@@ -29,6 +31,7 @@ function AnalyticsTab({ analytics, onNewPost }) {
   const rows = analytics.rows || [];
   const totals = analytics.totals || {};
   const bestPost = analytics.bestPost;
+  const activePostCount = rows.filter((item) => item.post?.status !== "closed").length;
 
   return (
     <div className="mt-6 sm:mt-8">
@@ -43,13 +46,31 @@ function AnalyticsTab({ analytics, onNewPost }) {
           </p>
         </div>
 
-        <button
-          onClick={onNewPost}
-          className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
-        >
+        <Button onClick={onNewPost} className="inline-flex items-center gap-2 sm:w-fit">
           <FaPlus className="text-xs" />
           New post
-        </button>
+        </Button>
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <Card className="rounded-[28px] border border-[var(--forsa-border)] p-6 shadow-sm">
+          <p className="text-sm font-medium text-neutral-500">Top insights</p>
+          <h3 className="mt-3 text-3xl font-semibold tracking-[-0.03em]">{formatNumber(totals.applications)} applications, {formatNumber(totals.views)} views</h3>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-600">
+            Your team has attracted interest across roles. Focus on top-performing posts, strong applicant fit, and share opportunities to keep momentum high.
+          </p>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <StatCard label="Open opportunities" value={formatNumber(activePostCount)} />
+            <StatCard label="Conversion rate" value={`${totals.conversionRate || 0}%`} />
+            <StatCard label="Avg applicant fit" value={`${totals.avgFit || 0}%`} />
+          </div>
+        </Card>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <StatCard label="Total saves" value={formatNumber(totals.saves)} />
+          <StatCard label="Total shares" value={formatNumber(totals.shares)} />
+        </div>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -240,13 +261,10 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <button
-              onClick={() => navigate("/post")}
-              className="rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white"
-            >
-              <FaPlus className="inline mr-2" />
+            <Button onClick={() => navigate("/post")} className="inline-flex items-center gap-2">
+              <FaPlus className="inline text-xs" />
               New Job
-            </button>
+            </Button>
           </div>
         </div>
 

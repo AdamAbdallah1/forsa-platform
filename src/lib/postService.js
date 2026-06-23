@@ -4,6 +4,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  increment,
   orderBy,
   query,
   serverTimestamp,
@@ -48,6 +49,10 @@ export async function createPost(postData) {
     ...postData,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    views: Number(postData.views || 0),
+    saves: Number(postData.saves || 0),
+    shares: Number(postData.shares || 0),
+    reports: Number(postData.reports || 0),
     status: needsReview ? "closed" : "active",
     reviewStatus: needsReview ? "pending" : "approved",
     moderationStatus: needsReview ? "pending" : "approved",
@@ -68,6 +73,17 @@ export async function createPost(postData) {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+}
+
+export async function incrementPostMetric(postId, field, delta = 1) {
+  if (!postId || !field) return;
+  const valid = ["views", "shares", "applications", "saves", "reports"];
+  if (!valid.includes(field)) return;
+
+  await updateDoc(doc(db, "posts", postId), {
+    [field]: increment(delta),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function getActivePosts() {
