@@ -9,6 +9,7 @@ import People from "./pages/People";
 import NotFound from "./pages/NotFound";
 import Companies from "./pages/Companies";
 import PostOpportunity from "./pages/PostOpportunity";
+import Dashboard from "./pages/Dashboard";
 import AdminOutreach from "./pages/AdminOutreach";
 import ForgotPassword from "./pages/ForgotPassword";
 import Text from "./pages/Text";
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/onboarding" element={<SeekerRoute><Onboarding /></SeekerRoute>} />
           <Route path="/explore" element={<Explore />} />
+          <Route path="/dashboard" element={<HiringRoute><Dashboard /></HiringRoute>}/>
           <Route path="/admin-review" element={<AdminReview />} />
           <Route path="/saved" element={<ProtectedRoute><SavedJobs /></ProtectedRoute>} />
           <Route path="/applications" element={<SeekerRoute><MyApplications /></SeekerRoute>} />

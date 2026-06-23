@@ -3,11 +3,10 @@ import {
   FaBell,
   FaBookmark,
   FaCompass,
-  FaClipboardList,
-  FaPaperPlane,
   FaPlus,
   FaUser,
   FaUsers,
+  FaTachometerAlt,
 } from "react-icons/fa";
 import BrandLogo from "./BrandLogo";
 import { BsFillPeopleFill } from "react-icons/bs";
@@ -26,11 +25,14 @@ export default function AppHeader() {
 
   const account = safeJson("forsaAccount", null);
   const notifications = safeJson("forsaNotificationsCache", []);
+
   const isHiring = account?.accountType === "hiring";
   const isAuthPage = location.pathname === "/auth";
 
   const unread = notifications.filter(
-    (item) => !item.read && (!item.targetEmail || item.targetEmail === account?.email)
+    (item) =>
+      !item.read &&
+      (!item.targetEmail || item.targetEmail === account?.email)
   ).length;
 
   const linkClass = ({ isActive }) =>
@@ -43,6 +45,8 @@ export default function AppHeader() {
   return (
     <header className="sticky top-0 z-40 border-[var(--forsa-border)]/80 bg-[var(--forsa-bg)]/85 backdrop-blur-2xl">
       <div className="mx-auto flex max-w-[1180px] items-center justify-between px-5 py-5 sm:px-6">
+
+        {/* Logo */}
         <button
           onClick={() => navigate("/")}
           className="group flex shrink-0 items-center gap-2"
@@ -50,56 +54,29 @@ export default function AppHeader() {
           <BrandLogo />
         </button>
 
+        {/* NAV */}
         <nav className="hidden items-center gap-1.5 rounded-full border border-[var(--forsa-border)] bg-white/65 p-1 shadow-sm lg:flex">
-          <NavLink to="/explore" className={linkClass}>
-            <span className="flex items-center gap-1.5">
-              <FaCompass className="text-[11px]" />
-              Explore
-            </span>
-          </NavLink>
 
-          {account && (
+          {account && isHiring && (
             <>
-              {isHiring && (
-                <>
+              <NavLink to="/dashboard" className={linkClass}>
+  <span className="flex items-center gap-1.5">
+    <FaTachometerAlt className="text-[11px]" />
+    Dashboard
+  </span>
+</NavLink>
 
-                  <NavLink to="/applicants" className={linkClass}>
-                    <span className="flex items-center gap-1.5">
-                      <FaUsers className="text-[11px]" />
-                      Applicants
-                    </span>
-                  </NavLink>
-                  <NavLink to="/post" className={linkClass}>
-                    <span className="flex items-center gap-1.5">
-                      <FaPlus className="text-[11px]" />
-                      Post
-                    </span>
-                  </NavLink>
-                </>
-              )}
-
-              {!isHiring && (
-  <NavLink to="/saved" className={linkClass}>
-    <span className="flex items-center gap-1.5">
-      <FaBookmark className="text-[11px]" />
-      Saved
-    </span>
-  </NavLink>
-  
-)}
-
-{!isHiring && (
-  <NavLink to="/people" className={linkClass}>
-    <span className="flex items-center gap-1.5">
-      <BsFillPeopleFill className="text-[11px]" />
-      Connect
-    </span>
-  </NavLink>
-)}
-              <NavLink to="/messages" className={linkClass}>
+              <NavLink to="/applicants" className={linkClass}>
                 <span className="flex items-center gap-1.5">
-                  <FaPaperPlane className="text-[11px]" />
-                  Messages
+                  <FaUsers className="text-[11px]" />
+                  Applicants
+                </span>
+              </NavLink>
+
+              <NavLink to="/post" className={linkClass}>
+                <span className="flex items-center gap-1.5">
+                  <FaPlus className="text-[11px]" />
+                  Post
                 </span>
               </NavLink>
 
@@ -111,9 +88,47 @@ export default function AppHeader() {
               </NavLink>
             </>
           )}
+
+          {/* ===================== */}
+          {/* SEEKER ACCOUNT NAV */}
+          {/* ===================== */}
+          {account && !isHiring && (
+            <>
+              <NavLink to="/explore" className={linkClass}>
+                <span className="flex items-center gap-1.5">
+                  <FaCompass className="text-[11px]" />
+                  Explore
+                </span>
+              </NavLink>
+
+              <NavLink to="/saved" className={linkClass}>
+                <span className="flex items-center gap-1.5">
+                  <FaBookmark className="text-[11px]" />
+                  Saved
+                </span>
+              </NavLink>
+
+              <NavLink to="/people" className={linkClass}>
+                <span className="flex items-center gap-1.5">
+                  <BsFillPeopleFill className="text-[11px]" />
+                  Connect
+                </span>
+              </NavLink>
+
+              <NavLink to="/profile" className={linkClass}>
+                <span className="flex items-center gap-1.5">
+                  <FaUser className="text-[11px]" />
+                  Profile
+                </span>
+              </NavLink>
+            </>
+          )}
+
         </nav>
 
+        {/* RIGHT SIDE */}
         <div className="flex items-center gap-2">
+
           {account ? (
             <>
               <NavLink
@@ -137,8 +152,8 @@ export default function AppHeader() {
 
               <button
                 onClick={() =>
-  navigate(isHiring ? "/applicants" : "/applications")
-}
+                  navigate(isHiring ? "/applicants" : "/applications")
+                }
                 className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-[var(--forsa-primary-light)] sm:block"
               >
                 {isHiring ? "Applicants" : "Applications"}
@@ -159,6 +174,7 @@ export default function AppHeader() {
               Explore
             </button>
           )}
+
         </div>
       </div>
     </header>

@@ -41,24 +41,41 @@ const typeOptions = [
 ];
 
 const categoryOptions = [
-  "Restaurant / F&B",
-  "Retail / Clothing",
-  "Sales",
-  "Customer Service",
-  "Delivery / Driver",
-  "Admin / Office",
-  "Tech / Digital",
-  "Design / Creative",
-  "Marketing / Social Media",
-  "Education",
-  "Events",
-  "Beauty / Salon",
-  "Hospitality",
-  "Healthcare",
-  "Recruitment Agency",
-  "Abroad Opportunity",
-  "Visa / Placement",
-  "Other",
+  "Technology & Software",
+  "Engineering & Technical",
+  "Data & Artificial Intelligence",
+  "Design & Creative",
+  "Marketing & Communications",
+  "Sales & Business Development",
+  "Customer Support & Call Center",
+  "Administration & Office Management",
+  "Finance & Accounting",
+  "Human Resources",
+  "Legal & Compliance",
+  "Education & Training",
+  "Healthcare & Medical",
+  "Pharmaceuticals",
+  "Hospitality & Tourism",
+  "Food & Beverage",
+  "Retail & E-Commerce",
+  "Fashion & Beauty",
+  "Real Estate & Property",
+  "Construction & Architecture",
+  "Manufacturing & Industrial",
+  "Logistics & Supply Chain",
+  "Transportation & Delivery",
+  "Security & Safety",
+  "Events & Entertainment",
+  "Media & Content Creation",
+  "NGO & Social Impact",
+  "Agriculture & Farming",
+  "Automotive & Mechanics",
+  "Skilled Trades & Maintenance",
+  "Remote Work",
+  "Internships & Entry Level",
+  "Freelance & Contract",
+  "International Opportunities",
+  "Other"
 ];
 
 const shiftOptions = [
@@ -295,7 +312,6 @@ const emptyForm = (account) => ({
   postingMode: "company",
   managedCompanyEmail: "",
   managedCompanyPhone: "",
-  managedSource: "",
 });
 
 function safeJson(key, fallback) {
@@ -434,7 +450,7 @@ export default function PostOpportunity() {
       form.title.trim() &&
       form.company.trim() &&
       (!form.postSource.includes("Recruitment") || (form.agencyName.trim() && form.hiringFor.trim() && form.workCountry.trim())) &&
-      (form.postingMode !== "managed" || !isForsaAdmin || ((form.managedCompanyEmail.trim() || form.managedCompanyPhone.trim()) && form.managedSource.trim())) &&
+      (form.postingMode !== "managed" || !isForsaAdmin || ((form.managedCompanyEmail.trim() || form.managedCompanyPhone.trim()) )) &&
       form.location.trim() &&
       form.category.trim() &&
       form.pay.trim() &&
@@ -613,7 +629,6 @@ export default function PostOpportunity() {
         companyClaimed: false,
         claimEmail: isManagedPost ? form.managedCompanyEmail.trim().toLowerCase() : "",
         claimPhone: isManagedPost ? form.managedCompanyPhone.trim() : "",
-        managedSource: isManagedPost ? form.managedSource.trim() : "",
         claimInstructions: isManagedPost
           ? "This post was added by Forsa Jobs. The real company can request ownership and edit it after admin approval."
           : "",
@@ -703,61 +718,6 @@ export default function PostOpportunity() {
 {isForsaAdmin && (
               <ManagedPostingPanel form={form} updateForm={updateForm} />
             )}
-
-            <div className="rounded-[26px] border border-neutral-200 bg-neutral-50/60 p-4 sm:p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-sm font-bold tracking-tight text-neutral-950">Posting mode</p>
-                  <p className="mt-1 max-w-2xl text-xs font-medium leading-5 text-neutral-500">
-                    Choose if this is a direct company job or an agency / abroad placement opportunity.
-                  </p>
-                </div>
-                {form.postSource.includes("Recruitment") && (
-                  <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-100">
-                    <FaShieldAlt className="text-[10px]" />
-                    Agency post
-                  </span>
-                )}
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {postSourceOptions.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => {
-                      updateForm("postSource", option);
-                      if (option.includes("Recruitment")) {
-                        updateForm("category", "Abroad Opportunity");
-                        updateForm("agencyName", form.agencyName || account?.name || "");
-                        updateForm("hiringFor", form.hiringFor || form.company || "");
-                      }
-                    }}
-                    className={`rounded-2xl border p-4 text-left transition ${
-                      form.postSource === option
-                        ? "border-[var(--forsa-primary)] bg-white text-[var(--forsa-primary)] shadow-sm"
-                        : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
-                    }`}
-                  >
-                    <p className="text-sm font-bold">{option}</p>
-                    <p className="mt-1 text-xs leading-5 text-neutral-500">
-                      {option.includes("Recruitment")
-                        ? "For recruitment offices, abroad jobs, visa or placement opportunities."
-                        : "For companies hiring directly for their own team."}
-                    </p>
-                  </button>
-                ))}
-              </div>
-
-              {form.postSource.includes("Recruitment") && (
-                <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4">
-                  <p className="text-sm font-bold text-amber-800">Applicant safety notice</p>
-                  <p className="mt-1 text-xs leading-5 text-amber-800">
-                    This will be shown as an agency/placement post. Applicants should confirm fees, contract details, visa process, employer identity, and work country before applying.
-                  </p>
-                </div>
-              )}
-            </div>
 
             {form.postSource.includes("Recruitment") && (
               <div className="grid gap-5 sm:grid-cols-3">
@@ -966,11 +926,10 @@ export default function PostOpportunity() {
               </div>
             </div>
 
-            {/* Priority Flags */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <ToggleCard active={form.urgent} icon={<FaBolt />} title="Urgent post" text="Show an urgent label so seekers know this role needs faster applications." onClick={() => updateForm("urgent", !form.urgent)} />
               <ToggleCard active={form.featured} icon={<FaStar />} title="Featured post" text="Highlight this opportunity inside Explore. Verified companies are featured automatically." onClick={() => updateForm("featured", !form.featured)} />
-            </div>
+            </div>*/}
 
             <div className="block lg:hidden">
               <PreviewCard form={form} qualityScore={qualityScore} />
@@ -1084,13 +1043,6 @@ function ManagedPostingPanel({ form, updateForm }) {
               placeholder="70582107"
               value={form.managedCompanyPhone}
               onChange={(val) => updateForm("managedCompanyPhone", val)}
-            />
-
-            <Field
-              label="Original source"
-              placeholder="WhatsApp group / call / outreach"
-              value={form.managedSource}
-              onChange={(val) => updateForm("managedSource", val)}
             />
           </div>
 
