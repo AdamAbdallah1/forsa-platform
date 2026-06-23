@@ -16,166 +16,24 @@ import {
 import { useNavigate } from "react-router-dom";
 import { getCompanyAnalytics } from "../lib/analyticsService";
 
-function StatCard({ label, value }) {
-  return (
-    <div className="rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm">
-      <p className="text-xs text-neutral-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
-    </div>
-  );
-}
-
 const formatNumber = (value) => Number(value || 0).toLocaleString();
 
-function AnalyticsTab({ analytics, onNewPost }) {
-  const rows = analytics.rows || [];
-  const totals = analytics.totals || {};
-  const bestPost = analytics.bestPost;
-  const activePostCount = rows.filter((item) => item.post?.status !== "closed").length;
-
-  return (
-    <div className="mt-6 sm:mt-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-neutral-500">Company analytics</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
-            Hiring performance
-          </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
-            Track views, saves, applications, shares, conversion rate, and average applicant fit across your posts.
-          </p>
-        </div>
-
-        <Button onClick={onNewPost} className="inline-flex items-center gap-2 sm:w-fit">
-          <FaPlus className="text-xs" />
-          New post
-        </Button>
-      </div>
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <Card className="rounded-[28px] border border-[var(--forsa-border)] p-6 shadow-sm">
-          <p className="text-sm font-medium text-neutral-500">Top insights</p>
-          <h3 className="mt-3 text-3xl font-semibold tracking-[-0.03em]">{formatNumber(totals.applications)} applications, {formatNumber(totals.views)} views</h3>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-600">
-            Your team has attracted interest across roles. Focus on top-performing posts, strong applicant fit, and share opportunities to keep momentum high.
-          </p>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <StatCard label="Open opportunities" value={formatNumber(activePostCount)} />
-            <StatCard label="Conversion rate" value={`${totals.conversionRate || 0}%`} />
-            <StatCard label="Avg applicant fit" value={`${totals.avgFit || 0}%`} />
-          </div>
-        </Card>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <StatCard label="Total saves" value={formatNumber(totals.saves)} />
-          <StatCard label="Total shares" value={formatNumber(totals.shares)} />
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <AnalyticsMetric icon={<FaEye />} label="Total views" value={formatNumber(totals.views)} />
-        <AnalyticsMetric icon={<FaPaperPlane />} label="Applications" value={formatNumber(totals.applications)} />
-        <AnalyticsMetric icon={<FaBookmark />} label="Saves" value={formatNumber(totals.saves)} />
-        <AnalyticsMetric icon={<FaShareAlt />} label="Shares" value={formatNumber(totals.shares)} />
-      </div>
-
-      <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <AnalyticsMetric icon={<FaPercent />} label="Conversion rate" value={`${totals.conversionRate || 0}%`} />
-        <AnalyticsMetric icon={<FaBullseye />} label="Avg applicant fit" value={`${totals.avgFit || 0}%`} />
-        <AnalyticsMetric icon={<FaFlag />} label="Reports" value={formatNumber(totals.reports)} danger={totals.reports > 0} />
-      </div>
-
-      {bestPost && (
-        <div className="mt-6 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white shadow-sm">
-          <div className="p-5 sm:p-6">
-            <p className="text-sm font-medium text-neutral-500">Best performing post</p>
-            <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-2xl font-semibold tracking-[-0.04em]">{bestPost.post.title}</h3>
-                <p className="mt-2 text-sm text-neutral-500">
-                  {bestPost.post.location || "Lebanon"} · {bestPost.post.pay || "Pay not set"}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 sm:w-[330px]">
-                <MiniAnalytics label="Views" value={bestPost.views} />
-                <MiniAnalytics label="Apps" value={bestPost.applications} />
-                <MiniAnalytics label="Conv." value={`${bestPost.conversionRate}%`} />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {rows.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--forsa-primary)]">
-            <FaBriefcase />
-          </div>
-          <p className="mt-4 text-xl font-semibold">No analytics yet.</p>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
-            Post your first opportunity and analytics will appear here.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-6 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white shadow-sm">
-          <div className="border-b border-[var(--forsa-border)] p-5">
-            <p className="font-semibold">Post performance table</p>
-            <p className="mt-1 text-sm text-neutral-500">Sorted by applications, views, and conversion.</p>
-          </div>
-
-          <div className="divide-y divide-[var(--forsa-border)]">
-            {rows.map((row) => (
-              <div key={row.post.id} className="p-4 sm:p-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="line-clamp-1 font-semibold tracking-[-0.03em]">{row.post.title}</h3>
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.post.status === "closed" ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>
-                        {row.post.status === "closed" ? "Closed" : "Live"}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-neutral-500">
-                      {row.post.location || "Lebanon"} · {row.post.category || row.post.type || "Opportunity"}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-7 lg:w-[620px]">
-                    <MiniAnalytics label="Views" value={row.views} />
-                    <MiniAnalytics label="Saves" value={row.saves} />
-                    <MiniAnalytics label="Apps" value={row.applications} />
-                    <MiniAnalytics label="Shares" value={row.shares} />
-                    <MiniAnalytics label="Conv." value={`${row.conversionRate}%`} />
-                    <MiniAnalytics label="Fit" value={`${row.avgFit || 0}%`} />
-                    <MiniAnalytics label="Reports" value={row.reports} />
-                  </div>
-                </div>
-
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--forsa-bg)]">
-                  <div
-                    className="h-full rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))]"
-                    style={{ width: `${Math.min(100, Math.max(4, row.conversionRate))}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
+// Modernized Metrics Component
 function AnalyticsMetric({ icon, label, value, danger }) {
   return (
-    <div className={`rounded-[24px] border p-4 shadow-sm ${danger ? "border-red-100 bg-red-50" : "border-[var(--forsa-border)] bg-white"}`}>
-      <div className="flex items-center justify-between gap-3">
+    <div className={`rounded-2xl border p-5 shadow-sm transition-all duration-200 hover:shadow-md ${
+      danger ? "border-red-200 bg-red-50/50" : "border-[var(--forsa-border)] bg-white"
+    }`}>
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className={`text-xs font-medium ${danger ? "text-red-500" : "text-neutral-500"}`}>{label}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{value}</p>
+          <p className={`text-xs font-semibold uppercase tracking-wider ${danger ? "text-red-600" : "text-neutral-500"}`}>
+            {label}
+          </p>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-neutral-900">{value}</p>
         </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${danger ? "bg-white text-red-600" : "bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"}`}>
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm ${
+          danger ? "bg-red-100 text-red-600" : "bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
+        }`}>
           {icon}
         </div>
       </div>
@@ -185,16 +43,137 @@ function AnalyticsMetric({ icon, label, value, danger }) {
 
 function MiniAnalytics({ label, value }) {
   return (
-    <div className="rounded-[18px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-3 text-center text-xs font-semibold text-neutral-700">
-      <p>{label}</p>
-      <p className="mt-2 text-sm font-semibold text-neutral-900">{value}</p>
+    <div className="rounded-xl border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-3 text-center">
+      <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">{label}</p>
+      <p className="mt-1 text-sm font-bold text-neutral-900">{value}</p>
+    </div>
+  );
+}
+
+function AnalyticsTab({ analytics, onNewPost }) {
+  const rows = analytics.rows || [];
+  const totals = analytics.totals || {};
+  const bestPost = analytics.bestPost;
+  const activePostCount = rows.filter((item) => item.post?.status !== "closed").length;
+
+  return (
+    <div className="mt-8 space-y-8">
+      {/* Overview Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <AnalyticsMetric icon={<FaBriefcase />} label="Open Opportunities" value={formatNumber(activePostCount)} />
+        <AnalyticsMetric icon={<FaEye />} label="Total Views" value={formatNumber(totals.views)} />
+        <AnalyticsMetric icon={<FaPaperPlane />} label="Applications" value={formatNumber(totals.applications)} />
+        <AnalyticsMetric icon={<FaPercent />} label="Conversion Rate" value={`${totals.conversionRate || 0}%`} />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <AnalyticsMetric icon={<FaBookmark />} label="Saves" value={formatNumber(totals.saves)} />
+        <AnalyticsMetric icon={<FaShareAlt />} label="Shares" value={formatNumber(totals.shares)} />
+        <AnalyticsMetric icon={<FaBullseye />} label="Avg Applicant Fit" value={`${totals.avgFit || 0}%`} />
+      </div>
+
+      {totals.reports > 0 && (
+        <AnalyticsMetric icon={<FaFlag />} label="Flagged Reports" value={formatNumber(totals.reports)} danger />
+      )}
+
+      {/* Best Performing Post Highlight */}
+      {bestPost && (
+        <div className="rounded-2xl border border-[var(--forsa-border)] bg-gradient-to-r from-white to-[var(--forsa-bg-soft)] p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--forsa-primary)]">Best Performing Post</p>
+          <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-neutral-900 tracking-tight">{bestPost.post.title}</h3>
+              <p className="mt-1 text-sm text-neutral-500">
+                {bestPost.post.location || "Lebanon"} · <span className="font-medium text-neutral-700">{bestPost.post.pay || "Pay not set"}</span>
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 w-full md:w-[360px]">
+              <MiniAnalytics label="Views" value={formatNumber(bestPost.views)} />
+              <MiniAnalytics label="Apps" value={formatNumber(bestPost.applications)} />
+              <MiniAnalytics label="Conv." value={`${bestPost.conversionRate}%`} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Table / Empty State */}
+      {rows.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-neutral-200 bg-white p-12 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]">
+            <FaBriefcase className="text-lg" />
+          </div>
+          <h3 className="mt-4 text-lg font-semibold text-neutral-900">No data analytics yet</h3>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-500">
+            Post your first opportunity and start tracking your performance.
+          </p>
+          <Button onClick={onNewPost} className="mt-6 inline-flex items-center gap-2">
+            <FaPlus className="text-xs" /> New Post
+          </Button>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-[var(--forsa-border)] bg-white shadow-sm">
+          <div className="border-b border-[var(--forsa-border)] px-6 py-5">
+            <h3 className="font-bold text-neutral-900 text-lg">Post Performance</h3>
+            <p className="text-sm text-neutral-500 mt-0.5">Detailed breakdown of active and historic listings.</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[var(--forsa-border)] bg-[var(--forsa-bg)] text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                  <th className="px-6 py-4">Opportunity</th>
+                  <th className="px-4 py-4 text-center">Views</th>
+                  <th className="px-4 py-4 text-center">Saves</th>
+                  <th className="px-4 py-4 text-center">Apps</th>
+                  <th className="px-4 py-4 text-center">Shares</th>
+                  <th className="px-4 py-4 text-center">Conv.</th>
+                  <th className="px-4 py-4 text-center">Fit</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--forsa-border)]">
+                {rows.map((row) => (
+                  <tr key={row.post.id} className="group hover:bg-neutral-50/50 transition-colors">
+                    <td className="px-6 py-4 max-w-[280px]">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-neutral-900 truncate">{row.post.title}</span>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          row.post.status === "closed" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"
+                        }`}>
+                          {row.post.status === "closed" ? "Closed" : "Live"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        {row.post.location || "Lebanon"} · {row.post.category || row.post.type || "Opportunity"}
+                      </p>
+                      
+                      {/* Visual inline conversion bar */}
+                      <div className="mt-3 h-1.5 w-32 overflow-hidden rounded-full bg-neutral-100">
+                        <div
+                          className="h-full rounded-full bg-[var(--forsa-primary)]"
+                          style={{ width: `${Math.min(100, Math.max(4, row.conversionRate))}%` }}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-center font-medium text-neutral-900 text-sm">{formatNumber(row.views)}</td>
+                    <td className="px-4 py-4 text-center font-medium text-neutral-600 text-sm">{formatNumber(row.saves)}</td>
+                    <td className="px-4 py-4 text-center font-semibold text-neutral-900 text-sm">{formatNumber(row.applications)}</td>
+                    <td className="px-4 py-4 text-center font-medium text-neutral-600 text-sm">{formatNumber(row.shares)}</td>
+                    <td className="px-4 py-4 text-center font-bold text-neutral-900 text-sm">{row.conversionRate}%</td>
+                    <td className="px-4 py-4 text-center font-medium text-neutral-900 text-sm">{row.avgFit || 0}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function Dashboard() {
   const navigate = useNavigate();
-
   const [account, setAccount] = useState(null);
   const [analytics, setAnalytics] = useState({
     rows: [],
@@ -215,7 +194,6 @@ export default function Dashboard() {
           email: acc.companyEmail || acc.email,
           name: acc.companyName || acc.name,
         });
-
         setAnalytics(data);
       } catch (error) {
         console.error("Dashboard analytics load failed:", error);
@@ -229,47 +207,43 @@ export default function Dashboard() {
     return (
       <div className="p-6">
         <AppHeader />
-        <p className="text-sm text-neutral-600">Please login first.</p>
+        <div className="mt-8 max-w-md rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium text-neutral-600">Please sign in to access your dashboard.</p>
+        </div>
       </div>
     );
   }
-
-  const { rows, totals, bestPost } = analytics;
 
   return (
     <section className="min-h-screen bg-[var(--forsa-bg)]">
       <AppHeader />
 
-      <div className="mx-auto max-w-[1180px] px-4 pb-20 sm:px-6">
-
-        {/* HERO */}
-        <div className="mt-6 rounded-[34px] border bg-white/85 p-6 shadow-sm backdrop-blur-2xl">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-
+      <div className="mx-auto max-w-[1200px] px-4 pb-20 pt-6 sm:px-6">
+        
+        {/* Modernized Header Banner */}
+        <div className="rounded-2xl border border-[var(--forsa-border)] bg-white p-6 shadow-sm md:p-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold text-[var(--forsa-primary)]">
-                <FaBriefcase />
-                Company analytics
-              </p>
-
-              <h1 className="mt-4 text-3xl font-semibold">
-                Welcome, {account.name}
+              <div className="inline-flex items-center gap-2 rounded-lg bg-[var(--forsa-bg-soft)] px-3 py-1 text-xs font-semibold text-[var(--forsa-primary)]">
+                <FaBriefcase className="text-[10px]" />
+                Employer Workspace
+              </div>
+              <h1 className="mt-3 text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+                Welcome back, {account.name}
               </h1>
-
-              <p className="mt-2 text-sm text-neutral-600">
-                Track job performance and hiring metrics in real time.
+              <p className="mt-1.5 text-sm text-neutral-500">
+                Track your active job performance metrics and recruitment health in real time.
               </p>
             </div>
 
-            <Button onClick={() => navigate("/post")} className="inline-flex items-center gap-2">
-              <FaPlus className="inline text-xs" />
-              New Job
+            <Button onClick={() => navigate("/post")} className="inline-flex items-center gap-2 self-start md:self-auto shadow-sm">
+              <FaPlus className="text-xs" />
+              <span>Create Listing</span>
             </Button>
           </div>
         </div>
 
         <AnalyticsTab analytics={analytics} onNewPost={() => navigate("/post")} />
-
       </div>
     </section>
   );
