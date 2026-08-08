@@ -254,7 +254,8 @@ export default function Auth() {
             A local opportunity platform for students, freelancers, creators, and businesses across Lebanon.
           </p>
 
-          <div className="mt-8 grid max-w-md gap-3">
+         {/*
+           <div className="mt-8 grid max-w-md gap-3">
             <TrustItem
               title="For seekers"
               text="Build a profile, save opportunities, apply, and track replies."
@@ -264,6 +265,8 @@ export default function Auth() {
               text="Post opportunities, review applicants, and manage conversations."
             />
           </div>
+         
+         */}
         </div>
 
         <div className="relative mx-auto flex w-full max-w-[470px] flex-col justify-center py-4 lg:min-h-0 lg:py-0">
