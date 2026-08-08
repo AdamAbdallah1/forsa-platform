@@ -207,10 +207,7 @@ export default function Onboarding() {
               <div className="pointer-events-none absolute -bottom-28 -left-28 h-72 w-72 rounded-full bg-[var(--forsa-primary)]/5 blur-3xl" />
 
               <div className="relative space-y-4">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-bold tracking-wider text-neutral-500 uppercase">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--forsa-primary)]" />
-                  Configuration
-                </span>
+
 
                 <h1 className="text-3xl font-bold tracking-[-0.05em] text-neutral-950 sm:text-4xl md:text-5xl md:leading-[1.05]">
                   Build your opportunity profile.
@@ -252,7 +249,6 @@ export default function Onboarding() {
             </div>
           </aside>
 
-          {/* Core Multi-Step Configuration Interface */}
           <div className="overflow-hidden rounded-[34px] border border-neutral-200/70 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.015)]">
             
             {/* Step Navigation Bar */}
@@ -268,7 +264,7 @@ export default function Onboarding() {
                     }}
                     className={`shrink-0 rounded-xl border px-4 py-2.5 text-xs font-bold tracking-tight transition-all duration-200 active:scale-[0.97] ${
                       step === index
-                        ? "border-neutral-950 bg-neutral-950 text-white shadow-sm"
+                        ? "border-[#6025C0] bg-[#6025C0] text-white shadow-sm"
                         : index < step
                         ? "border-neutral-200 bg-neutral-100 text-neutral-800"
                         : "border-neutral-200/80 bg-white text-neutral-400 hover:border-neutral-300"
@@ -280,12 +276,9 @@ export default function Onboarding() {
               </div>
             </div>
 
-            {/* Dynamic Step Window View */}
             <div className="p-5 sm:p-8 space-y-6">
               <div className="rounded-2xl bg-neutral-50/80 border border-neutral-100/70 p-5 space-y-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--forsa-primary)]">
-                  Step {step + 1} of {steps.length}
-                </p>
+
                 <h2 className="text-2xl font-bold tracking-[-0.04em] text-neutral-950 sm:text-3xl">
                   {steps[step].title}
                 </h2>
@@ -302,7 +295,7 @@ export default function Onboarding() {
                       value={cityPreference}
                       onChange={(e) => setCityPreference(e.target.value)}
                       placeholder="Beirut, Tripoli, Saida, Remote..."
-                      className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3.5 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:bg-neutral-50/20"
+                      className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3.5 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-[#6928D0] focus:bg-[#6928D0]]"
                     />
                   </FieldBlock>
 
@@ -350,7 +343,7 @@ export default function Onboarding() {
                       value={portfolio}
                       onChange={(e) => setPortfolio(e.target.value)}
                       placeholder="https://your-portfolio.com"
-                      className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3.5 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950"
+                      className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3.5 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-[#824DED]"
                     />
                   </FieldBlock>
 
@@ -475,7 +468,7 @@ function OptionSection({
             <button
               type="button"
               onClick={addCustomSkill}
-              className="inline-flex items-center gap-2 rounded-xl bg-neutral-950 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-neutral-900 transition-all duration-200"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#7333DE] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-neutral-900 transition-all duration-200"
             >
               <FaPlus className="text-[9px]" />
               Append

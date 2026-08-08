@@ -2385,95 +2385,181 @@ function ProfileEdit({
           </div>
         </>
       ) : (
-        <>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field
-              label="Full name"
-              value={account.name}
-              onChange={(value) => updateAccount("name", value)}
-            />
+<>
+  <div className="grid gap-5 sm:grid-cols-2">
+    <Field
+      label="Full name"
+      value={account.name}
+      onChange={(value) => updateAccount("name", value)}
+    />
 
-            <Field
-              label="Email"
-              value={account.email}
-              onChange={(value) => updateAccount("email", value)}
-            />
+    <Field
+      label="Email address"
+      value={account.email}
+      onChange={(value) => updateAccount("email", value)}
+    />
 
-            <Field
-              label="City"
-              value={account.city}
-              onChange={(value) => updateAccount("city", value)}
-            />
-          </div>
-          <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
-  <label className="text-sm font-medium">Public summary</label>
-  <textarea
-    value={account.bio || ""}
-    onChange={(e) => updateAccount("bio", e.target.value)}
-    placeholder="Example: Motivated computer science student looking for internships, part-time work, and freelance projects."
-    className="mt-2 min-h-28 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
-  />
-</div>
+    <Field
+      label="City"
+      value={account.city}
+      onChange={(value) => updateAccount("city", value)}
+    />
 
-<div className="mt-6 grid gap-4 md:grid-cols-2">
-  <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
-    <label className="text-sm font-medium">Experience</label>
-    <textarea
-      value={account.experience || ""}
-      onChange={(e) => updateAccount("experience", e.target.value)}
-      placeholder="One item per line. Example: Cashier — handled POS, customers, and daily closing."
-      className="mt-2 min-h-32 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
+    <Field
+      label="Professional headline"
+      value={account.headline || ""}
+      onChange={(value) => updateAccount("headline", value)}
+      placeholder="e.g. Frontend Developer · CS Student"
     />
   </div>
 
-  <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
-    <label className="text-sm font-medium">Education</label>
+  <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
+    <div>
+      <h3 className="text-sm font-bold text-neutral-950">
+        Professional summary
+      </h3>
+
+      <p className="mt-1 text-xs leading-5 text-neutral-500">
+        Give companies a quick overview of who you are, what you can do,
+        and what kind of opportunity you're looking for.
+      </p>
+    </div>
+
     <textarea
-      value={account.education || ""}
-      onChange={(e) => updateAccount("education", e.target.value)}
-      placeholder="One item per line. Example: TS1 MIS / IT — CIS College"
-      className="mt-2 min-h-32 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
+      value={account.summary || ""}
+      onChange={(e) => updateAccount("summary", e.target.value)}
+      placeholder="Tell companies about your background, skills, interests, and career goals..."
+      rows={5}
+      className="mt-4 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-[var(--forsa-primary)] focus:ring-2 focus:ring-[var(--forsa-primary)]/10"
     />
   </div>
-</div>
 
-<div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
-  <label className="text-sm font-medium">Portfolio links</label>
-  <textarea
-    value={account.portfolioLinks || ""}
-    onChange={(e) => updateAccount("portfolioLinks", e.target.value)}
-    placeholder="One link per line. Example: https://github.com/yourname"
-    className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
-  />
-</div>
+  <div className="mt-6 rounded-[24px] border border-neutral-100 bg-white p-4 sm:rounded-[26px] sm:p-5">
+    <div>
+      <h3 className="text-sm font-bold text-neutral-950">
+        Education
+      </h3>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <EditBox
-              title="Your skills"
-              options={skillOptions}
-              selected={profile.skills}
-              onToggle={(item) => toggleProfileItem("skills", item)}
-            />
+      <p className="mt-1 text-xs leading-5 text-neutral-500">
+        Add your current or previous education.
+      </p>
+    </div>
 
-            <EditBox
-              title="Looking for"
-              options={lookingOptions}
-              selected={profile.lookingFor}
-              onToggle={(item) => toggleProfileItem("lookingFor", item)}
-            />
-          </div>
+    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <Field
+        label="Institution"
+        value={account.education?.institution || ""}
+        onChange={(value) =>
+          updateAccount("education", {
+            ...account.education,
+            institution: value,
+          })
+        }
+        placeholder="e.g. CIS College"
+      />
 
-          <SmartCvAutofill
-            profile={profile}
-            toggleProfileItem={toggleProfileItem}
-          />
+      <Field
+        label="Degree / Program"
+        value={account.education?.degree || ""}
+        onChange={(value) =>
+          updateAccount("education", {
+            ...account.education,
+            degree: value,
+          })
+        }
+        placeholder="e.g. TS — MIS"
+      />
 
-          <CvLinkEditor
-            cv={profile.cv}
-            onSave={handleCvLinkSave}
-            onRemove={removeCv}
-          />
-        </>
+      <Field
+        label="Field of study"
+        value={account.education?.field || ""}
+        onChange={(value) =>
+          updateAccount("education", {
+            ...account.education,
+            field: value,
+          })
+        }
+        placeholder="e.g. Management Information Systems"
+      />
+
+      <Field
+        label="Graduation year"
+        value={account.education?.graduationYear || ""}
+        onChange={(value) =>
+          updateAccount("education", {
+            ...account.education,
+            graduationYear: value,
+          })
+        }
+        placeholder="e.g. 2026"
+      />
+    </div>
+  </div>
+
+  <div className="mt-6 rounded-[24px] border border-neutral-100 bg-white p-4 sm:rounded-[26px] sm:p-5">
+    <div>
+      <h3 className="text-sm font-bold text-neutral-950">
+        Skills
+      </h3>
+
+      <p className="mt-1 text-xs leading-5 text-neutral-500">
+        Add the skills and technologies you want companies to discover.
+      </p>
+    </div>
+
+    <Field
+      label="Skills"
+      value={account.skills || ""}
+      onChange={(value) => updateAccount("skills", value)}
+      placeholder="e.g. React, JavaScript, Figma, Git"
+    />
+  </div>
+
+  <div className="mt-6 rounded-[24px] border border-neutral-100 bg-white p-4 sm:rounded-[26px] sm:p-5">
+    <div>
+      <h3 className="text-sm font-bold text-neutral-950">
+        Career preferences
+      </h3>
+
+      <p className="mt-1 text-xs leading-5 text-neutral-500">
+        Tell Forsa what kind of opportunity you're looking for.
+      </p>
+    </div>
+
+    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <Field
+        label="Desired role"
+        value={account.desiredRole || ""}
+        onChange={(value) => updateAccount("desiredRole", value)}
+        placeholder="e.g. Frontend Developer"
+      />
+
+      <Field
+        label="Opportunity type"
+        value={account.opportunityType || ""}
+        onChange={(value) => updateAccount("opportunityType", value)}
+        placeholder="e.g. Internship / Junior"
+      />
+
+      <Field
+        label="Preferred location"
+        value={account.preferredLocation || ""}
+        onChange={(value) =>
+          updateAccount("preferredLocation", value)
+        }
+        placeholder="e.g. Beirut"
+      />
+
+      <Field
+        label="Work preference"
+        value={account.workPreference || ""}
+        onChange={(value) => updateAccount("workPreference", value)}
+        placeholder="e.g. On-site / Hybrid / Remote"
+      />
+    </div>
+  </div>
+</>
+
       )}
     </div>
   );

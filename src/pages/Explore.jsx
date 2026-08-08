@@ -1036,12 +1036,6 @@ function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
           <p className="mt-3 max-w-xl text-[13px] leading-6 text-neutral-600 sm:text-base sm:leading-7">
             Jobs, internships, freelance gigs, agency posts, and abroad opportunities.
           </p>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <HeroChip label="Personalized jobs" value={`${stats.recommended} recommended`} icon={<FaLightbulb />} />
-            <HeroChip label="Trusted sources" value={`${stats.total} filtered`} icon={<FaShieldAlt />} />
-            <HeroChip label="Fast apply" value="Quick one-tap flow" icon={<FaBolt />} />
-          </div>
         </div>
       </div>
 
