@@ -5,6 +5,7 @@ import {
   FaCompass,
   FaPlus,
   FaUser,
+  FaBriefcase,
   FaUsers,
   FaTachometerAlt,
 } from "react-icons/fa";
@@ -104,10 +105,10 @@ export default function AppHeader() {
                 </span>
               </NavLink>
 
-              <NavLink to="/profile" className={linkClass}>
+              <NavLink to="/applications" className={linkClass}>
                 <span className="flex items-center gap-1.5">
-                  <FaUser className="text-[11px]" />
-                  Profile
+                  <FaBriefcase className="text-[11px]" />
+                  Applications
                 </span>
               </NavLink>
             </>
@@ -140,11 +141,11 @@ export default function AppHeader() {
 
               <button
                 onClick={() =>
-                  navigate(isHiring ? "/profile" : "/applications")
+                  navigate(isHiring ? "/profile" : "/profile")
                 }
                 className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-[var(--forsa-primary-light)] sm:block"
               >
-                {isHiring ? "Profile" : "Applications"}
+                {isHiring ? "Profile" : "Profile"}
               </button>
             </>
           ) : !isAuthPage ? (
