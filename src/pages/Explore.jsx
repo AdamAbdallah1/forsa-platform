@@ -145,7 +145,17 @@ const getMatchMeta = (post, profile) => {
 
 const updatePostAnalytics = async (postId, field) => {
   try {
+    console.log("TRACKING POST METRIC:", {
+      postId,
+      field,
+    });
+
     await incrementPostMetric(postId, field);
+
+    console.log("POST METRIC UPDATED:", {
+      postId,
+      field,
+    });
   } catch (error) {
     console.error("Post analytics increment failed:", error);
   }
@@ -491,18 +501,26 @@ export default function Explore() {
   }, [rankedOpportunities, canInteract]);
 
   useEffect(() => {
-    const postId = readSharedPostId(searchParams, location);
-    if (!postId) return;
+  const postId = readSharedPostId(searchParams, location);
+  if (!postId) return;
 
-    const found = allOpportunities.find((item) => String(item.id) === String(postId));
+  const found = allOpportunities.find(
+    (item) => String(item.id) === String(postId)
+  );
 
-    if (!found) {
-      showToast(postsLoading ? "Loading post..." : "This post is not available", "info");
-      return;
-    }
+  if (!found) {
+    showToast(
+      postsLoading ? "Loading post..." : "This post is not available",
+      "info"
+    );
+    return;
+  }
 
-    openDetails(found, { replaceUrl: true });
-  }, [searchParams, location.search, location.hash, allOpportunities]);
+  openDetails(found, { replaceUrl: true });
+
+  // Count this as a real post view.
+  updatePostAnalytics(found.id, "views");
+}, [searchParams, location.search, location.hash, allOpportunities]);
 
   const stats = useMemo(() => {
     return {
