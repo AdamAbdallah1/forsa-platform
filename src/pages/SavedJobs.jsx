@@ -99,8 +99,6 @@ export default function SavedJobs() {
 
       <div className="mx-auto max-w-[1180px] px-5 pb-28 sm:px-6 lg:pb-20">
         <div className="mt-8 rounded-[30px] border border-[var(--forsa-border)] bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-neutral-500">Saved jobs</p>
-
           <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
             Your saved opportunities
           </h1>

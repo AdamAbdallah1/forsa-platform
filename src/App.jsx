@@ -70,7 +70,7 @@ export default function App() {
     <BrowserRouter>
       <main className="min-h-screen overflow-x-hidden bg-[var(--forsa-bg)] pb-24 text-[#111111] md:pb-0">
         <Routes>
-          <Route path="/" element={<Navigate to="/auth" replace />} />
+          <Route path="/" element={<Home />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/onboarding" element={<SeekerRoute><Onboarding /></SeekerRoute>} />
           <Route path="/explore" element={<Explore />} />

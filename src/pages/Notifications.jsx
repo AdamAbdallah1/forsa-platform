@@ -252,10 +252,6 @@ export default function Notifications() {
       <div className="mx-auto max-w-5xl px-4 pb-28 pt-4 sm:px-6 lg:px-8 lg:pb-20">
         <div className="mt-6 flex flex-col gap-6 border-b border-neutral-100 pb-8 md:flex-row md:items-end md:justify-between">
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-neutral-500">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--forsa-primary)]" />
-              Activity center
-            </span>
 
             <h1 className="mt-3 text-3xl font-bold tracking-[-0.05em] text-neutral-950 sm:text-4xl md:text-5xl">
               Updates and activity
