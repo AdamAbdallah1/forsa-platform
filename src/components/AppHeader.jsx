@@ -58,16 +58,9 @@ export default function AppHeader() {
           {account && isHiring && (
             <>
               <NavLink to="/dashboard" className={linkClass}>
-  <span className="flex items-center gap-1.5">
-    <FaTachometerAlt className="text-[11px]" />
-    Dashboard
-  </span>
-</NavLink>
-
-              <NavLink to="/applicants" className={linkClass}>
                 <span className="flex items-center gap-1.5">
-                  <FaUsers className="text-[11px]" />
-                  Applicants
+                  <FaTachometerAlt className="text-[11px]" />
+                  Dashboard
                 </span>
               </NavLink>
 
@@ -78,12 +71,13 @@ export default function AppHeader() {
                 </span>
               </NavLink>
 
-              <NavLink to="/profile" className={linkClass}>
+              <NavLink to="/applicants" className={linkClass}>
                 <span className="flex items-center gap-1.5">
-                  <FaUser className="text-[11px]" />
-                  Profile
+                  <FaUsers className="text-[11px]" />
+                  Applicants
                 </span>
               </NavLink>
+
             </>
           )}
 
@@ -146,11 +140,11 @@ export default function AppHeader() {
 
               <button
                 onClick={() =>
-                  navigate(isHiring ? "/applicants" : "/applications")
+                  navigate(isHiring ? "/profile" : "/applications")
                 }
                 className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-[var(--forsa-primary-light)] sm:block"
               >
-                {isHiring ? "Applicants" : "Applications"}
+                {isHiring ? "Profile" : "Applications"}
               </button>
             </>
           ) : !isAuthPage ? (
