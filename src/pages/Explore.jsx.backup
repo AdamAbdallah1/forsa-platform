@@ -1469,251 +1469,189 @@ function OpportunityCard({
   const Icon = item.icon || FaBriefcase;
   const description = item.description || "";
   const tags = item.tags || [];
-  const visibleTags = tags.slice(0, 3);
+  const visibleTags = tags.slice(0, 4);
   const hiddenTags = Math.max(0, tags.length - visibleTags.length);
+  const isLongDescription = description.length > 128;
 
-  const matchScore = Math.min(100, Math.max(0, item.matchScore || 0));
+  const fitText = item.matchingSkills?.length
+    ? item.matchingSkills.slice(0, 2).join(", ")
+    : item.matchingType
+    ? item.type
+    : "Improve profile";
 
   return (
-    <article className="group flex flex-1 flex-col overflow-hidden rounded-[24px] border border-[var(--forsa-border)] bg-white shadow-[0_4px_20px_rgba(30,20,50,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#ddd3ef] hover:shadow-[0_12px_35px_rgba(30,20,50,0.08)]">
+    <article className="group relative flex min-h-0 flex-col overflow-hidden rounded-[28px] border border-[#ece6f5] bg-white shadow-[0_10px_32px_rgba(17,17,17,0.045)] transition duration-300 sm:min-h-[430px] sm:rounded-[30px] sm:hover:-translate-y-1 sm:hover:border-[var(--forsa-soft)] sm:hover:shadow-[0_24px_75px_rgba(109,40,217,0.13)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow),#d946ef)]" />
 
-      {/* Main content */}
-      <div className="flex flex-1 flex-col p-4">
-
-        {/* ───────────────── HEADER ───────────────── */}
-        <div className="flex items-start gap-3">
-
-          {/* Opportunity icon */}
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[var(--forsa-bg)] text-[var(--forsa-primary)] ring-1 ring-[var(--forsa-border)]">
-            <Icon className="text-[15px]" />
-          </div>
-
-          {/* Title / company */}
-          <div className="min-w-0 flex-1">
-
-            {/* Badges */}
-            <div className="mb-1.5 flex h-[18px] items-center gap-1.5 overflow-hidden">
-
-              {item.verified && (
-                <Badge>
-                  <FaShieldAlt className="text-[8px]" />
-                  Verified
-                </Badge>
-              )}
-
-              {isAgencyPost(item) && (
-                <Badge tone="amber">Agency</Badge>
-              )}
-
-              {isAbroadPost(item) && (
-                <Badge tone="blue">
-                  {getWorkCountry(item)}
-                </Badge>
-              )}
-
-              {item.urgent && (
-                <Badge tone="red">
-                  <FaBolt className="text-[8px]" />
-                  Urgent
-                </Badge>
-              )}
-
-              {applied && (
-                <Badge tone="green">Applied</Badge>
-              )}
+      <div className="flex flex-1 flex-col p-4 sm:p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#f4efff] text-[var(--forsa-primary)] ring-1 ring-[#e8ddff]">
+              <Icon className="text-sm" />
             </div>
 
-            {/* Job title */}
-            <h3 className="line-clamp-2 text-[15px] font-semibold leading-[1.3] tracking-[-0.025em] text-neutral-950">
-              {item.title}
-            </h3>
+            <div className="min-w-0">
+              <div className="mb-1 flex h-5 items-center gap-1.5 overflow-hidden">
+                {item.verified && (
+                  <Badge>
+                    <FaShieldAlt className="text-[8px]" />
+                    Verified
+                  </Badge>
+                )}
+                {isAgencyPost(item) && <Badge tone="amber">Agency</Badge>}
+                {isAbroadPost(item) && <Badge tone="blue">{getWorkCountry(item)}</Badge>}
+                {!item.verified && item.trusted && <Badge>Trusted</Badge>}
+                {item.source === "featured" && <Badge>Featured</Badge>}
+                {item.urgent && (
+                  <Badge tone="red">
+                    <FaBolt className="text-[8px]" />
+                    Urgent
+                  </Badge>
+                )}
+                {applied && <Badge tone="green">Applied</Badge>}
+              </div>
 
-            {/* Company + location */}
-            <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[12px] text-neutral-500">
-              <span className="truncate font-medium text-neutral-700">
-                {item.company}
-              </span>
+              <h3 className="line-clamp-2 min-h-[42px] text-[16px] font-semibold leading-[1.28] tracking-[-0.035em] text-neutral-950">
+                {item.title}
+              </h3>
 
-              <span className="text-neutral-300">·</span>
-
-              <FaMapMarkerAlt className="shrink-0 text-[9px] text-neutral-400" />
-
-              <span className="truncate">
-                {item.location || "Location not specified"}
-              </span>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-neutral-500">
+                <FaMapMarkerAlt className="shrink-0 text-[10px] text-neutral-400" />
+                <span className="truncate">{item.company} · {item.location}</span>
+                {item.verified && <VerifiedBadge />}
+                {!item.verified && item.trusted && <TrustedBadge />}
+              </div>
             </div>
           </div>
 
-          {/* Save */}
           <button
-            type="button"
             onClick={onSave}
             disabled={savedLoading}
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-all duration-200 ${
+            className={`shrink-0 rounded-full border p-2 transition ${
               saved
-                ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-sm"
-                : "border-[var(--forsa-border)] bg-white text-neutral-400 hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg)] hover:text-[var(--forsa-primary)]"
+                ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white"
+                : "border-[#e7e0f0] bg-white text-neutral-500 hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
             } ${!canInteract ? "opacity-70" : ""}`}
-            aria-label={saved ? "Remove from saved jobs" : "Save opportunity"}
+            aria-label="Save opportunity"
           >
-            {saved ? (
-              <FaBookmark className="text-[12px]" />
-            ) : (
-              <FaRegBookmark className="text-[12px]" />
-            )}
+            {saved ? <FaBookmark className="text-sm" /> : <FaRegBookmark className="text-sm" />}
           </button>
         </div>
 
-        {/* ───────────────── QUICK FACTS ───────────────── */}
-        <div className="mt-4 flex items-center divide-x divide-[var(--forsa-border)] rounded-[14px] border border-[var(--forsa-border)] bg-[#fcfbfe] px-1 py-2">
-
-          <div className="min-w-0 flex-1 px-2.5">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-              Type
-            </p>
-            <p className="mt-0.5 truncate text-[11px] font-semibold text-neutral-700">
-              {isAgencyPost(item) ? "Agency" : item.type || "—"}
-            </p>
-          </div>
-
-          <div className="min-w-0 flex-1 px-2.5">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-              Pay
-            </p>
-            <p className="mt-0.5 truncate text-[11px] font-semibold text-neutral-700">
-              {item.pay || "Not specified"}
-            </p>
-          </div>
-
-          <div className="min-w-0 flex-1 px-2.5">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-              {isAbroadPost(item) ? "Country" : "Applicants"}
-            </p>
-            <p className="mt-0.5 truncate text-[11px] font-semibold text-neutral-700">
-              {isAbroadPost(item)
-                ? getWorkCountry(item)
-                : applicantCount}
-            </p>
-          </div>
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <MetaChip label={isAgencyPost(item) ? "Source" : "Type"} value={isAgencyPost(item) ? "Agency" : item.type} />
+          <MetaChip label="Pay" value={item.pay} />
+          <MetaChip label={isAbroadPost(item) ? "Country" : "Applicants"} value={isAbroadPost(item) ? getWorkCountry(item) : `${applicantCount}`} />
         </div>
 
-        {/* ───────────────── FORSA FIT ───────────────── */}
-        <div className="mt-4">
+        <div className="mt-4 h-[64px]">
+          <p className="line-clamp-2 text-[13px] leading-6 text-neutral-600">
+            {description}
+          </p>
 
-          <div className="mb-1.5 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-neutral-700">
-                Forsa Fit
-              </span>
+          {isLongDescription && (
+            <button
+              type="button"
+              onClick={onDetails}
+              className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-[var(--forsa-primary)]"
+            >
+              Read full details
+              <FaArrowRight className="text-[9px]" />
+            </button>
+          )}
+        </div>
 
-              {item.matchingSkills?.length > 0 && (
-                <span className="text-[10px] text-neutral-400">
-                  {item.matchingSkills.length} matching skills
-                </span>
-              )}
+        {isAgencyPost(item) && <AgencyMiniNotice item={item} />}
+
+        <div className="mt-4 rounded-[22px] border border-[#eee8f7] bg-[#fbfaff] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-neutral-800">Forsa Fit</p>
+              <p className="mt-1 truncate text-xs text-neutral-500">{fitText}</p>
             </div>
 
-            <span className="text-[11px] font-bold text-[var(--forsa-primary)]">
-              {matchScore}%
+            <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--forsa-primary)] shadow-sm ring-1 ring-[#eee8ff]">
+              {item.matchScore || 0}%
             </span>
           </div>
 
-          <div className="h-1.5 overflow-hidden rounded-full bg-[#eee9f6]">
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#eee8ff]">
             <div
-              className="h-full rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))] transition-all duration-500"
-              style={{
-                width: `${Math.max(4, matchScore)}%`,
-              }}
+              className="h-full rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))]"
+              style={{ width: `${Math.min(100, Math.max(6, item.matchScore || 0))}%` }}
             />
           </div>
         </div>
 
-        {/* ───────────────── TAGS ───────────────── */}
-        {tags.length > 0 && (
-          <div className="mt-3 flex min-w-0 items-center gap-1.5 overflow-hidden">
-
-            {visibleTags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={onDetails}
-                className="max-w-[120px] truncate rounded-full border border-[#e9e4f2] bg-white px-2.5 py-1 text-[10px] font-medium text-neutral-600 transition hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg)] hover:text-[var(--forsa-primary)]"
-              >
-                {tag}
-              </button>
-            ))}
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+              Skills / tags
+            </p>
 
             {hiddenTags > 0 && (
               <button
                 type="button"
                 onClick={onDetails}
-                className="shrink-0 text-[10px] font-semibold text-[var(--forsa-primary)] hover:underline"
+                className="shrink-0 text-xs font-semibold text-[var(--forsa-primary)]"
               >
-                +{hiddenTags}
+                +{hiddenTags} more
               </button>
             )}
           </div>
-        )}
 
-        {/* ───────────────── DESCRIPTION ───────────────── */}
-        {description && (
-          <p className="mt-3 line-clamp-2 text-[11px] leading-[1.6] text-neutral-500">
-            {description}
-          </p>
-        )}
-
-      </div>
-
-      {/* ───────────────── ACTIONS ───────────────── */}
-      <div className="border-t border-[var(--forsa-border)] bg-[#fcfbfe] p-3">
-
-        <div className="grid grid-cols-[1fr_40px_1fr] gap-2">
-
-          {/* Details */}
-          <button
-            type="button"
-            onClick={onDetails}
-            className="rounded-full border border-[var(--forsa-border)] bg-white px-3 py-2 text-[12px] font-semibold text-neutral-700 transition-all duration-200 hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg)] hover:text-[var(--forsa-primary)]"
-          >
-            View details
-          </button>
-
-          {/* Share */}
-          <button
-            type="button"
-            onClick={onShare}
-            className="inline-flex items-center justify-center rounded-full border border-[var(--forsa-border)] bg-white text-neutral-500 transition-all duration-200 hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg)] hover:text-[var(--forsa-primary)]"
-            aria-label="Share opportunity"
-          >
-            <FaShareAlt className="text-[11px]" />
-          </button>
-
-          {/* Apply */}
-          <button
-            type="button"
-            onClick={onApply}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-semibold transition-all duration-200 ${
-              canInteract
-                ? "bg-[linear-gradient(135deg,var(--forsa-primary),var(--forsa-glow))] text-white shadow-[0_8px_18px_rgba(109,40,217,0.16)] hover:-translate-y-0.5"
-                : "bg-neutral-200 text-neutral-500"
-            }`}
-          >
-            {!canInteract ? (
-              <FaLock className="text-[10px]" />
+          <div className="grid min-h-[74px] grid-cols-2 gap-2">
+            {visibleTags.length > 0 ? (
+              visibleTags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={onDetails}
+                  className="flex min-w-0 items-center justify-center rounded-2xl border border-[#e9e4f2] bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+                >
+                  <span className="truncate">{tag}</span>
+                </button>
+              ))
             ) : (
-              <FaPaperPlane className="text-[10px]" />
+              <div className="col-span-2 flex items-center justify-center rounded-2xl border border-dashed border-[#e9e4f2] bg-white px-3 py-2 text-xs text-neutral-400">
+                No tags added
+              </div>
             )}
-
-            {applied ? "Open" : "Apply"}
-          </button>
-
+          </div>
         </div>
       </div>
 
+      <div className="sticky bottom-0 grid grid-cols-[1fr_44px_1fr] gap-2 border-t border-[#eee8f7] bg-[#fbfaff]/95 p-3 pb-[calc(env(safe-area-inset-bottom,0px)+14px)] backdrop-blur-xl md:static md:pb-3">
+        <button
+          onClick={onDetails}
+          className="rounded-full border border-[#e7e2f1] bg-white px-3 py-2.5 text-sm font-semibold transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+        >
+          Details
+        </button>
+
+        <button
+          onClick={onShare}
+          className="inline-flex items-center justify-center rounded-full border border-[#e7e2f1] bg-white px-3 py-2.5 text-sm font-semibold transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+          aria-label="Share opportunity"
+        >
+          <FaShareAlt className="text-xs" />
+        </button>
+
+        <button
+          onClick={onApply}
+          className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-2.5 text-sm font-semibold transition ${
+            canInteract
+              ? "bg-[linear-gradient(135deg,var(--forsa-primary),var(--forsa-glow))] text-white shadow-[0_12px_26px_rgba(109,40,217,0.20)] hover:-translate-y-0.5"
+              : "bg-neutral-200 text-neutral-500"
+          }`}
+        >
+          {!canInteract ? <FaLock className="text-xs" /> : <FaPaperPlane className="text-xs" />}
+          {applied ? "Open" : "Apply"}
+        </button>
+      </div>
     </article>
   );
 }
-
 
 
 function AgencyBadge({ compact = false }) {
