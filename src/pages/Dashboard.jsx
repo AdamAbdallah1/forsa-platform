@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../lib/firebase";
 import AppHeader from "../components/AppHeader";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
@@ -182,26 +184,36 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      setAccount(null);
+      return;
+    }
+
     const acc = JSON.parse(localStorage.getItem("forsaAccount"));
+
+    if (!acc?.uid) {
+      setAccount(null);
+      return;
+    }
+
     setAccount(acc);
 
-    if (!acc?.uid) return;
+    try {
+      const data = await getCompanyAnalytics({
+        uid: user.uid,
+        email: user.email,
+        name: acc.companyName || acc.name,
+      });
 
-    const load = async () => {
-      try {
-        const data = await getCompanyAnalytics({
-          uid: acc.uid,
-          email: acc.companyEmail || acc.email,
-          name: acc.companyName || acc.name,
-        });
-        setAnalytics(data);
-      } catch (error) {
-        console.error("Dashboard analytics load failed:", error);
-      }
-    };
+      setAnalytics(data);
+    } catch (error) {
+      console.error("Dashboard analytics load failed:", error);
+    }
+  });
 
-    load();
-  }, []);
+  return () => unsubscribe();
+}, []);
 
   if (!account) {
     return (
@@ -224,10 +236,6 @@ export default function Dashboard() {
         <div className="rounded-2xl border border-[var(--forsa-border)] bg-white p-6 shadow-sm md:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-lg bg-[var(--forsa-bg-soft)] px-3 py-1 text-xs font-semibold text-[var(--forsa-primary)]">
-                <FaBriefcase className="text-[10px]" />
-                Employer Workspace
-              </div>
               <h1 className="mt-3 text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
                 Welcome back, {account.name}
               </h1>

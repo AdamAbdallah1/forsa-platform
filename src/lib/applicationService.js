@@ -10,12 +10,17 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
+
 import { db } from "./firebase";
 import { createNotification } from "./notificationService";
 
 const toIso = (value) => {
   if (!value) return null;
-  if (typeof value?.toDate === "function") return value.toDate().toISOString();
+
+  if (typeof value?.toDate === "function") {
+    return value.toDate().toISOString();
+  }
+
   return value;
 };
 
@@ -25,15 +30,32 @@ const normalizeThread = (item) => {
   return {
     id: item.id,
     ...data,
-    createdAt: toIso(data.createdAt) || data.createdAt || new Date().toISOString(),
-    updatedAt: toIso(data.updatedAt) || data.updatedAt || data.createdAt || new Date().toISOString(),
+
+    createdAt:
+      toIso(data.createdAt) ||
+      data.createdAt ||
+      new Date().toISOString(),
+
+    updatedAt:
+      toIso(data.updatedAt) ||
+      data.updatedAt ||
+      data.createdAt ||
+      new Date().toISOString(),
+
     conversation: (data.conversation || []).map((message) => ({
       ...message,
-      createdAt: toIso(message.createdAt) || message.createdAt || new Date().toISOString(),
+      createdAt:
+        toIso(message.createdAt) ||
+        message.createdAt ||
+        new Date().toISOString(),
     })),
+
     statusHistory: (data.statusHistory || []).map((entry) => ({
       ...entry,
-      createdAt: toIso(entry.createdAt) || entry.createdAt || new Date().toISOString(),
+      createdAt:
+        toIso(entry.createdAt) ||
+        entry.createdAt ||
+        new Date().toISOString(),
     })),
   };
 };
@@ -48,8 +70,14 @@ export function listenUserThreads(account, onChange, onError) {
 
   const q =
     account.accountType === "hiring"
-      ? query(applicationsRef, where("ownerUid", "==", account.uid))
-      : query(applicationsRef, where("seeker.uid", "==", account.uid));
+      ? query(
+          applicationsRef,
+          where("ownerUid", "==", account.uid)
+        )
+      : query(
+          applicationsRef,
+          where("seeker.uid", "==", account.uid)
+        );
 
   return onSnapshot(
     q,
@@ -66,47 +94,72 @@ export function listenUserThreads(account, onChange, onError) {
     },
     onError
   );
-}
+};
 
 export async function createApplicationThread(threadData) {
   const docRef = await addDoc(collection(db, "applications"), {
     ...threadData,
+
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+
     status: threadData.status || "pending",
   });
 
   return {
     id: docRef.id,
+
     ...threadData,
+
     status: threadData.status || "pending",
+
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 }
 
-export async function sendThreadReply(threadId, { message, lastMessage, thread }) {
+export async function sendThreadReply(
+  threadId,
+  { message, lastMessage, thread }
+) {
   await updateDoc(doc(db, "applications", threadId), {
     lastMessage,
+
     updatedAt: serverTimestamp(),
+
     conversation: arrayUnion({
       ...message,
-      createdAt: message.createdAt || new Date().toISOString(),
+      createdAt:
+        message.createdAt || new Date().toISOString(),
     }),
   });
 
-  const senderEmail = message.email || message.fromEmail || "";
-  const seekerEmail = thread?.seeker?.email || "";
-  const ownerEmail = thread?.ownerEmail || "";
+  const senderEmail =
+    message.email ||
+    message.fromEmail ||
+    "";
+
+  const seekerEmail =
+    thread?.seeker?.email || "";
+
+  const ownerEmail =
+    thread?.ownerEmail || "";
 
   const targetEmail =
-    senderEmail === seekerEmail ? ownerEmail : seekerEmail;
+    senderEmail === seekerEmail
+      ? ownerEmail
+      : seekerEmail;
 
-  if (targetEmail && targetEmail !== senderEmail) {
+  if (
+    targetEmail &&
+    targetEmail !== senderEmail
+  ) {
     await createNotification({
       type: "new_message",
       title: "New message",
-      text: `${message.from || "Someone"} sent you a message about ${thread?.title || "an application"}.`,
+      text: `${message.from || "Someone"} sent you a message about ${
+        thread?.title || "an application"
+      }.`,
       targetEmail,
       actionUrl: "/messages",
       applicationId: threadId,
@@ -114,15 +167,24 @@ export async function sendThreadReply(threadId, { message, lastMessage, thread }
   }
 }
 
-export async function updateThreadStatus(threadId, { status, by, systemMessage }) {
+export async function updateThreadStatus(
+  threadId,
+  { status, by, systemMessage }
+) {
   await updateDoc(doc(db, "applications", threadId), {
     status,
+
     lastMessage: systemMessage.text,
+
     updatedAt: serverTimestamp(),
+
     conversation: arrayUnion({
       ...systemMessage,
-      createdAt: systemMessage.createdAt || new Date().toISOString(),
+      createdAt:
+        systemMessage.createdAt ||
+        new Date().toISOString(),
     }),
+
     statusHistory: arrayUnion({
       status,
       by,
@@ -131,16 +193,26 @@ export async function updateThreadStatus(threadId, { status, by, systemMessage }
   });
 }
 
-export async function scheduleThreadInterview(threadId, { interview, by, systemMessage }) {
+export async function scheduleThreadInterview(
+  threadId,
+  { interview, by, systemMessage }
+) {
   await updateDoc(doc(db, "applications", threadId), {
     status: "interview",
+
     interview,
+
     lastMessage: systemMessage.text,
+
     updatedAt: serverTimestamp(),
+
     conversation: arrayUnion({
       ...systemMessage,
-      createdAt: systemMessage.createdAt || new Date().toISOString(),
+      createdAt:
+        systemMessage.createdAt ||
+        new Date().toISOString(),
     }),
+
     statusHistory: arrayUnion({
       status: "interview",
       by,
@@ -149,6 +221,10 @@ export async function scheduleThreadInterview(threadId, { interview, by, systemM
   });
 }
 
-export async function deleteThreadFromFirestore(threadId) {
-  await deleteDoc(doc(db, "applications", threadId));
+export async function deleteThreadFromFirestore(
+  threadId
+) {
+  await deleteDoc(
+    doc(db, "applications", threadId)
+  );
 }

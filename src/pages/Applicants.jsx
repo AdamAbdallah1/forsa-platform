@@ -829,10 +829,6 @@ function HeroPanel({ stats }) {
 
       <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white/80 px-3 py-2 text-xs font-semibold text-[var(--forsa-primary)] shadow-sm">
-            <FaUsers className="text-xs" />
-            Company dashboard
-          </div>
 
           <h1 className="mt-4 max-w-3xl text-3xl font-semibold leading-[0.96] tracking-[-0.06em] sm:text-4xl md:text-5xl">
             Review applicants with a cleaner hiring workflow.

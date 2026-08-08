@@ -663,7 +663,7 @@ export default function PostOpportunity() {
         "Opportunity published successfully"
       );
 
-      navigate("/explore");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Post error:", error);
 
@@ -685,9 +685,6 @@ export default function PostOpportunity() {
         <div className="mb-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <span className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">
-                Create opportunity
-              </span>
 
               <h1 className="mt-3 text-3xl font-bold tracking-[-0.05em] text-neutral-950 sm:text-4xl">
                 Post a job in minutes.
