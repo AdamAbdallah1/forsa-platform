@@ -34,10 +34,37 @@ export async function saveJob({ userUid, userEmail, post }) {
     throw new Error("Authentication required to save job.");
   }
 
+  if (!post?.id) {
+    throw new Error("Post ID is required to save a job.");
+  }
+
   const id = `${uid}_${post.id}`;
+  const savedJobRef = doc(db, "savedJobs", id);
+
+  // Check whether this user already saved this post.
+  const existing = await getDocs(
+    query(
+      collection(db, "savedJobs"),
+      where("userUid", "==", uid),
+      where("postId", "==", post.id)
+    )
+  );
+
+  // Already saved: do not increment the counter again.
+  if (!existing.empty) {
+    return {
+      id,
+      userUid: uid,
+      userEmail: email || null,
+      postId: post.id,
+      post,
+      alreadySaved: true,
+    };
+  }
+
   const safePost = sanitizeFirestoreObject(post);
 
-  await setDoc(doc(db, "savedJobs", id), {
+  await setDoc(savedJobRef, {
     id,
     userUid: uid,
     userEmail: email || null,
@@ -46,7 +73,7 @@ export async function saveJob({ userUid, userEmail, post }) {
     savedAt: serverTimestamp(),
   });
 
-  await incrementPostMetric(post.id, "saves");
+  await incrementPostMetric(post.id, "saves", 1);
 
   return {
     id,
@@ -55,6 +82,7 @@ export async function saveJob({ userUid, userEmail, post }) {
     postId: post.id,
     post,
     savedAt: new Date().toISOString(),
+    alreadySaved: false,
   };
 }
 
@@ -65,8 +93,29 @@ export async function unsaveJob({ userUid, postId }) {
     throw new Error("Authentication required to remove saved job.");
   }
 
+  if (!postId) {
+    throw new Error("Post ID is required to remove a saved job.");
+  }
+
   const id = `${uid}_${postId}`;
-  await deleteDoc(doc(db, "savedJobs", id));
+  const savedJobRef = doc(db, "savedJobs", id);
+
+  // Check whether this save actually exists.
+  const existing = await getDocs(
+    query(
+      collection(db, "savedJobs"),
+      where("userUid", "==", uid),
+      where("postId", "==", postId)
+    )
+  );
+
+  // Nothing was saved, so do not decrement the counter.
+  if (existing.empty) {
+    return;
+  }
+
+  await deleteDoc(savedJobRef);
+
   await incrementPostMetric(postId, "saves", -1);
 }
 
@@ -77,7 +126,11 @@ export async function getUserSavedJobs(userUid) {
     throw new Error("Authentication required to load saved jobs.");
   }
 
-  const q = query(collection(db, "savedJobs"), where("userUid", "==", uid));
+  const q = query(
+    collection(db, "savedJobs"),
+    where("userUid", "==", uid)
+  );
+
   const snapshot = await getDocs(q);
 
   return snapshot.docs.map((item) => {
