@@ -1,30 +1,27 @@
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { showToast } from "../lib/Toast";
 import Footer from "../components/Footer";
-import SEO from "../components/SEO";
 import { createPost } from "../lib/postService.js";
 import { createNotification } from "../lib/notificationService";
 import {
+  FaArrowRight,
   FaBriefcase,
+  FaBuilding,
   FaCheck,
   FaChevronDown,
+  FaClock,
+  FaEnvelope,
   FaMapMarkerAlt,
+  FaPhone,
+  FaPlus,
   FaSearch,
+  FaShieldAlt,
   FaTag,
   FaTimes,
-  FaBolt,
-  FaStar,
-  FaClock,
-  FaUndo,
   FaTrash,
-  FaPlus,
-  FaShieldAlt,
-  FaBuilding,
-  FaHandshake,
-  FaLock,
-  FaPhone,
-  FaEnvelope,
+  FaUndo,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 
@@ -41,41 +38,20 @@ const typeOptions = [
 ];
 
 const categoryOptions = [
-  "Technology & Software",
-  "Engineering & Technical",
-  "Data & Artificial Intelligence",
-  "Design & Creative",
-  "Marketing & Communications",
-  "Sales & Business Development",
-  "Customer Support & Call Center",
-  "Administration & Office Management",
-  "Finance & Accounting",
-  "Human Resources",
-  "Legal & Compliance",
-  "Education & Training",
-  "Healthcare & Medical",
-  "Pharmaceuticals",
-  "Hospitality & Tourism",
-  "Food & Beverage",
-  "Retail & E-Commerce",
-  "Fashion & Beauty",
-  "Real Estate & Property",
-  "Construction & Architecture",
-  "Manufacturing & Industrial",
-  "Logistics & Supply Chain",
-  "Transportation & Delivery",
-  "Security & Safety",
-  "Events & Entertainment",
-  "Media & Content Creation",
-  "NGO & Social Impact",
-  "Agriculture & Farming",
-  "Automotive & Mechanics",
-  "Skilled Trades & Maintenance",
-  "Remote Work",
-  "Internships & Entry Level",
-  "Freelance & Contract",
-  "International Opportunities",
-  "Other"
+  "Software & Development",
+  "Data & AI",
+  "UI/UX & Product Design",
+  "Graphic & Brand Design",
+  "Marketing & Content",
+  "Cybersecurity",
+  "IT & Technical Support",
+  "Sales & Business",
+  "Restaurant / F&B",
+  "Retail",
+  "Delivery & Logistics",
+  "Hospitality",
+  "Education",
+  "Other",
 ];
 
 const shiftOptions = [
@@ -88,12 +64,7 @@ const shiftOptions = [
   "Remote schedule",
 ];
 
-const genderOptions = [
-  "Any",
-  "Male",
-  "Female",
-  "Not specified",
-];
+const genderOptions = ["Any", "Male", "Female", "Not specified"];
 
 const postSourceOptions = [
   "Direct company hiring",
@@ -120,198 +91,132 @@ const experienceOptions = [
 ];
 
 const tagOptions = [
-  "React", "JavaScript", "Frontend", "Backend", "Node.js", "Laravel",
-  "WordPress", "Shopify", "Web design", "UI/UX", "Graphic design", "Canva",
-  "Branding", "Logo design", "Marketing", "Social media", "Content creation",
-  "Copywriting", "Video editing", "Photography", "Reels", "TikTok", "Instagram",
-  "Sales", "Retail sales", "Clothing sales", "Customer service", "Cashier",
-  "Waiter", "Waitress", "Barista", "Chef", "Kitchen staff", "Assistant manager",
-  "Restaurant manager", "Delivery", "Driver", "Warehouse", "Stock management",
-  "Inventory", "Events", "Event staff", "Hostess", "Admin", "Office assistant",
-  "Data entry", "Accounting", "Teaching", "Tutor", "English", "Arabic", "Math",
-  "Receptionist", "Salon assistant", "Beauty", "Nurse", "Healthcare",
-  "Abroad job", "Dubai", "Germany", "Visa", "Recruitment agency", "Placement office",
+  "React",
+  "JavaScript",
+  "TypeScript",
+  "Frontend",
+  "Backend",
+  "Node.js",
+  "Python",
+  "PHP",
+  "Laravel",
+  "Next.js",
+  "React Native",
+  "Flutter",
+  "Java",
+  "C++",
+  "SQL",
+  "Firebase",
+  "Supabase",
+  "API Development",
+  "Cybersecurity",
+  "UI/UX",
+  "Figma",
+  "Graphic Design",
+  "Branding",
+  "Logo Design",
+  "Web Design",
+  "Motion Design",
+  "Digital Marketing",
+  "SEO",
+  "Social Media",
+  "Content Creation",
+  "Copywriting",
+  "Video Editing",
+  "Photography",
+  "Sales",
+  "Business Development",
+  "Customer Success",
+  "IT Support",
+  "Technical Support",
+  "Data Entry",
+  "Data Analysis",
+  "Internship",
+  "Junior",
+  "Remote",
+  "Freelance",
+  "Part-time",
 ];
 
 const templates = [
   {
-    label: "Barista",
+    label: "Developer Internship",
     data: {
-      title: "Part-time Barista",
-      category: "Restaurant / F&B",
-      type: "Part-time",
-      pay: "$250/month + tips",
-      tags: ["Barista", "Customer service", "Sales"],
-      packageDetails: "Salary + tips",
-      experience: "0-1 years",
-      shift: "Weekend shift",
-      gender: "Any",
-      requirements: "Good communication, punctuality, cleanliness, and basic customer service skills.",
-      description: "Looking for a friendly part-time barista for weekend shifts. Experience is helpful, but being punctual, clean, and comfortable with customers matters most.",
-    },
-  },
-  {
-    label: "React Internship",
-    data: {
-      title: "Junior React Developer Internship",
-      category: "Tech / Digital",
+      title: "Junior Developer Internship",
+      category: "Software & Development",
       type: "Internship",
-      pay: "Paid internship",
-      tags: ["React", "JavaScript", "Frontend", "UI/UX"],
-      packageDetails: "Monthly stipend / paid internship",
-      experience: "0-1 years",
-      shift: "Day shift",
-      gender: "Any",
-      requirements: "Basic React, JavaScript, Tailwind, Git, and willingness to learn.",
-      description: "Looking for a motivated junior React developer to help build landing pages and dashboards. Good fit for students who know React, Tailwind, and basic UI structure.",
-    },
-  },
-  {
-    label: "Social Media",
-    data: {
-      title: "Social Media Content Creator",
-      category: "Marketing / Social Media",
-      type: "Freelance",
-      pay: "$120/project",
-      tags: ["Marketing", "Instagram", "Content creation", "Video editing"],
-      packageDetails: "Per project payment",
-      experience: "1+ years",
-      shift: "Flexible",
-      gender: "Any",
-      requirements: "Portfolio or examples of previous Instagram content, reels, captions, or campaigns.",
-      description: "Need someone to create Instagram content, captions, and simple reels for a local brand. Portfolio or previous examples are preferred.",
-    },
-  },
-  {
-    label: "Graphic Designer",
-    data: {
-      title: "Graphic Designer",
-      category: "Design / Creative",
-      type: "Project",
-      pay: "Per project",
-      tags: ["Graphic design", "Branding", "Canva"],
-      packageDetails: "Per project payment",
-      experience: "1+ years",
-      shift: "Flexible",
-      gender: "Any",
-      requirements: "Previous design examples, strong visual taste, and ability to deliver clean social media assets.",
-      description: "Looking for a designer to create social posts, branding assets, and clean marketing visuals for a local business campaign.",
-    },
-  },
-  {
-    label: "Event Staff",
-    data: {
-      title: "Event assistants needed",
-      category: "Events",
-      type: "Project",
-      pay: "$25/day",
-      tags: ["Events", "Customer service", "Part-time"],
-      packageDetails: "Daily payment",
+      tags: ["JavaScript", "React", "Frontend", "Internship"],
       experience: "No experience required",
-      shift: "Weekend shift",
-      gender: "Any",
-      requirements: "Energetic, punctual, presentable, and comfortable helping guests during events.",
-      description: "Need energetic event assistants for guest check-in, setup, and coordination. Must be available on event day and comfortable working with people.",
-    },
-  },
-  {
-    label: "Waiter",
-    data: {
-      title: "Waiter / Waitress",
-      category: "Restaurant / F&B",
-      type: "Full-time",
-      pay: "Salary + tips",
-      tags: ["Waiter", "Customer service", "Restaurant manager"],
-      packageDetails: "Salary + tips + meals",
-      experience: "0-1 years",
-      shift: "Rotating shifts",
-      gender: "Any",
-      requirements: "Presentable, polite, fast learner, and able to work under pressure.",
-      description: "Restaurant is hiring waiter/waitress staff to serve customers, take orders, keep tables organized, and support daily restaurant operations.",
-    },
-  },
-  {
-    label: "Clothing Sales",
-    data: {
-      title: "Clothing Store Sales Assistant",
-      category: "Retail / Clothing",
-      type: "Full-time",
-      pay: "Salary + commission",
-      tags: ["Clothing sales", "Retail sales", "Customer service"],
-      packageDetails: "Salary + commission",
-      experience: "0-1 years",
-      shift: "Day shift",
-      gender: "Any",
-      requirements: "Good communication, clean appearance, sales mindset, and basic stock organization.",
-      description: "Clothing store is looking for a sales assistant to help customers, organize items, handle basic sales, and support daily shop operations.",
-    },
-  },
-  {
-    label: "Abroad Agency",
-    data: {
-      postSource: "Recruitment agency / placement office",
-      title: "Assistant Manager - Abroad Opportunity",
-      agencyName: "Recruitment Agency",
-      hiringFor: "Restaurant / Employer",
-      workCountry: "UAE / Dubai",
-      company: "Restaurant / Employer",
-      category: "Abroad Opportunity",
-      type: "Full-time",
-      location: "Dubai",
-      pay: "Salary + benefits",
-      tags: ["Abroad job", "Dubai", "Assistant manager", "Customer service"],
-      packageDetails: "Salary + benefits depending on employer contract",
-      experience: "2+ years",
       shift: "Flexible",
-      gender: "Any",
-      requirements: "Previous experience, valid documents, professional communication, and ability to confirm contract/visa details with the agency.",
-      description: "Recruitment/placement office is sharing an abroad opportunity. Applicants should confirm employer identity, fees, visa process, contract details, accommodation, and salary before applying.",
     },
   },
   {
-    label: "Delivery Driver",
+    label: "UI/UX Designer",
     data: {
-      title: "Delivery Driver",
-      category: "Delivery / Driver",
-      type: "Full-time",
-      pay: "Salary + delivery allowance",
-      tags: ["Delivery", "Driver", "Customer service"],
-      packageDetails: "Salary + delivery allowance",
+      title: "UI/UX Designer",
+      category: "UI/UX & Product Design",
+      type: "Freelance",
+      tags: ["UI/UX", "Figma", "Web Design"],
       experience: "1+ years",
-      shift: "Day shift",
-      gender: "Any",
-      requirements: "Valid driving license, punctuality, phone availability, and good knowledge of local areas.",
-      description: "Looking for a reliable delivery driver to handle orders, communicate with customers, and deliver items safely and on time.",
+      shift: "Flexible",
+    },
+  },
+  {
+    label: "Frontend Developer",
+    data: {
+      title: "Frontend Developer",
+      category: "Software & Development",
+      type: "Part-time",
+      tags: ["React", "JavaScript", "Frontend"],
+      experience: "0-1 years",
+      shift: "Flexible",
+    },
+  },
+  {
+    label: "Marketing Freelancer",
+    data: {
+      title: "Digital Marketing Freelancer",
+      category: "Marketing & Content",
+      type: "Freelance",
+      tags: ["Digital Marketing", "Social Media", "Content Creation"],
+      experience: "1+ years",
+      shift: "Flexible",
     },
   },
 ];
 
 const emptyForm = (account) => ({
   title: "",
-  questions: [""],
-  postSource: "Direct company hiring",
-  agencyName: account?.name || "",
-  hiringFor: "",
-  workCountry: "Lebanon",
-  company: account?.name || "",
+  company: account?.companyName || account?.name || "",
   location: account?.city || "",
-  type: "Freelance",
-  category: "Restaurant / F&B",
+  type: "Full-time",
+  category: "Other",
+
   pay: "",
   packageDetails: "",
+
   experience: "No experience required",
   shift: "Flexible",
   gender: "Any",
+
   description: "",
   requirements: "",
   contact: account?.email || "",
+
   tags: [],
-  urgent: false,
-  featured: false,
+  questions: [""],
+
+  postSource: "Direct company hiring",
+  agencyName: "",
+  hiringFor: "",
+  workCountry: "Lebanon",
 
   postingMode: "company",
   managedCompanyEmail: "",
   managedCompanyPhone: "",
+
+  urgent: false,
+  featured: false,
 });
 
 function safeJson(key, fallback) {
@@ -322,147 +227,126 @@ function safeJson(key, fallback) {
   }
 }
 
-function writeJson(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
-const normalizeText = (value) => String(value || "").trim();
-
-function formatTime(iso) {
-  if (!iso) return "Not saved yet";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Not saved yet";
-  return date.toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function normalizeText(value) {
+  return String(value || "").trim();
 }
 
 export default function PostOpportunity() {
   const navigate = useNavigate();
-  const [account] = useState(() => safeJson("forsaAccount", null));
+
+  const [account] = useState(() =>
+    safeJson("forsaAccount", null)
+  );
+
   const isForsaAdmin =
     account?.email === "support.forsa@gmail.com" ||
     account?.email === "adamabdallahayln1@gmail.com" ||
     account?.role === "admin";
 
-  const typeRef = useRef(null);
-  const tagsRef = useRef(null);
-
-  const [typeOpen, setTypeOpen] = useState(false);
-  const [tagsOpen, setTagsOpen] = useState(false);
-  const [tagSearch, setTagSearch] = useState("");
-  const [customTags, setCustomTags] = useState(() => safeJson("forsaCustomTags", []));
+  const [form, setForm] = useState(() => emptyForm(account));
+  const [step, setStep] = useState(1);
   const [posting, setPosting] = useState(false);
 
-  const [form, setForm] = useState(() => emptyForm(account));
+  const [tagsOpen, setTagsOpen] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
+  const tagsRef = useRef(null);
+
+  const [customTags, setCustomTags] = useState(() =>
+    safeJson("forsaCustomTags", [])
+  );
 
   useEffect(() => {
-    const closeDropdowns = (event) => {
-      if (typeRef.current && !typeRef.current.contains(event.target)) setTypeOpen(false);
-      if (tagsRef.current && !tagsRef.current.contains(event.target)) setTagsOpen(false);
+    const handleClick = (event) => {
+      if (
+        tagsRef.current &&
+        !tagsRef.current.contains(event.target)
+      ) {
+        setTagsOpen(false);
+      }
     };
-    document.addEventListener("mousedown", closeDropdowns);
-    return () => document.removeEventListener("mousedown", closeDropdowns);
+
+    document.addEventListener("mousedown", handleClick);
+
+    return () =>
+      document.removeEventListener("mousedown", handleClick);
   }, []);
 
   const allTagOptions = useMemo(() => {
-    return Array.from(new Set([...tagOptions, ...customTags])).sort((a, b) =>
-      a.localeCompare(b)
-    );
+    return Array.from(
+      new Set([...tagOptions, ...customTags])
+    ).sort((a, b) => a.localeCompare(b));
   }, [customTags]);
 
   const filteredTags = useMemo(() => {
-    const cleanSearch = tagSearch.trim().toLowerCase();
-    return allTagOptions.filter((tag) => tag.toLowerCase().includes(cleanSearch));
-  }, [tagSearch, allTagOptions]);
+    const search = tagSearch.trim().toLowerCase();
 
-  const canAddCustomTag = useMemo(() => {
-    const value = normalizeText(tagSearch);
-    if (value.length < 2) return false;
-    return !allTagOptions.some((tag) => tag.toLowerCase() === value.toLowerCase());
-  }, [tagSearch, allTagOptions]);
-
-  const qualityScore = useMemo(() => {
-    let score = 0;
-    if (form.title.trim().length >= 8) score += 20;
-    if (form.company.trim()) score += 10;
-    if (form.location.trim()) score += 10;
-    if (form.category.trim()) score += 10;
-    if (form.pay.trim()) score += 10;
-    if (form.packageDetails.trim()) score += 8;
-    if (form.experience.trim()) score += 7;
-    if (form.shift.trim()) score += 7;
-    if (form.contact.trim()) score += 13;
-    if (form.tags.length >= 2) score += 15;
-    if (form.requirements.trim().length >= 25) score += 10;
-    if (form.description.trim().length >= 60) score += 10;
-    return Math.min(score, 100);
-  }, [form]);
-
-  const canPost = useMemo(() => {
-    return (
-      form.title.trim() &&
-      form.company.trim() &&
-      (!form.postSource.includes("Recruitment") || (form.agencyName.trim() && form.hiringFor.trim() && form.workCountry.trim())) &&
-      (form.postingMode !== "managed" || !isForsaAdmin || ((form.managedCompanyEmail.trim() || form.managedCompanyPhone.trim()) )) &&
-      form.location.trim() &&
-      form.category.trim() &&
-      form.pay.trim() &&
-      form.description.trim() &&
-      form.contact.trim() &&
-      form.experience.trim() &&
-      form.shift.trim() &&
-      form.tags.length > 0
+    return allTagOptions.filter((tag) =>
+      tag.toLowerCase().includes(search)
     );
-  }, [form, isForsaAdmin]);
+  }, [allTagOptions, tagSearch]);
 
   const updateForm = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   const toggleTag = (tag) => {
     setForm((prev) => ({
       ...prev,
-      tags: prev.tags.includes(tag) ? prev.tags.filter((item) => item !== tag) : [...prev.tags, tag],
+      tags: prev.tags.includes(tag)
+        ? prev.tags.filter((item) => item !== tag)
+        : [...prev.tags, tag],
     }));
   };
 
   const addCustomTag = () => {
-    const cleanTag = normalizeText(tagSearch);
-    if (!cleanTag || cleanTag.length < 2) return;
+    const value = normalizeText(tagSearch);
+
+    if (value.length < 2) return;
 
     const exists = allTagOptions.some(
-      (tag) => tag.toLowerCase() === cleanTag.toLowerCase()
+      (tag) => tag.toLowerCase() === value.toLowerCase()
     );
 
     if (!exists) {
-      const nextCustomTags = Array.from(new Set([...customTags, cleanTag]));
-      setCustomTags(nextCustomTags);
-      writeJson("forsaCustomTags", nextCustomTags);
+      const next = [...customTags, value];
+
+      setCustomTags(next);
+      localStorage.setItem(
+        "forsaCustomTags",
+        JSON.stringify(next)
+      );
     }
 
     setForm((prev) => ({
       ...prev,
-      tags: prev.tags.includes(cleanTag) ? prev.tags : [...prev.tags, cleanTag],
+      tags: prev.tags.includes(value)
+        ? prev.tags
+        : [...prev.tags, value],
     }));
 
     setTagSearch("");
-    showToast(`Added tag: ${cleanTag}`, "info");
+    showToast(`Added tag: ${value}`, "info");
   };
 
   const updateQuestion = (index, value) => {
     setForm((prev) => ({
       ...prev,
-      questions: prev.questions.map((q, i) => (i === index ? value : q)),
+      questions: prev.questions.map((q, i) =>
+        i === index ? value : q
+      ),
     }));
   };
 
   const addQuestion = () => {
     if (form.questions.length >= 5) return;
-    setForm((prev) => ({ ...prev, questions: [...prev.questions, ""] }));
+
+    setForm((prev) => ({
+      ...prev,
+      questions: [...prev.questions, ""],
+    }));
   };
 
   const removeQuestion = (index) => {
@@ -476,32 +360,123 @@ export default function PostOpportunity() {
     setForm((prev) => ({
       ...prev,
       ...template.data,
-      questions: prev.questions?.length ? prev.questions : [""],
-      tags: Array.from(new Set([...(prev.tags || []), ...template.data.tags])),
+      tags: Array.from(
+        new Set([
+          ...(prev.tags || []),
+          ...(template.data.tags || []),
+        ])
+      ),
     }));
-    showToast(`${template.label} template injected`, "info");
+
+    showToast(`${template.label} template applied`, "info");
   };
 
-  const notifyFollowersOfNewPost = async (post) => {
-    const followers = safeJson("forsaCompanyFollowers", []);
-    const ownerEmail = post.ownerEmail || post.contact || account?.email || "";
-    const companyName = post.company || account?.companyName || account?.name || "";
+  const qualityScore = useMemo(() => {
+    let score = 0;
+
+    if (form.title.trim().length >= 5) score += 20;
+    if (form.company.trim()) score += 15;
+    if (form.location.trim()) score += 10;
+    if (form.pay.trim()) score += 10;
+    if (form.description.trim().length >= 50) score += 20;
+    if (form.requirements.trim()) score += 10;
+    if (form.tags.length >= 2) score += 10;
+    if (form.contact.trim()) score += 5;
+
+    return Math.min(score, 100);
+  }, [form]);
+
+  const stepOneValid =
+    form.title.trim() &&
+    form.company.trim() &&
+    form.location.trim();
+
+  const stepTwoValid =
+    form.category.trim() &&
+    form.type.trim() &&
+    form.pay.trim();
+
+  const stepThreeValid =
+    form.description.trim().length >= 20 &&
+    form.contact.trim() &&
+    form.tags.length > 0;
+
+  const canPost =
+    stepOneValid &&
+    stepTwoValid &&
+    stepThreeValid &&
+    (!form.postSource.includes("Recruitment") ||
+      (form.agencyName.trim() &&
+        form.hiringFor.trim() &&
+        form.workCountry.trim())) &&
+    (form.postingMode !== "managed" ||
+      !isForsaAdmin ||
+      form.managedCompanyEmail.trim() ||
+      form.managedCompanyPhone.trim());
+
+  const goNext = () => {
+    if (step === 1 && !stepOneValid) {
+      showToast(
+        "Add the opportunity title, company, and location.",
+        "error"
+      );
+      return;
+    }
+
+    if (step === 2 && !stepTwoValid) {
+      showToast(
+        "Choose a category, type, and add the pay.",
+        "error"
+      );
+      return;
+    }
+
+    setStep((prev) => Math.min(prev + 1, 3));
+  };
+
+  const goBack = () => {
+    setStep((prev) => Math.max(prev - 1, 1));
+  };
+
+  const notifyFollowers = async (post) => {
+    const followers = safeJson(
+      "forsaCompanyFollowers",
+      []
+    );
+
+    const ownerEmail =
+      post.ownerEmail ||
+      post.contact ||
+      account?.email ||
+      "";
+
+    const companyName =
+      post.company ||
+      account?.companyName ||
+      account?.name ||
+      "";
 
     const followerEmails = Array.from(
       new Set(
         followers
-          .filter((item) => (
-            item.companyEmail === ownerEmail ||
-            item.email === ownerEmail ||
-            item.companyName === companyName ||
-            item.name === companyName
-          ))
-          .map((item) => item.seekerEmail || item.userEmail || item.followerEmail)
+          .filter(
+            (item) =>
+              item.companyEmail === ownerEmail ||
+              item.email === ownerEmail ||
+              item.companyName === companyName ||
+              item.name === companyName
+          )
+          .map(
+            (item) =>
+              item.seekerEmail ||
+              item.userEmail ||
+              item.followerEmail
+          )
           .filter(Boolean)
       )
     );
 
-    if (followerEmails.length === 0) return;
+    if (!followerEmails.length) return;
 
     try {
       await Promise.all(
@@ -511,704 +486,1272 @@ export default function PostOpportunity() {
             title: `${companyName} posted a new opportunity`,
             text: `${post.title} · ${post.location}`,
             targetEmail,
-            actionUrl: `/explore?post=${encodeURIComponent(post.id)}`,
+            actionUrl: `/explore?post=${encodeURIComponent(
+              post.id
+            )}`,
             postId: post.id,
             company: companyName,
           })
         )
       );
     } catch (error) {
-      console.error("Follower notification error:", error);
+      console.error(
+        "Follower notification error:",
+        error
+      );
     }
   };
 
   const handleSubmit = async () => {
     if (!canPost || posting) return;
+
     setPosting(true);
 
     try {
-      const cleanQuestions = form.questions.filter((q) => q.trim());
-      const isManagedPost = isForsaAdmin && form.postingMode === "managed";
+      const isManaged =
+        isForsaAdmin &&
+        form.postingMode === "managed";
+
+      const cleanQuestions = form.questions
+        .map((q) => q.trim())
+        .filter(Boolean);
+
+      const isAgency =
+        form.postSource.includes("Recruitment");
 
       const newPost = {
         ownerUid: account?.uid || null,
-        ownerEmail: account?.email || form.contact,
-        ownerName: isManagedPost ? "Forsa Jobs" : account?.name || form.company,
 
-        postingMode: isManagedPost ? "managed" : "company",
-        managedByForsa: isManagedPost,
-        managedBy: isManagedPost ? account?.email : null,
-        managementStatus: isManagedPost ? "managed_unclaimed" : "owner_posted",
+        ownerEmail:
+          account?.email ||
+          form.contact.trim(),
+
+        ownerName: isManaged
+          ? "Forsa Jobs"
+          : account?.name ||
+            form.company.trim(),
+
+        postingMode: isManaged
+          ? "managed"
+          : "company",
+
+        managedByForsa: isManaged,
+
+        managedBy: isManaged
+          ? account?.email
+          : null,
+
+        managementStatus: isManaged
+          ? "managed_unclaimed"
+          : "owner_posted",
+
         companyClaimed: false,
-        claimEmail: isManagedPost ? form.managedCompanyEmail.trim().toLowerCase() : "",
-        claimPhone: isManagedPost ? form.managedCompanyPhone.trim() : "",
-        claimInstructions: isManagedPost
+
+        claimEmail: isManaged
+          ? form.managedCompanyEmail
+              .trim()
+              .toLowerCase()
+          : "",
+
+        claimPhone: isManaged
+          ? form.managedCompanyPhone.trim()
+          : "",
+
+        claimInstructions: isManaged
           ? "This post was added by Forsa Jobs. The real company can request ownership and edit it after admin approval."
           : "",
+
         postSource: form.postSource,
-        isAgencyPost: form.postSource.includes("Recruitment"),
+
+        isAgencyPost: isAgency,
+
         agencyName: form.agencyName.trim(),
+
         hiringFor: form.hiringFor.trim(),
-        workCountry: form.workCountry.trim(),
-        postedBy: form.postSource.includes("Recruitment") ? form.agencyName.trim() : form.company.trim(),
-        company: form.postSource.includes("Recruitment") ? form.hiringFor.trim() : form.company.trim(),
-        location: form.location.trim(),
-        title: form.title.trim(),
+
+        workCountry:
+          form.workCountry.trim(),
+
+        postedBy: isAgency
+          ? form.agencyName.trim()
+          : form.company.trim(),
+
+        company: isAgency
+          ? form.hiringFor.trim()
+          : form.company.trim(),
+
+        location:
+          form.location.trim(),
+
+        title:
+          form.title.trim(),
+
         type: form.type,
-        category: form.category.trim(),
-        pay: form.pay.trim(),
-        packageDetails: form.packageDetails.trim(),
-        experience: form.experience.trim(),
-        shift: form.shift.trim(),
-        gender: form.gender.trim(),
-        description: form.description.trim(),
-        requirements: form.requirements.trim(),
-        contact: form.contact.trim(),
-        tags: form.tags || [],
-        urgent: Boolean(form.urgent),
-        featured: Boolean(form.featured),
-        trusted: isManagedPost ? true : Boolean(account?.trusted),
-        verified: isManagedPost ? true : Boolean(account?.verified),
-        
-        questions: cleanQuestions,
-        reports: 0, views: 0, applications: 0,
+
+        category:
+          form.category.trim(),
+
+        pay:
+          form.pay.trim(),
+
+        packageDetails:
+          form.packageDetails.trim(),
+
+        experience:
+          form.experience.trim(),
+
+        shift:
+          form.shift.trim(),
+
+        gender:
+          form.gender.trim(),
+
+        description:
+          form.description.trim(),
+
+        requirements:
+          form.requirements.trim(),
+
+        contact:
+          form.contact.trim(),
+
+        tags:
+          form.tags || [],
+
+        urgent:
+          Boolean(form.urgent),
+
+        featured:
+          Boolean(form.featured),
+
+        trusted: isManaged
+          ? true
+          : Boolean(account?.trusted),
+
+        verified: isManaged
+          ? true
+          : Boolean(account?.verified),
+
+        questions:
+          cleanQuestions,
+
+        reports: 0,
+        views: 0,
+        applications: 0,
         qualityScore,
       };
 
-      const createdPost = await createPost(newPost);
-      const saved = safeJson("forsaPosts", []);
-      localStorage.setItem("forsaPosts", JSON.stringify([createdPost, ...saved]));
-      await notifyFollowersOfNewPost(createdPost);
+      const createdPost =
+        await createPost(newPost);
 
-      showToast("Opportunity published successfully");
+      const saved = safeJson(
+        "forsaPosts",
+        []
+      );
+
+      localStorage.setItem(
+        "forsaPosts",
+        JSON.stringify([
+          createdPost,
+          ...saved,
+        ])
+      );
+
+      await notifyFollowers(createdPost);
+
+      showToast(
+        "Opportunity published successfully"
+      );
+
       navigate("/explore");
     } catch (error) {
       console.error("Post error:", error);
-      showToast("Could not publish opportunity. Try again.", "error");
+
+      showToast(
+        "Could not publish opportunity. Try again.",
+        "error"
+      );
     } finally {
       setPosting(false);
     }
   };
 
   return (
-    <section className="min-h-screen bg-[var(--forsa-bg)] text-[var(--forsa-text)] antialiased">
+    <section className="min-h-screen bg-neutral-50">
       <AppHeader />
-      <SEO title="Post an opportunity" />
 
-      <div className="mx-auto max-w-7xl px-4 pb-28 pt-4 sm:px-6 lg:px-8 lg:pb-20">
-        <div className="mt-6 grid grid-cols-1 gap-8 sm:mt-10 lg:grid-cols-[0.84fr_1.16fr] lg:gap-12">
-          
-          {/* Information & Metrics Staging Anchor */}
-          <aside className="lg:sticky lg:top-24 lg:self-start space-y-6 sm:space-y-8">
-            <div className="relative overflow-hidden rounded-[34px] border border-neutral-200/60 bg-white p-6 shadow-[0_24px_80px_rgba(0,0,0,0.015)] sm:p-8">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-bold tracking-wider text-neutral-500 uppercase">
-                Job post builder
+      <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <span className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">
+                Create opportunity
               </span>
-              <h1 className="mt-4 text-3xl font-bold tracking-[-0.05em] text-neutral-950 sm:text-4xl md:text-5xl md:leading-[1.05]">
-                Create a clear opportunity.
+
+              <h1 className="mt-3 text-3xl font-bold tracking-[-0.05em] text-neutral-950 sm:text-4xl">
+                Post a job in minutes.
               </h1>
-              <p className="mt-4 text-sm font-medium leading-relaxed text-neutral-500">
-                Create a clear post for restaurants, retail, delivery, office work, tech, events, and more without making the form complicated.
+
+              <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-500">
+                Add the important information first. You can keep
+                optional details simple.
               </p>
             </div>
 
-            <QualityCard qualityScore={qualityScore} />
-            <TemplatesCard onApply={applyTemplate} />
-
-            <div className="hidden lg:block">
-              <PreviewCard form={form} qualityScore={qualityScore} />
-            </div>
-          </aside>
-
-          {/* Form Node Editor Core */}
-          <div className="overflow-hidden rounded-[34px] border border-neutral-200/70 bg-white p-5 shadow-[0_20px_50px_rgba(0,0,0,0.015)] sm:p-8 space-y-6">
-            {isForsaAdmin && (
-              <ManagedPostingPanel form={form} updateForm={updateForm} />
-            )}
-
-            {form.postSource.includes("Recruitment") && (
-              <div className="grid gap-5 sm:grid-cols-3">
-                <Field label="Agency / Office name" placeholder="e.g., Recruitment Agency Freelance" value={form.agencyName} onChange={(val) => updateForm("agencyName", val)} />
-                <Field label="Hiring for / Employer" placeholder="e.g., Farouj Restaurant" value={form.hiringFor} onChange={(val) => {
-                  updateForm("hiringFor", val);
-                  updateForm("company", val);
-                }} />
-                <SelectField label="Work country" value={form.workCountry} options={workCountryOptions} onChange={(val) => updateForm("workCountry", val)} />
-              </div>
-            )}
-
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Opportunity title" placeholder="e.g., Assistant Manager" value={form.title} onChange={(val) => updateForm("title", val)} />
-              <Field label={form.postSource.includes("Recruitment") ? "Employer / Company abroad" : "Company / Restaurant / Entity"} placeholder="e.g., Farouj Restaurant" value={form.company} onChange={(val) => {
-                updateForm("company", val);
-                if (form.postSource.includes("Recruitment")) updateForm("hiringFor", val);
-              }} />
-              <Field label={form.postSource.includes("Recruitment") ? "Work city / destination" : "Work location"} placeholder="e.g., Jal El Dib, Dubai, Germany, Remote" value={form.location} onChange={(val) => updateForm("location", val)} />
-              <Field label="Salary / Pay" placeholder="e.g., Salary + tips, $800/month" value={form.pay} onChange={(val) => updateForm("pay", val)} />
-              <Field label="Package details" placeholder="e.g., Salary + tips + meals + transport" value={form.packageDetails} onChange={(val) => updateForm("packageDetails", val)} />
-              <Field label="Contact / CV destination" placeholder={form.postSource.includes("Recruitment") ? "Agency WhatsApp / email for CVs" : "e.g., WhatsApp 70582107 or jobs@email.com"} value={form.contact} onChange={(val) => updateForm("contact", val)} />
-            </div>
-
-            <div className="grid gap-5 sm:grid-cols-3">
-              <SelectField label="Experience required" value={form.experience} options={experienceOptions} onChange={(val) => updateForm("experience", val)} />
-              <SelectField label="Shift / Schedule" value={form.shift} options={shiftOptions} onChange={(val) => updateForm("shift", val)} />
-              <SelectField label="Gender preference" value={form.gender} options={genderOptions} onChange={(val) => updateForm("gender", val)} />
-            </div>
-
-            <SelectField
-              label="Job Category"
-              value={form.category}
-              options={categoryOptions}
-              onChange={(val) => updateForm("category", val)}
-            />
-
-            <Dropdown refEl={typeRef} label="Opportunity Type" value={form.type} open={typeOpen} setOpen={setTypeOpen}>
-              <div className="grid grid-cols-1 gap-1 p-1">
-                {typeOptions.map((type) => (
-                  <button
-                    type="button"
-                    key={type}
-                    onClick={() => {
-                      updateForm("type", type);
-                      setTypeOpen(false);
-                    }}
-                    className="flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 hover:text-neutral-900"
-                  >
-                    {type}
-                    {form.type === type && <FaCheck className="text-xs text-[var(--forsa-primary)]" />}
-                  </button>
-                ))}
-              </div>
-            </Dropdown>
-
-            {/* Tag Selection System */}
-            <div ref={tagsRef} className="space-y-2">
-              <label className="text-sm font-bold tracking-tight text-neutral-950">Skills / Job Tags</label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setTagsOpen(!tagsOpen)}
-                  className="flex w-full items-center justify-between rounded-2xl border border-neutral-200 bg-neutral-50/50 px-4 py-3.5 text-left text-sm font-medium transition hover:border-neutral-400 hover:bg-white"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <FaTag className="shrink-0 text-xs text-neutral-400" />
-                    <span className="truncate text-neutral-700">
-                      {form.tags.length > 0 ? `${form.tags.length} tags selected` : "Select relevant skills or job tags"}
-                    </span>
-                  </span>
-                  <FaChevronDown className="shrink-0 text-xs text-neutral-400" />
-                </button>
-
-                {tagsOpen && (
-                  <div className="absolute z-30 mt-2 w-full rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl space-y-3">
-                    <div className="flex items-center gap-2 rounded-xl border border-neutral-200 px-3 py-2 bg-neutral-50 focus-within:bg-white focus-within:border-neutral-400 transition-all">
-                      <FaSearch className="text-xs text-neutral-400" />
-                      <input
-                        value={tagSearch}
-                        onChange={(e) => setTagSearch(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && canAddCustomTag) {
-                            e.preventDefault();
-                            addCustomTag();
-                          }
-                        }}
-                        placeholder="Search or add skills, role tags..."
-                        className="w-full bg-transparent text-sm font-medium outline-none text-neutral-800"
-                      />
-                    </div>
-
-                    {canAddCustomTag && (
-                      <button
-                        type="button"
-                        onClick={addCustomTag}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] px-3 py-2.5 text-sm font-bold text-[var(--forsa-primary)]"
-                      >
-                        <FaPlus className="text-xs" />
-                        Add “{normalizeText(tagSearch)}”
-                      </button>
-                    )}
-
-                    <div className="max-h-60 overflow-y-auto pr-1 divide-y divide-neutral-50">
-                      {filteredTags.length === 0 ? (
-                        <p className="px-3 py-4 text-xs font-semibold text-neutral-400 text-center">
-                          No tags found. Type a custom tag above and click add.
-                        </p>
-                      ) : (
-                        filteredTags.map((tag) => (
-                          <button
-                            type="button"
-                            key={tag}
-                            onClick={() => toggleTag(tag)}
-                            className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-neutral-600 transition hover:bg-neutral-50 hover:text-neutral-950"
-                          >
-                            {tag}
-                            {form.tags.includes(tag) && <FaCheck className="text-xs text-[var(--forsa-primary)]" />}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {form.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {form.tags.map((tag) => (
-                    <button
-                      type="button"
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-700 hover:border-red-200 hover:text-red-600 transition-all"
-                    >
-                      {tag}
-                      <FaTimes className="text-[9px] text-neutral-400" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold tracking-tight text-neutral-950">Requirements</label>
-              <textarea
-                value={form.requirements}
-                onChange={(e) => updateForm("requirements", e.target.value)}
-                placeholder="Example: 2+ years F&B supervisory experience, leadership, food safety knowledge, inventory management, customer service..."
-                className="min-h-32 w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/50 px-4 py-3 text-sm font-medium leading-relaxed outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:bg-white"
-              />
-            </div>
-
-            {/* Description Text Node */}
-            <div className="space-y-2">
-              <label className="text-sm font-bold tracking-tight text-neutral-950">Job Description</label>
-              <textarea
-                value={form.description}
-                onChange={(e) => updateForm("description", e.target.value)}
-                placeholder="Describe the role, responsibilities, daily tasks, work environment, and what the candidate will do."
-                className="min-h-40 w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/50 px-4 py-3 text-sm font-medium leading-relaxed outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:bg-white"
-              />
-              <div className="flex items-center justify-between text-[11px] font-bold text-neutral-400 uppercase tracking-wider px-1">
-                <span>Description length</span>
-                <span>{form.description.trim().length} / 60 minimum recommendations</span>
-              </div>
-            </div>
-
-            {/* Interrogative Validation Node Loops */}
-            <div className="rounded-2xl border border-neutral-200/70 bg-neutral-50/40 p-4 sm:p-5 space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 shadow-sm">
+              <div className="flex items-center justify-between gap-8">
                 <div>
-                  <p className="text-sm font-bold tracking-tight text-neutral-950">Application Questions</p>
-                  <p className="text-xs font-medium text-neutral-400 mt-0.5">Ask applicants questions before they apply.</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                    Post quality
+                  </p>
+                  <p className="mt-0.5 text-sm font-bold text-neutral-900">
+                    {qualityScore >= 80
+                      ? "Strong"
+                      : qualityScore >= 55
+                      ? "Good"
+                      : "Needs details"}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={addQuestion}
-                  disabled={form.questions.length >= 5}
-                  className="rounded-xl bg-neutral-950 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-neutral-900 transition-all disabled:opacity-40 tracking-tight"
-                >
-                  Add Question
-                </button>
-              </div>
 
-              <div className="grid gap-3">
-                {form.questions.map((question, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <input
-                      value={question}
-                      onChange={(e) => updateQuestion(index, e.target.value)}
-                      placeholder={`Question #${index + 1}`}
-                      className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-800 outline-none transition focus:border-neutral-950"
-                    />
-                    {form.questions.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeQuestion(index)}
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-400 hover:border-red-200 hover:text-red-600 transition"
-                      >
-                        <FaTrash className="text-xs" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                <span className="text-xl font-bold text-[var(--forsa-primary)]">
+                  {qualityScore}%
+                </span>
               </div>
             </div>
-
-            {/* <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <ToggleCard active={form.urgent} icon={<FaBolt />} title="Urgent post" text="Show an urgent label so seekers know this role needs faster applications." onClick={() => updateForm("urgent", !form.urgent)} />
-              <ToggleCard active={form.featured} icon={<FaStar />} title="Featured post" text="Highlight this opportunity inside Explore. Verified companies are featured automatically." onClick={() => updateForm("featured", !form.featured)} />
-            </div>*/}
-
-            <div className="block lg:hidden">
-              <PreviewCard form={form} qualityScore={qualityScore} />
-            </div>
-
-            {/* Form Dispatch Bar */}
-            <div className="sticky bottom-0 -mx-5 mt-8 border-t border-neutral-100 bg-white/95 px-5 py-4 backdrop-blur-xl sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0">
-              <button
-                disabled={!canPost || posting}
-                onClick={handleSubmit}
-                className={`w-full rounded-full py-3.5 text-sm font-bold tracking-tight shadow-sm transition-all duration-300 ${
-                  canPost && !posting
-                    ? "forsa-button text-white hover:brightness-110 active:scale-[0.99]"
-                    : "cursor-not-allowed bg-neutral-100 text-neutral-400 border border-neutral-200/60"
-                }`}
-              >
-                {posting ? "Publishing opportunity..." : "Publish Opportunity"}
-              </button>
-
-              {!canPost && (
-                <p className="mt-3 text-center text-xs font-semibold text-neutral-400">
-                  Complete the required fields before publishing.
-                </p>
-              )}
-            </div>
-
           </div>
         </div>
-      </div>
+
+        <div className="mb-6 rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
+          <div className="grid grid-cols-3 gap-1">
+            <StepButton
+              number="1"
+              title="Basic info"
+              active={step === 1}
+              complete={step > 1}
+              onClick={() => setStep(1)}
+            />
+
+            <StepButton
+              number="2"
+              title="Job details"
+              active={step === 2}
+              complete={step > 2}
+              onClick={() =>
+                stepOneValid && setStep(2)
+              }
+            />
+
+            <StepButton
+              number="3"
+              title="Description"
+              active={step === 3}
+              complete={false}
+              onClick={() =>
+                stepOneValid &&
+                stepTwoValid &&
+                setStep(3)
+              }
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1fr_330px]">
+          <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-7">
+            {/* ADMIN */}
+            {isForsaAdmin && (
+              <AdminPostingSection
+                form={form}
+                updateForm={updateForm}
+              />
+            )}
+
+            {/* STEP 1 */}
+            {step === 1 && (
+              <div className="space-y-7">
+                <SectionIntro
+                  eyebrow="Step 1"
+                  title="What are you hiring for?"
+                  text="Start with the information applicants need immediately."
+                />
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field
+                    label="Opportunity title"
+                    required
+                    placeholder="e.g. Junior Frontend Developer"
+                    value={form.title}
+                    onChange={(value) =>
+                      updateForm("title", value)
+                    }
+                  />
+
+                  <Field
+                    label="Company / organization"
+                    required
+                    placeholder="e.g. Cedars Tech"
+                    value={form.company}
+                    onChange={(value) =>
+                      updateForm("company", value)
+                    }
+                  />
+                </div>
+
+                <Field
+                  label="Work location"
+                  required
+                  placeholder="e.g. Beirut, Hamra / Remote"
+                  value={form.location}
+                  onChange={(value) =>
+                    updateForm("location", value)
+                  }
+                  icon={<FaMapMarkerAlt />}
+                />
+
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-neutral-900">
+                    Opportunity type
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {typeOptions.map((type) => (
+                      <ChoiceButton
+                        key={type}
+                        selected={form.type === type}
+                        onClick={() =>
+                          updateForm("type", type)
+                        }
+                      >
+                        {type}
+                      </ChoiceButton>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                    Quick templates
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {templates.map((template) => (
+                      <button
+                        key={template.label}
+                        type="button"
+                        onClick={() =>
+                          applyTemplate(template)
+                        }
+                        className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-950"
+                      >
+                        {template.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2 */}
+            {step === 2 && (
+              <div className="space-y-7">
+                <SectionIntro
+                  eyebrow="Step 2"
+                  title="Set the job details."
+                  text="Give applicants a quick understanding of the role and offer."
+                />
+
+                <SelectField
+                  label="Category"
+                  required
+                  value={form.category}
+                  options={categoryOptions}
+                  onChange={(value) =>
+                    updateForm("category", value)
+                  }
+                />
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field
+                    label="Salary / pay"
+                    required
+                    placeholder="e.g. $500/month + tips"
+                    value={form.pay}
+                    onChange={(value) =>
+                      updateForm("pay", value)
+                    }
+                  />
+
+                  <Field
+                    label="Package details"
+                    optional
+                    placeholder="e.g. Meals + transport"
+                    value={form.packageDetails}
+                    onChange={(value) =>
+                      updateForm(
+                        "packageDetails",
+                        value
+                      )
+                    }
+                  />
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-3">
+                  <SelectField
+                    label="Experience"
+                    value={form.experience}
+                    options={experienceOptions}
+                    onChange={(value) =>
+                      updateForm(
+                        "experience",
+                        value
+                      )
+                    }
+                  />
+
+                  <SelectField
+                    label="Schedule"
+                    value={form.shift}
+                    options={shiftOptions}
+                    onChange={(value) =>
+                      updateForm("shift", value)
+                    }
+                  />
+
+                  <SelectField
+                    label="Gender"
+                    value={form.gender}
+                    options={genderOptions}
+                    onChange={(value) =>
+                      updateForm("gender", value)
+                    }
+                  />
+                </div>
+
+                <TagPicker
+                  form={form}
+                  tagsOpen={tagsOpen}
+                  setTagsOpen={setTagsOpen}
+                  tagSearch={tagSearch}
+                  setTagSearch={setTagSearch}
+                  tagsRef={tagsRef}
+                  filteredTags={filteredTags}
+                  allTagOptions={allTagOptions}
+                  toggleTag={toggleTag}
+                  addCustomTag={addCustomTag}
+                />
+              </div>
+            )}
+
+            {/* STEP 3 */}
+            {step === 3 && (
+              <div className="space-y-7">
+                <SectionIntro
+                  eyebrow="Step 3"
+                  title="Describe the opportunity."
+                  text="Write enough for someone to understand the role without overthinking it."
+                />
+
+                <div>
+                  <FieldLabel
+                    label="Job description"
+                    required
+                  />
+
+                  <textarea
+                    value={form.description}
+                    onChange={(e) =>
+                      updateForm(
+                        "description",
+                        e.target.value
+                      )
+                    }
+                    placeholder="What will the person do? What does a normal day look like?"
+                    className="min-h-44 w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/60 px-4 py-3.5 text-sm font-medium leading-6 text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:bg-white"
+                  />
+
+                  <div className="mt-2 flex justify-between px-1 text-[11px] font-semibold text-neutral-400">
+                    <span>
+                      Keep it clear and specific.
+                    </span>
+
+                    <span>
+                      {form.description.trim().length} characters
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <FieldLabel
+                    label="Requirements"
+                    optional
+                  />
+
+                  <textarea
+                    value={form.requirements}
+                    onChange={(e) =>
+                      updateForm(
+                        "requirements",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Skills, education, experience, languages, or anything important."
+                    className="min-h-32 w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/60 px-4 py-3.5 text-sm font-medium leading-6 text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:bg-white"
+                  />
+                </div>
+
+                <Field
+                  label="Contact / CV destination"
+                  required
+                  placeholder="WhatsApp number or email"
+                  value={form.contact}
+                  onChange={(value) =>
+                    updateForm("contact", value)
+                  }
+                />
+
+                <ApplicationQuestions
+                  form={form}
+                  updateQuestion={updateQuestion}
+                  addQuestion={addQuestion}
+                  removeQuestion={removeQuestion}
+                />
+
+                {form.postSource.includes(
+                  "Recruitment"
+                ) && (
+                  <AgencySection
+                    form={form}
+                    updateForm={updateForm}
+                  />
+                )}
+
+                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <FaShieldAlt className="mt-0.5 text-[var(--forsa-primary)]" />
+
+                    <div>
+                      <p className="text-sm font-bold text-neutral-900">
+                        Before publishing
+                      </p>
+
+                      <p className="mt-1 text-xs leading-5 text-neutral-500">
+                        Make sure the company, salary,
+                        location, and contact information
+                        are accurate.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Bottom navigation */}
+            <div className="mt-8 flex items-center justify-between border-t border-neutral-100 pt-5">
+              {step > 1 ? (
+                <button
+                  type="button"
+                  onClick={goBack}
+                  className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-bold text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-950"
+                >
+                  <FaUndo className="text-xs" />
+                  Back
+                </button>
+              ) : (
+                <div />
+              )}
+
+              {step < 3 ? (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="forsa-button inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-110"
+                >
+                  Continue
+                  <FaArrowRight className="text-xs" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={!canPost || posting}
+                  onClick={handleSubmit}
+                  className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition ${
+                    canPost && !posting
+                      ? "forsa-button text-white shadow-sm hover:brightness-110"
+                      : "cursor-not-allowed border border-neutral-200 bg-neutral-100 text-neutral-400"
+                  }`}
+                >
+                  {posting
+                    ? "Publishing..."
+                    : "Publish Opportunity"}
+                </button>
+              )}
+            </div>
+
+            {!canPost && step === 3 && (
+              <p className="mt-3 text-right text-xs font-semibold text-neutral-400">
+                Complete the required fields before publishing.
+              </p>
+            )}
+          </div>
+
+          {/* Preview */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-24 space-y-4">
+              <PreviewCard
+                form={form}
+                qualityScore={qualityScore}
+              />
+
+              <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                  Posting checklist
+                </p>
+
+                <div className="mt-3 space-y-2">
+                  <CheckLine
+                    active={Boolean(form.title.trim())}
+                    text="Clear title"
+                  />
+
+                  <CheckLine
+                    active={Boolean(form.location.trim())}
+                    text="Location added"
+                  />
+
+                  <CheckLine
+                    active={Boolean(form.pay.trim())}
+                    text="Pay added"
+                  />
+
+                  <CheckLine
+                    active={form.tags.length > 0}
+                    text="Relevant tags"
+                  />
+
+                  <CheckLine
+                    active={
+                      form.description.trim()
+                        .length >= 20
+                    }
+                    text="Description"
+                  />
+
+                  <CheckLine
+                    active={Boolean(form.contact.trim())}
+                    text="Contact information"
+                  />
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+
       <Footer />
     </section>
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Components                                                                 */
+/* -------------------------------------------------------------------------- */
 
-function ManagedPostingPanel({ form, updateForm }) {
-  const isManaged = form.postingMode === "managed";
-
+function SectionIntro({ eyebrow, title, text }) {
   return (
-    <div className="relative overflow-hidden rounded-[30px] border border-violet-100 bg-[linear-gradient(135deg,#ffffff,#fbfaff)] p-5 shadow-[0_18px_60px_rgba(109,40,217,0.08)] sm:p-6">
-      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[var(--forsa-glow)]/15 blur-3xl" />
+    <div>
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--forsa-primary)]">
+        {eyebrow}
+      </p>
 
-      <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-violet-100 bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--forsa-primary)] shadow-sm">
-            <FaShieldAlt className="text-[10px]" />
-            Admin workflow
-          </span>
+      <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-neutral-950">
+        {title}
+      </h2>
 
-          <h2 className="mt-4 text-2xl font-bold tracking-[-0.05em] text-neutral-950">
-            Publish on behalf of a company.
-          </h2>
-
-          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-neutral-500">
-            Use Managed by Forsa for real opportunities collected from WhatsApp, calls, or outreach. The job stays under Forsa until the company claims it and gets approved.
-          </p>
-        </div>
-
-        {isManaged && (
-          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-xs font-bold text-white shadow-sm">
-            <FaHandshake className="text-[11px]" />
-            Managed by Forsa
-          </span>
-        )}
-      </div>
-
-      <div className="relative mt-5 grid gap-3 sm:grid-cols-2">
-        <ModeButton
-          active={form.postingMode === "company"}
-          icon={<FaBuilding />}
-          title="Company-owned post"
-          text="Normal post owned by the logged-in hiring account."
-          onClick={() => updateForm("postingMode", "company")}
-        />
-
-        <ModeButton
-          active={isManaged}
-          icon={<FaHandshake />}
-          title="Managed by Forsa"
-          text="Forsa publishes first. The real company can claim ownership later."
-          onClick={() => updateForm("postingMode", "managed")}
-        />
-      </div>
-
-      {isManaged && (
-        <div className="relative mt-5 rounded-[24px] border border-violet-100 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-bold text-neutral-950">Claim details</p>
-              <p className="mt-1 text-xs font-medium leading-5 text-neutral-500">
-                Save the company contact and original source so you can verify ownership later.
-              </p>
-            </div>
-
-            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-neutral-50 px-3 py-1 text-xs font-bold text-neutral-500 ring-1 ring-neutral-100">
-              <FaLock className="text-[10px]" />
-              Hidden from seekers
-            </span>
-          </div>
-
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            <Field
-              label="Claim email"
-              placeholder="manager@company.com"
-              value={form.managedCompanyEmail}
-              onChange={(val) => updateForm("managedCompanyEmail", val)}
-            />
-
-            <Field
-              label="Claim phone"
-              placeholder="70582107"
-              value={form.managedCompanyPhone}
-              onChange={(val) => updateForm("managedCompanyPhone", val)}
-            />
-          </div>
-
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            <TrustMini icon={<FaCheck />} label="Public badge" text="Managed by Forsa" />
-            <TrustMini icon={<FaEnvelope />} label="Claim email" text={form.managedCompanyEmail || "Not added"} />
-            <TrustMini icon={<FaPhone />} label="Claim phone" text={form.managedCompanyPhone || "Not added"} />
-          </div>
-        </div>
-      )}
+      <p className="mt-1.5 text-sm leading-6 text-neutral-500">
+        {text}
+      </p>
     </div>
   );
 }
 
-function ModeButton({ active, icon, title, text, onClick }) {
+function StepButton({
+  number,
+  title,
+  active,
+  complete,
+  onClick,
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group rounded-[22px] border p-4 text-left transition-all duration-200 ${
+      className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-left transition ${
         active
-          ? "border-[var(--forsa-primary)] bg-white text-[var(--forsa-primary)] shadow-[0_14px_34px_rgba(109,40,217,0.12)]"
-          : "border-neutral-200 bg-white text-neutral-700 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-sm"
+          ? "bg-[#6A29D1] text-white"
+          : "text-neutral-500 hover:bg-neutral-50"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${active ? "bg-[var(--forsa-bg-soft)]" : "bg-neutral-50 text-neutral-500"}`}>
-          {icon}
-        </div>
+      <span
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+          active
+            ? "bg-white text-neutral-950"
+            : complete
+            ? "bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
+            : "bg-neutral-100 text-neutral-400"
+        }`}
+      >
+        {complete ? <FaCheck /> : number}
+      </span>
 
-        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${active ? "bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]" : "bg-neutral-50 text-neutral-400"}`}>
-          {active ? "Selected" : "Choose"}
-        </span>
-      </div>
-
-      <p className="mt-4 text-sm font-bold tracking-tight">{title}</p>
-      <p className="mt-1 text-xs font-medium leading-5 text-neutral-500">{text}</p>
+      <span className="text-xs font-bold sm:text-sm">
+        {title}
+      </span>
     </button>
   );
 }
 
-function TrustMini({ icon, label, text }) {
+function FieldLabel({ label, required, optional }) {
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-neutral-50/70 p-3">
-      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-400">
-        <span className="text-[var(--forsa-primary)]">{icon}</span>
-        {label}
-      </div>
-      <p className="mt-2 truncate text-xs font-semibold text-neutral-700">{text}</p>
-    </div>
-  );
-}
+    <label className="mb-2 block text-sm font-bold text-neutral-900">
+      {label}
 
-function TemplatesCard({ onApply }) {
-  return (
-    <div className="rounded-2xl border border-neutral-200/70 bg-white p-5 space-y-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
-      <div>
-        <p className="text-sm font-bold tracking-tight text-neutral-950">Quick templates</p>
-        <p className="text-xs font-medium text-neutral-400 mt-0.5">Start faster with common Lebanon job posts.</p>
-      </div>
-      <div className="flex flex-wrap gap-1.5 pt-1">
-        {templates.map((template) => (
-          <button
-            key={template.label}
-            type="button"
-            onClick={() => onApply(template)}
-            className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-600 hover:border-neutral-400 hover:text-neutral-900 transition"
-          >
-            {template.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function QualityCard({ qualityScore }) {
-  const label = qualityScore >= 80 ? "Strong post" : qualityScore >= 55 ? "Good post" : "Needs details";
-
-  return (
-    <div className="rounded-[28px] border border-neutral-200/70 bg-white p-5 space-y-4 shadow-[0_12px_30px_rgba(0,0,0,0.015)]">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold tracking-tight text-neutral-950">Post quality</p>
-          <p className="text-xs font-medium text-neutral-400 mt-0.5">{label}</p>
-        </div>
-        <span className="rounded-full forsa-button px-3 py-1 text-xs font-bold text-white shadow-sm">
-          {qualityScore}%
+      {required && (
+        <span className="ml-1 text-[var(--forsa-primary)]">
+          *
         </span>
-      </div>
+      )}
 
-      <div className="h-2 w-full rounded-full bg-neutral-100 overflow-hidden">
-        <div className="h-full rounded-full forsa-button transition-all duration-500 ease-out" style={{ width: `${qualityScore}%` }} />
-      </div>
-
-      <div className="grid gap-2 pt-1">
-        <QualityItem active={qualityScore >= 20} text="Clear role title added" />
-        <QualityItem active={qualityScore >= 40} text="Location, pay, package, and contact details added" />
-        <QualityItem active={qualityScore >= 60} text="Skills, experience, and shift details selected" />
-        <QualityItem active={qualityScore >= 80} text="Description and requirements are clear" />
-      </div>
-    </div>
+      {optional && (
+        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+          Optional
+        </span>
+      )}
+    </label>
   );
 }
 
-function QualityItem({ active, text }) {
+function Field({
+  label,
+  required,
+  optional,
+  placeholder,
+  value,
+  onChange,
+  icon,
+}) {
   return (
-    <div className="flex items-center gap-2.5">
-      <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-md border text-[8px] transition-all ${
-        active ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white" : "border-neutral-200 bg-white text-transparent"
-      }`}>
-        <FaCheck />
-      </div>
-      <p className={`text-xs font-medium tracking-tight ${active ? "text-neutral-800" : "text-neutral-400"}`}>{text}</p>
-    </div>
-  );
-}
+    <div>
+      <FieldLabel
+        label={label}
+        required={required}
+        optional={optional}
+      />
 
-function Dropdown({ refEl, label, value, open, setOpen, children }) {
-  return (
-    <div ref={refEl} className="space-y-2">
-      <label className="text-sm font-bold tracking-tight text-neutral-950">{label}</label>
       <div className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
-          className="flex w-full items-center justify-between rounded-2xl border border-neutral-200 bg-neutral-50/50 px-4 py-3.5 text-left text-sm font-semibold text-neutral-800 transition hover:border-neutral-400 hover:bg-white"
-        >
-          <span>{value}</span>
-          <FaChevronDown className={`text-xs text-neutral-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-        </button>
-
-        {open && (
-          <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-2xl border border-neutral-200 bg-white shadow-xl animate-fade-in">
-            {children}
-          </div>
+        {icon && (
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-neutral-400">
+            {icon}
+          </span>
         )}
+
+        <input
+          value={value}
+          onChange={(e) =>
+            onChange(e.target.value)
+          }
+          placeholder={placeholder}
+          className={`w-full rounded-2xl border border-neutral-200 bg-neutral-50/60 px-4 py-3.5 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:bg-white ${
+            icon ? "pl-10" : ""
+          }`}
+        />
       </div>
     </div>
   );
 }
 
-function SelectField({ label, value, options, onChange }) {
+function SelectField({
+  label,
+  required,
+  value,
+  options,
+  onChange,
+}) {
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-bold tracking-tight text-neutral-950">{label}</label>
+    <div>
+      <FieldLabel
+        label={label}
+        required={required}
+      />
+
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-2xl border border-neutral-200 bg-neutral-50/50 px-4 py-3.5 text-sm font-semibold text-neutral-800 outline-none transition focus:border-neutral-950 focus:bg-white"
+        onChange={(e) =>
+          onChange(e.target.value)
+        }
+        className="w-full appearance-none rounded-2xl border border-neutral-200 bg-neutral-50/60 px-4 py-3.5 text-sm font-semibold text-neutral-800 outline-none transition focus:border-neutral-950 focus:bg-white"
       >
         {options.map((option) => (
-          <option key={option} value={option}>{option}</option>
+          <option key={option} value={option}>
+            {option}
+          </option>
         ))}
       </select>
     </div>
   );
 }
 
-function Field({ label, placeholder, value, onChange }) {
-  const isFilled = useMemo(() => Boolean(value?.trim?.()), [value]);
+function ChoiceButton({
+  selected,
+  onClick,
+  children,
+}) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between px-0.5">
-        <label className="text-sm font-bold tracking-tight text-neutral-950">{label}</label>
-        {isFilled && <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--forsa-primary)]">Validated</span>}
-      </div>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-2xl border border-neutral-200 bg-neutral-50/50 px-4 py-3.5 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:bg-white"
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-xl border px-3 py-3 text-xs font-bold transition ${
+        selected
+          ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
+          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400 hover:text-neutral-950"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function TagPicker({
+  form,
+  tagsOpen,
+  setTagsOpen,
+  tagSearch,
+  setTagSearch,
+  tagsRef,
+  filteredTags,
+  allTagOptions,
+  toggleTag,
+  addCustomTag,
+}) {
+  const canAdd =
+    tagSearch.trim().length >= 2 &&
+    !allTagOptions.some(
+      (tag) =>
+        tag.toLowerCase() ===
+        tagSearch.trim().toLowerCase()
+    );
+
+  return (
+    <div ref={tagsRef}>
+      <FieldLabel
+        label="Skills / tags"
+        required
       />
+
+      <button
+        type="button"
+        onClick={() =>
+          setTagsOpen((prev) => !prev)
+        }
+        className="flex w-full items-center justify-between rounded-2xl border border-neutral-200 bg-neutral-50/60 px-4 py-3.5 text-left text-sm font-semibold text-neutral-700 transition hover:border-neutral-400 hover:bg-white"
+      >
+        <span className="flex items-center gap-2">
+          <FaTag className="text-xs text-neutral-400" />
+
+          {form.tags.length
+            ? `${form.tags.length} tag${
+                form.tags.length === 1
+                  ? ""
+                  : "s"
+              } selected`
+            : "Select relevant skills"}
+        </span>
+
+        <FaChevronDown
+          className={`text-xs text-neutral-400 transition ${
+            tagsOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {tagsOpen && (
+        <div className="relative z-30 mt-2 rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl">
+          <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5">
+            <FaSearch className="text-xs text-neutral-400" />
+
+            <input
+              autoFocus
+              value={tagSearch}
+              onChange={(e) =>
+                setTagSearch(e.target.value)
+              }
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  canAdd
+                ) {
+                  e.preventDefault();
+                  addCustomTag();
+                }
+              }}
+              placeholder="Search or add a skill..."
+              className="w-full bg-transparent text-sm outline-none"
+            />
+          </div>
+
+          {canAdd && (
+            <button
+              type="button"
+              onClick={addCustomTag}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] px-3 py-2.5 text-xs font-bold text-[var(--forsa-primary)]"
+            >
+              <FaPlus />
+              Add "{tagSearch.trim()}"
+            </button>
+          )}
+
+          <div className="mt-2 max-h-56 overflow-y-auto">
+            {filteredTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() =>
+                  toggleTag(tag)
+                }
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-neutral-600 transition hover:bg-neutral-50 hover:text-neutral-950"
+              >
+                {tag}
+
+                {form.tags.includes(tag) && (
+                  <FaCheck className="text-xs text-[var(--forsa-primary)]" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {form.tags.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {form.tags.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() =>
+                toggleTag(tag)
+              }
+              className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-700 transition hover:border-red-200 hover:text-red-600"
+            >
+              {tag}
+              <FaTimes className="text-[9px]" />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function PreviewCard({ form, qualityScore }) {
+function ApplicationQuestions({
+  form,
+  updateQuestion,
+  addQuestion,
+  removeQuestion,
+}) {
   return (
-    <div className="rounded-[24px] border border-neutral-200/70 bg-gradient-to-br from-white to-neutral-50/40 p-5 space-y-5 shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
-      <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-        <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">Live preview</p>
-        <span className="rounded-md bg-neutral-100 border border-neutral-200 px-2 py-0.5 text-[10px] font-extrabold text-neutral-600">
-          INDEX {qualityScore}%
+    <div className="rounded-2xl border border-neutral-200 bg-neutral-50/60 p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-neutral-900">
+            Application questions
+            <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+              Optional
+            </span>
+          </p>
+
+          <p className="mt-1 text-xs leading-5 text-neutral-500">
+            Ask something specific before applicants apply.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={addQuestion}
+          disabled={form.questions.length >= 5}
+          className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-600 transition hover:border-neutral-400 disabled:opacity-40"
+        >
+          + Add
+        </button>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {form.questions.map(
+          (question, index) => (
+            <div
+              key={index}
+              className="flex gap-2"
+            >
+              <input
+                value={question}
+                onChange={(e) =>
+                  updateQuestion(
+                    index,
+                    e.target.value
+                  )
+                }
+                placeholder={`Question ${
+                  index + 1
+                }`}
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm outline-none focus:border-neutral-950"
+              />
+
+              {form.questions.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    removeQuestion(index)
+                  }
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-400 hover:border-red-200 hover:text-red-600"
+                >
+                  <FaTrash className="text-xs" />
+                </button>
+              )}
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AdminPostingSection({
+  form,
+  updateForm,
+}) {
+  const managed =
+    form.postingMode === "managed";
+
+  return (
+    <div className="mb-8 rounded-[24px] border border-violet-100 bg-violet-50/40 p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[var(--forsa-primary)] shadow-sm">
+          <FaShieldAlt />
+        </div>
+
+        <div>
+          <p className="text-sm font-bold text-neutral-950">
+            Admin posting
+          </p>
+
+          <p className="mt-1 text-xs leading-5 text-neutral-500">
+            Publish normally under the company account,
+            or add an opportunity collected by Forsa.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <ChoiceButton
+          selected={!managed}
+          onClick={() =>
+            updateForm(
+              "postingMode",
+              "company"
+            )
+          }
+        >
+          Company-owned post
+        </ChoiceButton>
+
+        <ChoiceButton
+          selected={managed}
+          onClick={() =>
+            updateForm(
+              "postingMode",
+              "managed"
+            )
+          }
+        >
+          Managed by Forsa
+        </ChoiceButton>
+      </div>
+
+      {managed && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Company claim email"
+            placeholder="manager@company.com"
+            value={
+              form.managedCompanyEmail
+            }
+            onChange={(value) =>
+              updateForm(
+                "managedCompanyEmail",
+                value
+              )
+            }
+          />
+
+          <Field
+            label="Company claim phone"
+            placeholder="70582107"
+            value={
+              form.managedCompanyPhone
+            }
+            onChange={(value) =>
+              updateForm(
+                "managedCompanyPhone",
+                value
+              )
+            }
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AgencySection({
+  form,
+  updateForm,
+}) {
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+      <p className="text-sm font-bold text-amber-900">
+        Recruitment / agency information
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-amber-800">
+        Add the agency and actual employer so applicants
+        can understand who is recruiting and where the job
+        is located.
+      </p>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <Field
+          label="Agency / office"
+          required
+          placeholder="Recruitment office"
+          value={form.agencyName}
+          onChange={(value) =>
+            updateForm(
+              "agencyName",
+              value
+            )
+          }
+        />
+
+        <Field
+          label="Employer"
+          required
+          placeholder="Actual company"
+          value={form.hiringFor}
+          onChange={(value) => {
+            updateForm(
+              "hiringFor",
+              value
+            );
+
+            updateForm(
+              "company",
+              value
+            );
+          }}
+        />
+
+        <SelectField
+          label="Work country"
+          value={form.workCountry}
+          options={workCountryOptions}
+          onChange={(value) =>
+            updateForm(
+              "workCountry",
+              value
+            )
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
+function PreviewCard({
+  form,
+  qualityScore,
+}) {
+  return (
+    <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+          Live preview
+        </p>
+
+        <span className="text-xs font-bold text-[var(--forsa-primary)]">
+          {qualityScore}%
         </span>
       </div>
 
-      <div className="flex gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl forsa-button text-white shadow-sm">
-          <FaBriefcase className="text-sm" />
-        </div>
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {form.postingMode === "managed" && (
-              <span className="rounded-lg border border-violet-200 bg-violet-50 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-[var(--forsa-primary)]">
-                Managed by Forsa
-              </span>
-            )}
-            {form.postSource?.includes("Recruitment") && (
-              <span className="rounded-lg bg-amber-50 border border-amber-200 px-2 py-0.5 text-[9px] font-extrabold text-amber-700 uppercase tracking-wide">
-                Agency post
-              </span>
-            )}
-            <h3 className="line-clamp-1 text-sm font-bold tracking-tight text-neutral-950">{form.title || "Untitled job post"}</h3>
+      <div className="rounded-2xl border border-neutral-100 bg-neutral-50/60 p-4">
+        <div className="flex gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl forsa-button text-white">
+            <FaBriefcase className="text-sm" />
           </div>
-          <p className="flex items-center gap-1.5 text-xs font-semibold text-neutral-400">
-            <FaMapMarkerAlt className="shrink-0 text-[10px]" />
-            <span className="truncate">{form.postSource?.includes("Recruitment") ? `${form.agencyName || "Agency"} → ${form.hiringFor || "Employer"}` : form.company || "Company"} · {form.location || "Location missing"}</span>
-          </p>
+
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-bold text-neutral-950">
+              {form.title ||
+                "Your opportunity title"}
+            </h3>
+
+            <p className="mt-1 truncate text-xs font-semibold text-neutral-400">
+              {form.company ||
+                "Company"}{" "}
+              ·{" "}
+              {form.location ||
+                "Location"}
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="flex flex-wrap gap-1">
-        <PreviewPill>{form.postSource?.includes("Recruitment") ? form.workCountry : "Lebanon"}</PreviewPill>
-        <PreviewPill>{form.category}</PreviewPill>
-        <PreviewPill>{form.type}</PreviewPill>
-        <PreviewPill>{form.pay || "Pay not set"}</PreviewPill>
-        <PreviewPill>{form.experience || "Experience not set"}</PreviewPill>
-        <PreviewPill>{form.shift || "Shift not set"}</PreviewPill>
-        {form.gender && form.gender !== "Any" && <PreviewPill>{form.gender}</PreviewPill>}
-        {form.urgent && <span className="rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-[10px] font-bold text-amber-700 uppercase tracking-wide">Urgent</span>}
-        {form.featured && <span className="rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 text-[10px] font-bold text-blue-700 uppercase tracking-wide">Featured</span>}
-      </div>
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          <PreviewPill>
+            {form.type}
+          </PreviewPill>
 
-      <p className="line-clamp-4 text-xs font-medium leading-relaxed text-neutral-500">
-        {form.description || "Job description preview will appear here..."}
-      </p>
+          <PreviewPill>
+            {form.category}
+          </PreviewPill>
 
-      {form.postSource?.includes("Recruitment") && (
-        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Agency / abroad notice</p>
-          <p className="mt-1 text-xs font-medium leading-relaxed text-amber-800">
-            Applicants should confirm fees, contract, visa process, employer identity, and work country before applying.
-          </p>
+          {form.pay && (
+            <PreviewPill>
+              {form.pay}
+            </PreviewPill>
+          )}
+
+          {form.experience && (
+            <PreviewPill>
+              {form.experience}
+            </PreviewPill>
+          )}
         </div>
-      )}
 
-      {form.requirements && (
-        <div className="rounded-2xl border border-neutral-100 bg-white p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-400">Requirements</p>
-          <p className="mt-1 line-clamp-3 text-xs font-medium leading-relaxed text-neutral-500">{form.requirements}</p>
-        </div>
-      )}
+        <p className="mt-4 line-clamp-5 text-xs leading-5 text-neutral-500">
+          {form.description ||
+            "Your job description will appear here as you write it."}
+        </p>
 
-      <div className="flex flex-wrap gap-1 border-t border-neutral-100 pt-3">
-        {form.tags.length > 0 ? (
-          form.tags.slice(0, 5).map((tag) => (
-            <span key={tag} className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-[11px] font-bold text-neutral-600 shadow-2xs">
-              {tag}
-            </span>
-          ))
-        ) : (
-          <span className="text-xs font-semibold text-neutral-400">No tags selected yet.</span>
-        )}
-
-        {form.tags.length > 5 && (
-          <span className="rounded-lg bg-neutral-100 border border-neutral-200 px-2 py-1 text-[11px] font-extrabold text-neutral-500">
-            +{form.tags.length - 5} more
-          </span>
+        {form.tags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-1.5 border-t border-neutral-200 pt-3">
+            {form.tags
+              .slice(0, 5)
+              .map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-[10px] font-bold text-neutral-600"
+                >
+                  {tag}
+                </span>
+              ))}
+          </div>
         )}
       </div>
     </div>
@@ -1216,27 +1759,35 @@ function PreviewCard({ form, qualityScore }) {
 }
 
 function PreviewPill({ children }) {
-  return <span className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[10px] font-bold text-neutral-500 uppercase tracking-wide shadow-2xs">{children}</span>;
+  return (
+    <span className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-[10px] font-bold text-neutral-600">
+      {children}
+    </span>
+  );
 }
 
-function ToggleCard({ active, icon, title, text, onClick }) {
+function CheckLine({ active, text }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-2xl border p-4 text-left transition-all duration-200 group relative ${
-        active
-          ? "border-neutral-950 bg-neutral-950 text-white shadow-sm"
-          : "border-neutral-200 bg-white hover:border-neutral-400"
-      }`}
-    >
-      <div className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
-        active ? "bg-white/10 text-white" : "bg-neutral-50 text-neutral-600 border border-neutral-200/40"
-      }`}>
-        {icon}
-      </div>
-      <p className="mt-4 text-sm font-bold tracking-tight">{title}</p>
-      <p className={`mt-1 text-xs font-medium leading-relaxed ${active ? "text-neutral-400" : "text-neutral-400"}`}>{text}</p>
-    </button>
+    <div className="flex items-center gap-2">
+      <span
+        className={`flex h-4 w-4 items-center justify-center rounded-md text-[8px] ${
+          active
+            ? "bg-[var(--forsa-primary)] text-white"
+            : "border border-neutral-200 bg-white text-transparent"
+        }`}
+      >
+        <FaCheck />
+      </span>
+
+      <span
+        className={`text-xs font-semibold ${
+          active
+            ? "text-neutral-700"
+            : "text-neutral-400"
+        }`}
+      >
+        {text}
+      </span>
+    </div>
   );
 }

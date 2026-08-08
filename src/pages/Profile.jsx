@@ -476,20 +476,25 @@ const displayEmail =
   };
 
   const getProfileCompletion = () => {
-    const checks = isHiring
-      ? [Boolean(account.name), Boolean(account.email), Boolean(account.city), posts.length > 0]
-      : [
-          Boolean(account.name),
-          Boolean(account.email),
-          Boolean(account.city),
-          profile.skills.length > 0,
-          profile.lookingFor.length > 0,
-          Boolean(profile.cv?.url || profile.cv?.name),
-        ];
+  const checks = isHiring
+    ? [
+        Boolean(account.name),
+        Boolean(account.email),
+        Boolean(account.city),
+        posts.length > 0,
+      ]
+    : [
+        Boolean(account.name),
+        Boolean(account.email),
+        Boolean(account.city),
+        Array.isArray(profile.skills) && profile.skills.length > 0,
+        Array.isArray(profile.lookingFor) && (profile.lookingFor || []).length > 0,
+        Boolean(profile.cv?.url || profile.cv?.name),
+      ];
 
-    const completed = checks.filter(Boolean).length;
-    return Math.round((completed / checks.length) * 100);
-  };
+  const completed = checks.filter(Boolean).length;
+  return Math.round((completed / checks.length) * 100);
+};
 
   const completionScore = getProfileCompletion();
 
@@ -514,7 +519,7 @@ const displayEmail =
         { label: "Full name", done: Boolean(account.name) },
         { label: "Location", done: Boolean(account.city || profile.cityPreference) },
         { label: "Skills", done: profile.skills.length > 0 },
-        { label: "Goals", done: profile.lookingFor.length > 0 },
+        { label: "Goals", done: (profile.lookingFor || []).length > 0 },
         { label: "CV", done: Boolean(profile.cv?.url || profile.cv?.name) },
       ];
 
@@ -1544,7 +1549,7 @@ function CompletionTips({ isHiring, profile, posts }) {
       ].filter(Boolean)
     : [
         profile.skills.length === 0 && "Add at least 3 skills.",
-        profile.lookingFor.length === 0 && "Choose what kind of work you want.",
+        (profile.lookingFor || []).length === 0 && "Choose what kind of work you want.",
         !(profile.cv?.url || profile.cv?.name) && "Add your CV link.",
       ].filter(Boolean);
 
@@ -3206,14 +3211,19 @@ function EditBox({ title, options, selected, onToggle }) {
 }
 
 function InfoBox({ title, items, empty }) {
+  const safeItems = Array.isArray(items) ? items : [];
+
   return (
-    <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
-      <p className="text-sm text-neutral-500">{title}</p>
+    <div>
+      <div>{title}</div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {items.length > 0 ? (
-          items.map((item) => (
-            <span key={item} className="rounded-full bg-white px-3 py-1.5 text-sm">
+        {safeItems.length > 0 ? (
+          safeItems.map((item) => (
+            <span
+              key={item}
+              className="rounded-full bg-white px-3 py-1.5 text-sm"
+            >
               {item}
             </span>
           ))

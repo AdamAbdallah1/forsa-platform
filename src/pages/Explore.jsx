@@ -1808,25 +1808,31 @@ function StatusCard({ isLoggedIn, isHiring, savedProfile, navigate }) {
 }
 
 function SkillBox({ title, skills }) {
+  const safeSkills = Array.isArray(skills) ? skills : [];
+
   return (
-    <div className="rounded-2xl bg-[var(--forsa-bg)] p-4">
-      <p className="text-xs text-neutral-500">{title}</p>
+    <div>
+      <div>{title}</div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {skills.length > 0 ? (
-          skills.slice(0, 8).map((skill) => (
-            <span key={skill} className="rounded-full bg-white px-3 py-1.5 text-xs">
+        {safeSkills.length > 0 ? (
+          safeSkills.slice(0, 8).map((skill) => (
+            <span
+              key={skill}
+              className="rounded-full bg-white px-3 py-1.5 text-xs"
+            >
               {skill}
             </span>
           ))
         ) : (
-          <p className="text-sm text-neutral-500">Nothing selected yet.</p>
+          <p className="text-sm text-neutral-500">
+            Nothing selected yet.
+          </p>
         )}
       </div>
     </div>
   );
 }
-
 function LoadingState() {
   return (
     <div className="mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white p-8 text-center shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-10">
