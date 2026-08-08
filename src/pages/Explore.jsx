@@ -805,12 +805,7 @@ export default function Explore() {
       
 
       <div className="mx-auto max-w-[1180px] px-3 pb-36 pt-1 sm:px-6 md:pb-28 lg:pb-20">
-                <HeroBar
-          isHiring={isHiring}
-          isLoggedIn={isLoggedIn}
-          navigate={navigate}
-          stats={stats}
-        />
+        
         <SearchPanel
           search={search}
           setSearch={setSearch}
@@ -826,6 +821,14 @@ export default function Explore() {
           hasActiveFilters={Boolean(hasActiveFilters)}
           clearFilters={clearFilters}
         />
+
+        <HeroBar
+          isHiring={isHiring}
+          isLoggedIn={isLoggedIn}
+          navigate={navigate}
+          stats={stats}
+        />
+        
 
         <StatusCard
           isLoggedIn={isLoggedIn}
@@ -1031,7 +1034,7 @@ function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
           </h1>
 
           <p className="mt-3 max-w-xl text-[13px] leading-6 text-neutral-600 sm:text-base sm:leading-7">
-            Jobs, internships, freelance gigs, agency posts, and abroad opportunities — organized for mobile.
+            Jobs, internships, freelance gigs, agency posts, and abroad opportunities.
           </p>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -1067,9 +1070,8 @@ function HeroChip({ label, value, icon }) {
     <div className="rounded-[24px] border border-[#ebe5ff] bg-white px-4 py-3 shadow-sm">
       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
         {icon}
-        {label}
+        {value}
       </div>
-      <p className="mt-3 text-sm font-semibold text-neutral-950">{value}</p>
     </div>
   );
 }
@@ -1118,14 +1120,6 @@ function SearchPanel({
           >
             <FaSlidersH className="text-sm" />
           </button>
-        </div>
-
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {quickTypes.map((type) => (
-            <FilterButton key={type} active={activeType === type} onClick={() => setActiveType(type)}>
-              {type}
-            </FilterButton>
-          ))}
         </div>
 
         {hasActiveFilters && (
@@ -1868,12 +1862,7 @@ function StatusCard({ isLoggedIn, isHiring, savedProfile, navigate }) {
     );
   }
 
-  return (
-    <div className="mt-4 grid gap-3 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] md:grid-cols-2">
-      <SkillBox title="Your skills" skills={savedProfile.skills} />
-      <SkillBox title="Looking for" skills={savedProfile.lookingFor} />
-    </div>
-  );
+  
 }
 
 function SkillBox({ title, skills }) {
