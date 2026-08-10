@@ -31,10 +31,6 @@ const skillOptions = [
   "Writing",
   "Sales",
   "Customer service",
-  "Barista",
-  "Waiter",
-  "Cashier",
-  "Delivery",
   "Data entry",
 ];
 

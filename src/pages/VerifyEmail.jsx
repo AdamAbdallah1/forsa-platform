@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaCheckCircle, FaEnvelope, FaRedo, FaSignOutAlt } from "react-icons/fa";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import emailAnimation from "../assets/cta-hero.lottie";
 import {
   auth,
   db,
@@ -108,24 +110,21 @@ export default function VerifyEmail() {
     >
       <main className="w-full max-w-md">
         <div
-          className="rounded-2xl border p-7 sm:p-9"
+          className="rounded-2xl  p-7 sm:p-9"
           style={{
             background: "var(--forsa-surface)",
             borderColor: "var(--forsa-border)",
           }}
         >
-          {/* Icon */}
-          <div className="flex justify-center mb-6">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{
-                background: "rgba(139, 92, 246, 0.12)",
-                color: "var(--forsa-primary, #8b5cf6)",
-              }}
-            >
-              <FaEnvelope className="text-2xl" />
-            </div>
-          </div>
+<div className="flex justify-center mb-4">
+  <div className="w-24 h-24 sm:w-28 sm:h-28">
+    <DotLottieReact
+      src={emailAnimation}
+      loop
+      autoplay
+    />
+  </div>
+</div>
 
           {/* Heading */}
           <div className="text-center">

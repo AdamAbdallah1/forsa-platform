@@ -43,26 +43,45 @@ const toIso = (value) => {
 export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
-        localStorage.removeItem("forsaAccount");
-        return;
-      }
+  if (!currentUser) {
+    localStorage.removeItem("forsaAccount");
+    return;
+  }
 
-      try {
-        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-        if (!userDoc.exists()) return;
+  try {
+    const isGoogleUser = currentUser.providerData.some(
+      (provider) => provider.providerId === "google.com"
+    );
 
-        const data = userDoc.data();
-        setSession({
-          uid: currentUser.uid,
-          ...data,
-          createdAt: toIso(data.createdAt),
-          updatedAt: toIso(data.updatedAt),
-        });
-      } catch (error) {
-        console.error("Auth sync failed:", error);
-      }
+    if (!isGoogleUser && !currentUser.emailVerified) {
+      localStorage.removeItem("forsaAccount");
+      return;
+    }
+
+    const userDoc = await getDoc(
+      doc(db, "users", currentUser.uid)
+    );
+
+    if (!userDoc.exists()) {
+      console.error("Authenticated user profile not found.");
+      localStorage.removeItem("forsaAccount");
+      return;
+    }
+
+    const data = userDoc.data();
+
+    setSession({
+      uid: currentUser.uid,
+      ...data,
+      emailVerified: currentUser.emailVerified,
+      createdAt: toIso(data.createdAt),
+      updatedAt: toIso(data.updatedAt),
     });
+  } catch (error) {
+    console.error("Auth sync failed:", error);
+    localStorage.removeItem("forsaAccount");
+  }
+});
 
     return unsubscribe;
   }, []);
