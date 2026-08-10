@@ -126,7 +126,6 @@ export default function VerifyEmail() {
   </div>
 </div>
 
-          {/* Heading */}
           <div className="text-center">
             <h1
               className="text-2xl sm:text-3xl font-bold tracking-tight"

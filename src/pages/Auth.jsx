@@ -236,10 +236,9 @@ export default function Auth() {
 
   return (
     <main className="min-h-screen overflow-y-auto overflow-x-hidden bg-[#f7f7f5]">
-      <HomeNavbar />
       <SEO title="Join Forsa" />
 
-      <section className="relative mx-auto grid min-h-[100dvh] w-full max-w-6xl gap-6 px-4 py-4 sm:px-6 sm:py-8 lg:grid-cols-[0.9fr_1fr] lg:items-center lg:gap-12 mt-[-50px]">
+      <section className="relative mx-auto grid min-h-[100dvh] w-full max-w-6xl gap-6 px-4 py-4 sm:px-6 sm:py-8 lg:grid-cols-[0.9fr_1fr] lg:items-center lg:gap-12">
         <div className="pointer-events-none absolute left-[-140px] top-[-140px] h-80 w-80 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
         <div className="pointer-events-none absolute bottom-[-160px] right-[-120px] h-96 w-96 rounded-full bg-neutral-300/40 blur-3xl" />
 
