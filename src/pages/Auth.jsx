@@ -224,8 +224,8 @@ export default function Auth() {
 
       const user = await registerUser({ ...newAccount, password });
 
-      showToast(isHiring ? "Company account created" : "Welcome to Forsa");
-      navigate(user.accountType === "hiring" ? "/post" : "/onboarding");
+      showToast("Verification email sent. Please check your inbox.");
+      navigate("/verify-email");
     } catch (err) {
       console.error("Auth error:", err);
       setError(getFriendlyAuthError(err, isSignup));

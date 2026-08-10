@@ -10,6 +10,7 @@ import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import MyApplications from "./pages/MyApplications";
 import Auth from "./pages/Auth";
+import VerifyEmail from "./pages/VerifyEmail";
 import People from "./pages/People";
 import NotFound from "./pages/NotFound";
 import Companies from "./pages/Companies";
@@ -72,6 +73,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/onboarding" element={<SeekerRoute><Onboarding /></SeekerRoute>} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/dashboard" element={<HiringRoute><Dashboard /></HiringRoute>}/>
