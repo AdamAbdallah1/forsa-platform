@@ -1,0 +1,186 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function verifiedUser() {
+      return signedIn() &&
+        request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == "admin";
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn() &&
+  request.auth.uid == userId &&
+  request.resource.data.uid == userId &&
+  (
+    !request.resource.data.keys().hasAny(["role"]) ||
+    request.resource.data.role != "admin"
+  );
+
+      allow update: if signedIn() &&
+        request.auth.uid == userId &&
+        !request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasAny([
+            "uid",
+            "role",
+            "accountType",
+            "trusted",
+            "verified",
+            "createdAt"
+          ]);
+
+      allow update: if signedIn() &&
+        request.auth.uid == userId &&
+        request.auth.token.email_verified == true &&
+        request.resource.data.emailVerified == true &&
+        request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            "emailVerified",
+            "updatedAt"
+          ]);
+
+      allow update: if isAdmin();
+
+allow delete: if signedIn() &&
+  request.auth.uid == userId;
+    }
+
+    match /connections/{connectionId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn() &&
+        request.resource.data.fromUid == request.auth.uid;
+
+      allow update: if signedIn() &&
+        resource.data.toUid == request.auth.uid;
+
+      allow delete: if signedIn() &&
+        (
+          resource.data.fromUid == request.auth.uid ||
+          resource.data.toUid == request.auth.uid ||
+          isAdmin()
+        );
+    }
+
+    match /notifications/{notificationId} {
+      allow create: if signedIn();
+
+      allow read, update, delete: if signedIn() &&
+        (
+          resource.data.targetEmail == request.auth.token.email ||
+          isAdmin()
+        );
+    }
+
+    match /reports/{reportId} {
+      allow create: if signedIn();
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /savedJobs/{savedJobId} {
+      allow create: if signedIn() &&
+        request.resource.data.userUid == request.auth.uid;
+
+      allow read, update, delete: if signedIn() &&
+        resource.data.userUid == request.auth.uid;
+    }
+
+    match /verificationRequests/{requestId} {
+      allow create: if signedIn();
+
+      allow read, update, delete: if signedIn() &&
+        (
+          resource.data.uid == request.auth.uid ||
+          resource.data.requestedByUid == request.auth.uid ||
+          resource.data.requestedByEmail == request.auth.token.email ||
+          isAdmin()
+        );
+    }
+
+    match /posts/{postId} {
+      allow read: if true;
+
+      allow create: if signedIn() &&
+  request.resource.data.ownerUid == request.auth.uid;
+
+      allow update: if signedIn() &&
+        (
+          resource.data.ownerUid == request.auth.uid ||
+          isAdmin() ||
+
+          request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(["views", "updatedAt"]) ||
+
+          request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(["shares", "updatedAt"]) ||
+
+          request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(["applications", "updatedAt"]) ||
+
+          request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(["saves", "updatedAt"]) ||
+
+          request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(["reports", "updatedAt"])
+        );
+
+      allow delete: if signedIn() &&
+        (
+          resource.data.ownerUid == request.auth.uid ||
+          isAdmin()
+        );
+    }
+
+    match /applications/{applicationId} {
+  allow read: if signedIn() &&
+    (
+      resource.data.seeker.uid == request.auth.uid ||
+      resource.data.ownerUid == request.auth.uid ||
+      isAdmin()
+    );
+
+  allow create: if signedIn() &&
+    request.resource.data.seeker.uid == request.auth.uid &&
+    request.resource.data.status == "pending";
+
+  allow update: if signedIn() &&
+    (
+      resource.data.seeker.uid == request.auth.uid ||
+      resource.data.ownerUid == request.auth.uid ||
+      isAdmin()
+    );
+
+  allow delete: if signedIn() &&
+    (
+      resource.data.seeker.uid == request.auth.uid ||
+      resource.data.ownerUid == request.auth.uid ||
+      isAdmin()
+    );
+}
+
+    match /outreachLeads/{leadId} {
+      allow read, create, update, delete: if signedIn() &&
+        request.auth.token.email == "adamabdallahayln1@gmail.com";
+    }
+  }
+}

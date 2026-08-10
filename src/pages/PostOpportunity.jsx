@@ -1,5 +1,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { showToast } from "../lib/Toast";
 import Footer from "../components/Footer";
@@ -24,6 +25,7 @@ import {
   FaUndo,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
+import { auth, app } from "../lib/firebase";
 
 const typeOptions = [
   "Internship",
@@ -503,178 +505,155 @@ export default function PostOpportunity() {
   };
 
   const handleSubmit = async () => {
-    if (!canPost || posting) return;
+  if (!canPost || posting) return;
 
-    setPosting(true);
+  setPosting(true);
 
-    try {
-      const isManaged =
-        isForsaAdmin &&
-        form.postingMode === "managed";
+  try {
 
-      const cleanQuestions = form.questions
-        .map((q) => q.trim())
-        .filter(Boolean);
+    const cleanQuestions = form.questions
+      .map((q) => q.trim())
+      .filter(Boolean);
 
-      const isAgency =
-        form.postSource.includes("Recruitment");
+    const isAgency =
+      form.postSource.includes("Recruitment");
 
-      const newPost = {
-        ownerUid: account?.uid || null,
+    console.log("POST DEBUG:", {
+      accountUid: account?.uid,
+      authUid: auth.currentUser?.uid,
+      email: account?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      accountType: account?.accountType,
+      ownerUid: account?.uid,
+    });
+    console.log("FIREBASE PROJECT:", app.options.projectId);
 
-        ownerEmail:
-          account?.email ||
-          form.contact.trim(),
+    const newPost = {
+      ownerUid: account?.uid || null,
 
-        ownerName: isManaged
-          ? "Forsa Jobs"
-          : account?.name ||
-            form.company.trim(),
+      ownerEmail:
+        account?.email ||
+        form.contact.trim(),
 
-        postingMode: isManaged
-          ? "managed"
-          : "company",
+      ownerName:
+  account?.name ||
+  form.company.trim(),
 
-        managedByForsa: isManaged,
+postingMode: "company",
+      postSource: form.postSource,
 
-        managedBy: isManaged
-          ? account?.email
-          : null,
+      isAgencyPost: isAgency,
 
-        managementStatus: isManaged
-          ? "managed_unclaimed"
-          : "owner_posted",
+      agencyName: form.agencyName.trim(),
 
-        companyClaimed: false,
+      hiringFor: form.hiringFor.trim(),
 
-        claimEmail: isManaged
-          ? form.managedCompanyEmail
-              .trim()
-              .toLowerCase()
-          : "",
+      workCountry:
+        form.workCountry.trim(),
 
-        claimPhone: isManaged
-          ? form.managedCompanyPhone.trim()
-          : "",
+      postedBy: isAgency
+        ? form.agencyName.trim()
+        : form.company.trim(),
 
-        claimInstructions: isManaged
-          ? "This post was added by Forsa Jobs. The real company can request ownership and edit it after admin approval."
-          : "",
+      company: isAgency
+        ? form.hiringFor.trim()
+        : form.company.trim(),
 
-        postSource: form.postSource,
+      location:
+        form.location.trim(),
 
-        isAgencyPost: isAgency,
+      title:
+        form.title.trim(),
 
-        agencyName: form.agencyName.trim(),
+      type: form.type,
 
-        hiringFor: form.hiringFor.trim(),
+      category:
+        form.category.trim(),
 
-        workCountry:
-          form.workCountry.trim(),
+      pay:
+        form.pay.trim(),
 
-        postedBy: isAgency
-          ? form.agencyName.trim()
-          : form.company.trim(),
+      packageDetails:
+        form.packageDetails.trim(),
 
-        company: isAgency
-          ? form.hiringFor.trim()
-          : form.company.trim(),
+      experience:
+        form.experience.trim(),
 
-        location:
-          form.location.trim(),
+      shift:
+        form.shift.trim(),
 
-        title:
-          form.title.trim(),
+      gender:
+        form.gender.trim(),
 
-        type: form.type,
+      description:
+        form.description.trim(),
 
-        category:
-          form.category.trim(),
+      requirements:
+        form.requirements.trim(),
 
-        pay:
-          form.pay.trim(),
+      contact:
+        form.contact.trim(),
 
-        packageDetails:
-          form.packageDetails.trim(),
+      tags:
+        form.tags || [],
 
-        experience:
-          form.experience.trim(),
+      urgent:
+        Boolean(form.urgent),
 
-        shift:
-          form.shift.trim(),
+      featured:
+        Boolean(form.featured),
 
-        gender:
-          form.gender.trim(),
+      trusted: Boolean(account?.trusted),
 
-        description:
-          form.description.trim(),
+verified: Boolean(account?.verified),
 
-        requirements:
-          form.requirements.trim(),
+      questions:
+        cleanQuestions,
 
-        contact:
-          form.contact.trim(),
+      reports: 0,
+      views: 0,
+      applications: 0,
+      qualityScore,
+    };
 
-        tags:
-          form.tags || [],
+    // IMPORTANT: newPost exists now
+    console.log("ACTUAL NEW POST:", newPost);
 
-        urgent:
-          Boolean(form.urgent),
+    const createdPost =
+      await createPost(newPost);
 
-        featured:
-          Boolean(form.featured),
+    const saved = safeJson(
+      "forsaPosts",
+      []
+    );
 
-        trusted: isManaged
-          ? true
-          : Boolean(account?.trusted),
+    localStorage.setItem(
+      "forsaPosts",
+      JSON.stringify([
+        createdPost,
+        ...saved,
+      ])
+    );
 
-        verified: isManaged
-          ? true
-          : Boolean(account?.verified),
+    await notifyFollowers(createdPost);
 
-        questions:
-          cleanQuestions,
+    showToast(
+      "Opportunity published successfully"
+    );
 
-        reports: 0,
-        views: 0,
-        applications: 0,
-        qualityScore,
-      };
+    navigate("/dashboard");
 
-      const createdPost =
-        await createPost(newPost);
+  } catch (error) {
+    console.error("Post error:", error);
 
-      const saved = safeJson(
-        "forsaPosts",
-        []
-      );
-
-      localStorage.setItem(
-        "forsaPosts",
-        JSON.stringify([
-          createdPost,
-          ...saved,
-        ])
-      );
-
-      await notifyFollowers(createdPost);
-
-      showToast(
-        "Opportunity published successfully"
-      );
-
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Post error:", error);
-
-      showToast(
-        "Could not publish opportunity. Try again.",
-        "error"
-      );
-    } finally {
-      setPosting(false);
-    }
-  };
+    showToast(
+      "Could not publish opportunity. Try again.",
+      "error"
+    );
+  } finally {
+    setPosting(false);
+  }
+};
 
   return (
     <section className="min-h-screen bg-neutral-50">

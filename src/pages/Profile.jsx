@@ -4,7 +4,7 @@ import Footer from "../components/Footer";
 import SEO from "../components/SEO";
 import AppHeader from "../components/AppHeader";
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { auth, db } from "../lib/firebase";
 import Modal from "../components/ui/Modal";
 import { deleteCurrentAccount } from "../lib/accountDeletionService";
 import { showToast } from "../lib/Toast";
@@ -309,11 +309,8 @@ export default function Profile() {
     if (!savedAccount || savedAccount.accountType !== "hiring") return allPosts;
 
     return allPosts.filter(
-      (post) =>
-        post.ownerEmail === savedAccount.email ||
-        (!post.ownerEmail && post.ownerName === savedAccount.name) ||
-        (!post.ownerEmail && !post.ownerName)
-    );
+  (post) => post.ownerUid === savedAccount.uid
+);
   });
   const [savedJobs, setSavedJobs] = useState(safeJson("forsaSavedJobs", []));
   const [messages, setMessages] = useState(() => {
@@ -351,10 +348,8 @@ export default function Profile() {
 
       try {
         const remotePosts = await getPostsByOwner({
-          uid: savedAccount.uid,
-          email: savedAccount.email,
-          name: savedAccount.name,
-        });
+  uid: savedAccount.uid,
+});
 
         if (!active) return;
 
@@ -399,58 +394,7 @@ export default function Profile() {
             </Link>
           </div>
         </div>
-        <Modal
-  open={deleteModalOpen}
-  title="Delete account"
-  onClose={() => {
-    if (!deletingAccount) {
-      setDeleteModalOpen(false);
-      setDeleteConfirmText("");
-    }
-  }}
->
-  <div>
-    <p className="text-sm leading-7 text-neutral-600">
-      This will permanently delete your Forsa account, profile, posts,
-      applications, saved jobs, connections, notifications, and login account.
-      This action cannot be undone.
-    </p>
-
-    <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4">
-      <p className="text-sm font-semibold text-red-700">
-        Type DELETE to confirm.
-      </p>
-
-      <input
-        value={deleteConfirmText}
-        onChange={(e) => setDeleteConfirmText(e.target.value)}
-        placeholder="DELETE"
-        className="mt-3 w-full rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-red-500"
-      />
-    </div>
-
-    <div className="mt-6 grid grid-cols-2 gap-2">
-      <button
-        disabled={deletingAccount}
-        onClick={() => {
-          setDeleteModalOpen(false);
-          setDeleteConfirmText("");
-        }}
-        className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700 disabled:opacity-50"
-      >
-        Cancel
-      </button>
-
-      <button
-        disabled={deletingAccount || deleteConfirmText !== "DELETE"}
-        onClick={handleDeleteAccount}
-        className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {deletingAccount ? "Deleting..." : "Delete forever"}
-      </button>
-    </div>
-  </div>
-</Modal>
+        
       </section>
     );
   }
@@ -685,14 +629,22 @@ const saveChanges = async () => {
   };
 
   const publicProfileData = {
-    ...nextAccount,
-    skills: profile.skills || [],
-    lookingFor: profile.lookingFor || [],
-    cv: profile.cv || null,
-    publicSkills: profile.skills || [],
-    publicLookingFor: profile.lookingFor || [],
-    publicCv: profile.cv || null,
-  };
+  name: nextAccount.name || "",
+  bio: nextAccount.bio || "",
+  experience: nextAccount.experience || "",
+  education: nextAccount.education || "",
+  portfolioLinks: nextAccount.portfolioLinks || "",
+
+  skills: profile.skills || [],
+  lookingFor: profile.lookingFor || [],
+  cv: profile.cv || null,
+
+  publicSkills: profile.skills || [],
+  publicLookingFor: profile.lookingFor || [],
+  publicCv: profile.cv || null,
+
+  updatedAt: new Date(),
+};
 
   try {
     if (account?.uid) {
@@ -728,11 +680,22 @@ const saveChanges = async () => {
   };
 
   const deletePost = async (postId) => {
-    const confirmed = window.confirm("Delete this opportunity?");
-    if (!confirmed) return;
+  const confirmed = window.confirm("Delete this opportunity?");
+  if (!confirmed) return;
 
-    try {
-      await deletePostFromFirestore(postId);
+  const post = posts.find((item) => item.id === postId);
+
+  console.log("DELETE POST DEBUG:", {
+    postId,
+    postOwnerUid: post?.ownerUid,
+    accountUid: account?.uid,
+    authUid: auth.currentUser?.uid,
+    postOwnerEmail: post?.ownerEmail,
+    accountEmail: account?.email,
+  });
+
+  try {
+    await deletePostFromFirestore(postId);
 
       const updatedPosts = posts.filter((post) => post.id !== postId);
       persistOwnPosts(updatedPosts);
@@ -1178,58 +1141,50 @@ const saveChanges = async () => {
         onClose={() => setVerificationOpen(false)}
         onSubmit={submitVerificationRequest}
       />
-<Modal
-  open={deleteModalOpen}
-  title="Delete account"
-  onClose={() => {
-    if (!deletingAccount) {
-      setDeleteModalOpen(false);
-      setDeleteConfirmText("");
-    }
-  }}
->
-  <div>
-    <p className="text-sm leading-7 text-neutral-600">
-      This will permanently delete your Forsa account, profile, posts,
-      applications, saved jobs, connections, notifications, and login account.
-      This action cannot be undone.
-    </p>
+        <Modal
+          open={deleteModalOpen}
+          title="Delete account"
+          onClose={() => {
+            if (!deletingAccount) {
+              setDeleteModalOpen(false);
+              setDeleteConfirmText("");
+            }
+          }}
+        >
+          <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4">
+            <p className="text-sm font-semibold text-red-700">
+              Type DELETE to confirm.
+            </p>
 
-    <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4">
-      <p className="text-sm font-semibold text-red-700">
-        Type DELETE to confirm.
-      </p>
+            <input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="DELETE"
+              className="mt-3 w-full rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-red-500"
+            />
+          </div>
 
-      <input
-        value={deleteConfirmText}
-        onChange={(e) => setDeleteConfirmText(e.target.value)}
-        placeholder="DELETE"
-        className="mt-3 w-full rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-red-500"
-      />
-    </div>
+          <div className="mt-6 grid grid-cols-2 gap-2">
+            <button
+              disabled={deletingAccount}
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setDeleteConfirmText("");
+              }}
+              className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700 disabled:opacity-50"
+            >
+              Cancel
+            </button>
 
-    <div className="mt-6 grid grid-cols-2 gap-2">
-      <button
-        disabled={deletingAccount}
-        onClick={() => {
-          setDeleteModalOpen(false);
-          setDeleteConfirmText("");
-        }}
-        className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700 disabled:opacity-50"
-      >
-        Cancel
-      </button>
-
-      <button
-        disabled={deletingAccount || deleteConfirmText !== "DELETE"}
-        onClick={handleDeleteAccount}
-        className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {deletingAccount ? "Deleting..." : "Delete forever"}
-      </button>
-    </div>
-  </div>
-</Modal>
+            <button
+              disabled={deletingAccount || deleteConfirmText !== "DELETE"}
+              onClick={handleDeleteAccount}
+              className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {deletingAccount ? "Deleting..." : "Delete forever"}
+            </button>
+          </div>
+        </Modal>
       <Footer />
 
       {selectedApplicantsPost && (

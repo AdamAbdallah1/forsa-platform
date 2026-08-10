@@ -119,6 +119,11 @@ const [interviewForm, setInterviewForm] = useState({
 });
 
   const isHiring = account?.accountType === "hiring";
+  console.log("HIRING ACCOUNT:", {
+  uid: account?.uid,
+  email: account?.email,
+  accountType: account?.accountType,
+});
 
   useEffect(() => {
     if (!account?.email || !isHiring) {

@@ -108,29 +108,22 @@ export async function getAdminPosts() {
   return snapshot.docs.map(normalizePost);
 }
 
-export async function getPostsByOwner({ uid, email }) {
+export async function getPostsByOwner({ uid }) {
+  if (!uid) return [];
+
   const postsRef = collection(db, "posts");
-  const results = [];
 
-  if (uid) {
-    const uidSnap = await getDocs(query(postsRef, where("ownerUid", "==", uid)));
-    results.push(...uidSnap.docs);
-  }
-
-  if (email) {
-    const emailSnap = await getDocs(query(postsRef, where("ownerEmail", "==", email)));
-    results.push(...emailSnap.docs);
-  }
-
-  const unique = new Map();
-
-  results.forEach((item) => {
-    unique.set(item.id, normalizePost(item));
-  });
-
-  return Array.from(unique.values()).sort(
-    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+  const snapshot = await getDocs(
+    query(postsRef, where("ownerUid", "==", uid))
   );
+
+  return snapshot.docs
+    .map(normalizePost)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt || 0) -
+        new Date(a.createdAt || 0)
+    );
 }
 
 export async function updatePost(postId, data) {

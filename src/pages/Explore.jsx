@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { auth } from "../lib/firebase";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { showToast } from "../lib/Toast";
 import ExploreSkeleton from "../components/ExploreSkeleton";
@@ -714,87 +715,115 @@ export default function Explore() {
     const now = new Date().toISOString();
 
     const baseThreadPayload = {
-      opportunityId: item.id,
-      ownerUid: item.ownerUid || null,
-      ownerEmail: item.ownerEmail || item.contact || null,
-      title: item.title,
-      company: item.company,
-      createdAt: existing?.createdAt || now,
-      updatedAt: now,
-      lastMessage: message,
-      status: existing?.status || "pending",
+  opportunityId: item.id,
+  ownerUid: item.ownerUid || null,
+  ownerEmail: item.ownerEmail || item.contact || null,
+  title: item.title,
+  company: item.company,
+  createdAt: existing?.createdAt || now,
+  updatedAt: now,
+  lastMessage: message,
+  status: existing?.status || "pending",
+  cv: attachCv ? savedProfile.cv : null,
+  answers,
+  questions: item.questions || [],
+  seeker: {
+    uid: account.uid || null,
+    name: account.name,
+    email: account.email,
+    city: account.city,
+    skills: savedProfile.skills,
+    lookingFor: savedProfile.lookingFor,
+    lastSeen: now,
+  },
+  opportunity: {
+    title: item.title,
+    company: item.company,
+    location: item.location,
+    type: item.type,
+    pay: item.pay,
+    contact: item.contact,
+  },
+  conversation: [
+    ...(existing?.conversation || []),
+    {
+      id: Date.now(),
+      from: account.name,
+      role: "seeker",
+      text: message,
+      createdAt: now,
       cv: attachCv ? savedProfile.cv : null,
       answers,
-      questions: item.questions || [],
-      seeker: {
-        uid: account.uid || null,
-        name: account.name,
-        email: account.email,
-        city: account.city,
-        skills: savedProfile.skills,
-        lookingFor: savedProfile.lookingFor,
-        lastSeen: now,
-      },
-      opportunity: {
-        title: item.title,
-        company: item.company,
-        location: item.location,
-        type: item.type,
-        pay: item.pay,
-        contact: item.contact,
-      },
-      conversation: [
-        ...(existing?.conversation || []),
-        {
-          id: Date.now(),
-          from: account.name,
-          role: "seeker",
-          text: message,
-          createdAt: now,
-          cv: attachCv ? savedProfile.cv : null,
-          answers,
-        },
-      ],
-    };
+    },
+  ],
+};
 
-    try {
-      const createdThread = existing
-        ? {
-            ...existing,
-            ...baseThreadPayload,
-            id: existing.id,
-          }
-        : await createApplicationThread(baseThreadPayload);
+// ADD THIS DIRECTLY HERE
+console.log("APPLICATION DEBUG", {
+  accountUid: account?.uid,
+  seekerUid: baseThreadPayload.seeker?.uid,
+  ownerUid: baseThreadPayload.ownerUid,
+  status: baseThreadPayload.status,
+  authUid: auth.currentUser?.uid,
+  emailVerified: auth.currentUser?.emailVerified,
+});
 
-      const updatedMessages = existing
-        ? messages.map((thread) =>
-            thread.id === existing.id ? createdThread : thread
-          )
-        : [createdThread, ...messages];
+try {
+  let createdThread;
 
-      writeJson("forsaMessages", updatedMessages);
-      writeJson("forsaMessagesCache", updatedMessages);
+  // STEP 1 — Create application
+  try {
+    createdThread = existing
+      ? {
+          ...existing,
+          ...baseThreadPayload,
+          id: existing.id,
+        }
+      : await createApplicationThread(baseThreadPayload);
 
-      await createNotification({
-        type: "new_application",
-        title: "New application received",
-        text: `${account.name} applied to ${item.title}`,
-        targetEmail: item.ownerEmail || item.contact || null,
-      });
+    console.log("APPLICATION CREATED SUCCESSFULLY:", createdThread);
+  } catch (error) {
+    console.error("APPLICATION CREATION FAILED:", error);
+    throw error;
+  }
 
-      if (!existing) {
-        updatePostAnalytics(item.id, "applications");
-      }
+  const updatedMessages = existing
+    ? messages.map((thread) =>
+        thread.id === existing.id ? createdThread : thread
+      )
+    : [createdThread, ...messages];
 
-      setApplyOpportunity(null);
-      showToast(existing ? "Application updated" : "Application sent");
-      navigate("/messages");
-    } catch (error) {
-      console.error("Create application error:", error);
-      showToast("Could not send application. Try again.", "error");
-    }
-  };
+  writeJson("forsaMessages", updatedMessages);
+  writeJson("forsaMessagesCache", updatedMessages);
 
+  // STEP 2 — Create notification
+  try {
+    await createNotification({
+      type: "new_application",
+      title: "New application received",
+      text: `${account.name} applied to ${item.title}`,
+      targetEmail: item.ownerEmail || item.contact || null,
+    });
+
+    console.log("NOTIFICATION CREATED SUCCESSFULLY");
+  } catch (error) {
+    console.error("NOTIFICATION CREATION FAILED:", error);
+    throw error;
+  }
+
+  // STEP 3 — Update analytics
+  if (!existing) {
+    updatePostAnalytics(item.id, "applications");
+  }
+
+  setApplyOpportunity(null);
+  showToast(existing ? "Application updated" : "Application sent");
+  navigate("/messages");
+} catch (error) {
+  console.error("FINAL APPLICATION ERROR:", error);
+  showToast("Could not send application. Try again.", "error");
+}
+  }
   return (
     <section className="min-h-screen bg-[#fbfafc]">
       <SEO
