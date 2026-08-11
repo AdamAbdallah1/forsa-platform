@@ -642,6 +642,11 @@ const saveChanges = async () => {
   education: nextAccount.education || "",
   portfolioLinks: nextAccount.portfolioLinks || "",
 
+  desiredRole: nextAccount.desiredRole || "",
+  opportunityType: nextAccount.opportunityType || "",
+  preferredLocation: nextAccount.preferredLocation || "",
+  workPreference: nextAccount.workPreference || "",
+
   skills: profile.skills || [],
   lookingFor: profile.lookingFor || [],
   cv: profile.cv || null,
@@ -952,8 +957,10 @@ const saveChanges = async () => {
 </h1>
 
                   <span className="rounded-full bg-[var(--forsa-bg)] px-3 py-1 text-xs text-neutral-600">
-                    {isHiring ? "Hiring account" : "Looking for work"}
-                  </span>
+  {isHiring
+    ? "Hiring account"
+    : account?.headline || "Looking for work"}
+</span>
                 </div>
 
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-neutral-500 sm:text-base">
@@ -1267,7 +1274,8 @@ function OverviewTab({
         <p className="mt-3 max-w-2xl text-sm leading-7 text-neutral-600 sm:text-base">
           {isHiring
             ? "This account is used to post opportunities, manage listings, and connect with local talent in Lebanon."
-            : "This profile helps opportunity posters understand your skills, city, CV, and what kind of work you are looking for."}
+            : account?.summary ||
+"This profile helps opportunity posters understand your skills, city, CV, and what kind of work they are looking for."}
         </p>
       </div>
       {!isHiring && experiences.length > 0 && (
@@ -1299,6 +1307,11 @@ function OverviewTab({
               <p className="mt-1 text-sm text-neutral-600">
                 {experience.company || "Company / Organization"}
               </p>
+              {experience.employmentType && (
+  <p className="mt-1 text-xs font-medium text-neutral-500">
+    {experience.employmentType}
+  </p>
+)}
             </div>
 
             <p className="text-xs text-neutral-500">
@@ -1311,23 +1324,69 @@ function OverviewTab({
           </div>
 
           {experience.location && (
-            <p className="mt-2 text-xs text-neutral-500">
-              {experience.location}
-            </p>
-          )}
+  <p className="mt-2 text-xs text-neutral-500">
+    {experience.location}
+  </p>
+)}
 
-          {experience.description && (
-            <p className="mt-3 text-sm leading-6 text-neutral-600">
-              {experience.description}
-            </p>
-          )}
+{(experience.skills || []).length > 0 && (
+  <div className="mt-3 flex flex-wrap gap-2">
+    {experience.skills.map((skill) => (
+      <span
+        key={`${experience.id}-${skill}`}
+        className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600"
+      >
+        {skill}
+      </span>
+    ))}
+  </div>
+)}
+
+{experience.description && (
+  <p className="mt-3 text-sm leading-6 text-neutral-600">
+    {experience.description}
+  </p>
+)}
         </div>
+        
       ))}
     </div>
   </div>
 )}
 
+{account?.education?.institution && (
+  <div className="mt-5 rounded-[24px] border border-neutral-100 bg-white p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
+    <p className="text-sm font-medium text-neutral-950">
+      Education
+    </p>
+
+    <div className="mt-4">
+      <h3 className="text-sm font-semibold text-neutral-950">
+        {account.education.institution}
+      </h3>
+
+      {account.education.degree && (
+        <p className="mt-1 text-sm text-neutral-600">
+          {account.education.degree}
+        </p>
+      )}
+
+      {account.education.field && (
+        <p className="mt-1 text-xs text-neutral-500">
+          {account.education.field}
+        </p>
+      )}
+
+      {account.education.graduationYear && (
+        <p className="mt-2 text-xs text-neutral-500">
+          Graduation: {account.education.graduationYear}
+        </p>
+      )}
+    </div>
+  </div>
+)}
       {!isHiring && (
+        
         <div className="mt-5 grid gap-3 sm:mt-6 sm:gap-4 md:grid-cols-2">
           <InfoBox title="Skills" items={profile.skills} empty="No skills added yet." />
           <InfoBox title="Looking for" items={profile.lookingFor} empty="No opportunity type selected yet." />
@@ -1335,6 +1394,66 @@ function OverviewTab({
           <ApplicationsSentBox applications={seekerApplications} />
         </div>
       )}
+
+      {!isHiring && (
+  <div className="mt-5 rounded-[24px] border border-neutral-100 bg-white p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
+    <div>
+      <p className="text-sm font-semibold text-neutral-950">
+        Career preferences
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-neutral-500">
+        What kind of opportunity this person is looking for.
+      </p>
+    </div>
+
+    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      {account?.desiredRole && (
+        <div>
+          <p className="text-xs font-medium text-neutral-500">
+            Desired role
+          </p>
+          <p className="mt-1 text-sm font-medium text-neutral-900">
+            {account.desiredRole}
+          </p>
+        </div>
+      )}
+
+      {account?.opportunityType && (
+        <div>
+          <p className="text-xs font-medium text-neutral-500">
+            Opportunity type
+          </p>
+          <p className="mt-1 text-sm font-medium text-neutral-900">
+            {account.opportunityType}
+          </p>
+        </div>
+      )}
+
+      {account?.preferredLocation && (
+        <div>
+          <p className="text-xs font-medium text-neutral-500">
+            Preferred location
+          </p>
+          <p className="mt-1 text-sm font-medium text-neutral-900">
+            {account.preferredLocation}
+          </p>
+        </div>
+      )}
+
+      {account?.workPreference && (
+        <div>
+          <p className="text-xs font-medium text-neutral-500">
+            Work preference
+          </p>
+          <p className="mt-1 text-sm font-medium text-neutral-900">
+            {account.workPreference}
+          </p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
       {!isHiring && recentlyViewed.length > 0 && (
         <RecentlyViewedPreview jobs={recentlyViewed} />
@@ -2555,6 +2674,7 @@ function ProfileEdit({
             current: false,
             description: "",
             employmentType: "",
+            skills: [],
           },
         ]);
       }}
@@ -2596,6 +2716,37 @@ function ProfileEdit({
       }}
       placeholder="e.g. Frontend Developer Intern"
     />
+
+    <div>
+  <label className="text-sm font-medium text-neutral-900">
+    Employment type
+  </label>
+
+  <select
+    value={experience.employmentType || ""}
+    onChange={(e) => {
+      const value = e.target.value;
+
+      setExperiences((prev) =>
+        prev.map((item) =>
+          item.id === experience.id
+            ? { ...item, employmentType: value }
+            : item
+        )
+      );
+    }}
+    className="mt-2 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-[var(--forsa-primary)] focus:ring-2 focus:ring-[var(--forsa-primary)]/10"
+  >
+    <option value="">Select type</option>
+    <option value="Full-time">Full-time</option>
+    <option value="Part-time">Part-time</option>
+    <option value="Internship">Internship</option>
+    <option value="Freelance">Freelance</option>
+    <option value="Contract">Contract</option>
+    <option value="Volunteer">Volunteer</option>
+    <option value="Self-employed">Self-employed</option>
+  </select>
+</div>
 
     <Field
       label="Company / Organization"
@@ -2682,6 +2833,124 @@ function ProfileEdit({
 
     I currently work here
   </label>
+  <div className="mt-4">
+  <label className="text-sm font-medium text-neutral-900">
+    Skills used
+  </label>
+
+  <p className="mt-1 text-xs leading-5 text-neutral-500">
+    Add the technologies or skills you used in this experience.
+  </p>
+
+  <div className="mt-3 flex flex-wrap gap-2">
+    {(experience.skills || []).map((skill) => (
+      <span
+        key={skill}
+        className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700"
+      >
+        {skill}
+
+        <button
+          type="button"
+          onClick={() => {
+            setExperiences((prev) =>
+              prev.map((item) =>
+                item.id === experience.id
+                  ? {
+                      ...item,
+                      skills: (item.skills || []).filter(
+                        (value) => value !== skill
+                      ),
+                    }
+                  : item
+              )
+            );
+          }}
+          className="text-neutral-400 transition hover:text-red-500"
+          aria-label={`Remove ${skill}`}
+        >
+          ×
+        </button>
+      </span>
+    ))}
+  </div>
+
+  <div className="mt-3 flex gap-2">
+    <input
+      type="text"
+      placeholder="e.g. React"
+      className="min-w-0 flex-1 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-[var(--forsa-primary)] focus:ring-2 focus:ring-[var(--forsa-primary)]/10"
+      onKeyDown={(e) => {
+        if (e.key !== "Enter") return;
+
+        e.preventDefault();
+
+        const value = e.currentTarget.value.trim();
+
+        if (!value) return;
+
+        setExperiences((prev) =>
+          prev.map((item) => {
+            if (item.id !== experience.id) return item;
+
+            const currentSkills = item.skills || [];
+
+            if (
+              currentSkills.some(
+                (skill) => skill.toLowerCase() === value.toLowerCase()
+              )
+            ) {
+              return item;
+            }
+
+            return {
+              ...item,
+              skills: [...currentSkills, value],
+            };
+          })
+        );
+
+        e.currentTarget.value = "";
+      }}
+    />
+
+    <button
+      type="button"
+      onClick={(e) => {
+        const input = e.currentTarget.previousElementSibling;
+        const value = input?.value.trim();
+
+        if (!value) return;
+
+        setExperiences((prev) =>
+          prev.map((item) => {
+            if (item.id !== experience.id) return item;
+
+            const currentSkills = item.skills || [];
+
+            if (
+              currentSkills.some(
+                (skill) => skill.toLowerCase() === value.toLowerCase()
+              )
+            ) {
+              return item;
+            }
+
+            return {
+              ...item,
+              skills: [...currentSkills, value],
+            };
+          })
+        );
+
+        if (input) input.value = "";
+      }}
+      className="shrink-0 rounded-full border border-neutral-300 bg-white px-4 py-3 text-sm font-medium transition hover:border-neutral-500"
+    >
+      Add
+    </button>
+  </div>
+</div>
 
   <div className="mt-4">
     <label className="text-sm font-medium text-neutral-900">
@@ -3189,29 +3458,92 @@ function VerificationInput({ icon, label, value, onChange, placeholder }) {
 }
 
 function InterviewSummary({ interview }) {
+  const isOnline = interview?.type === "online";
+
   return (
     <div className="mt-4 rounded-[24px] border border-blue-100 bg-blue-50 p-4">
-      <p className="font-semibold text-blue-700">Interview scheduled</p>
+      <p className="font-semibold text-blue-700">
+        Interview scheduled
+      </p>
 
-      <div className="mt-3 grid gap-2 text-sm text-blue-700 sm:grid-cols-3">
+      <div className="mt-3 grid gap-3 text-sm text-blue-700 sm:grid-cols-3">
         <div>
-          <p className="text-xs font-semibold text-blue-500">Date</p>
-          <p className="mt-1">{interview.date}</p>
+          <p className="text-xs font-semibold text-blue-500">
+            Date
+          </p>
+
+          <p className="mt-1">
+            {interview.date}
+          </p>
         </div>
 
         <div>
-          <p className="text-xs font-semibold text-blue-500">Time</p>
-          <p className="mt-1">{interview.time}</p>
+          <p className="text-xs font-semibold text-blue-500">
+            Time
+          </p>
+
+          <p className="mt-1">
+            {interview.time}
+          </p>
         </div>
 
         <div>
-          <p className="text-xs font-semibold text-blue-500">Location</p>
-          <p className="mt-1">{interview.location}</p>
+          <p className="text-xs font-semibold text-blue-500">
+            {isOnline ? "Type" : "Location"}
+          </p>
+
+          <p className="mt-1">
+            {isOnline
+              ? "Online interview"
+              : interview.locationName || "In person"}
+          </p>
         </div>
       </div>
 
+      {isOnline && interview.meetingLink && (
+        <div className="mt-4 rounded-2xl bg-white p-4">
+          <p className="text-xs font-semibold text-blue-500">
+            Meeting link
+          </p>
+
+          <a
+            href={interview.meetingLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex rounded-full forsa-button px-4 py-2 text-sm font-medium text-white"
+          >
+            Join interview
+          </a>
+
+          <p className="mt-2 break-all text-xs text-neutral-500">
+            {interview.meetingLink}
+          </p>
+        </div>
+      )}
+
+      {!isOnline && interview.mapsLink && (
+        <div className="mt-4">
+          <a
+            href={interview.mapsLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-700"
+          >
+            Open location in Maps
+          </a>
+        </div>
+      )}
+
       {interview.notes && (
-        <p className="mt-3 text-sm leading-6 text-blue-700">{interview.notes}</p>
+        <div className="mt-4 rounded-2xl bg-white p-4">
+          <p className="text-xs font-semibold text-blue-500">
+            Notes
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-blue-700">
+            {interview.notes}
+          </p>
+        </div>
       )}
     </div>
   );

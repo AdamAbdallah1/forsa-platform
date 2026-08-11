@@ -28,6 +28,7 @@ import {
   listenUserThreads,
   updateThreadStatus,
   scheduleThreadInterview,
+  cancelThreadInterview,
 } from "../lib/applicationService";
 
 const safeJson = (key, fallback) => {
@@ -388,6 +389,97 @@ if (interviewForm.type === "in_person" && !interviewForm.locationName.trim()) {
   }
 };
 
+const cancelInterview = async () => {
+  if (!interviewTarget || busyId) return;
+
+  if (!interviewTarget.interview) {
+    showToast("No active interview to cancel.", "error");
+    return;
+  }
+
+  const now = new Date().toISOString();
+
+  const systemMessage = {
+    id: Date.now(),
+    from: "Forsa",
+    role: "system",
+    text: `Interview cancelled for ${interviewTarget.title}.`,
+    createdAt: now,
+  };
+
+  const previousThreads = threads;
+
+  const optimistic = threads.map((item) =>
+    item.id === interviewTarget.id
+      ? {
+          ...item,
+          status: "pending",
+          interview: undefined,
+          updatedAt: now,
+          lastMessage: systemMessage.text,
+          conversation: [
+            ...(item.conversation || []),
+            systemMessage,
+          ],
+          statusHistory: [
+            ...(item.statusHistory || []),
+            {
+              status: "pending",
+              createdAt: now,
+              by: account.email,
+            },
+          ],
+        }
+      : item
+  );
+
+  setThreads(optimistic);
+  writeJson("forsaMessagesCache", optimistic);
+  writeJson("forsaMessages", optimistic);
+  setBusyId(interviewTarget.id);
+
+  try {
+    await cancelThreadInterview(interviewTarget.id, {
+      by: account.email,
+      systemMessage,
+    });
+
+    if (interviewTarget.seeker?.email) {
+      await createNotification({
+        type: "interview_cancelled",
+        title: "Interview cancelled",
+        text: `${interviewTarget.company || account.companyName || account.name} cancelled the interview for ${interviewTarget.title}.`,
+        targetEmail: interviewTarget.seeker.email,
+        actionUrl: "/applications",
+        applicationId: interviewTarget.id,
+      });
+    }
+
+    showToast("Interview cancelled");
+    setInterviewTarget(null);
+
+    setInterviewForm({
+      type: "online",
+      date: "",
+      time: "",
+      meetingLink: "",
+      locationName: "",
+      mapsLink: "",
+      notes: "",
+    });
+  } catch (error) {
+    console.error("Cancel interview error:", error);
+
+    setThreads(previousThreads);
+    writeJson("forsaMessagesCache", previousThreads);
+    writeJson("forsaMessages", previousThreads);
+
+    showToast("Could not cancel interview.", "error");
+  } finally {
+    setBusyId(null);
+  }
+};
+
   if (!account) {
     return <AccessState title="Login required" text="You need a Forsa account to access applicants." actionLabel="Login" to="/auth" />;
   }
@@ -638,22 +730,38 @@ if (interviewForm.type === "in_person" && !interviewForm.locationName.trim()) {
         />
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2">
-        <button
-          onClick={() => setInterviewTarget(null)}
-          className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700"
-        >
-          Cancel
-        </button>
+      <div className="mt-6 grid gap-2 sm:grid-cols-2">
+  <button
+    type="button"
+    onClick={() => setInterviewTarget(null)}
+    disabled={busyId === interviewTarget.id}
+    className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700 disabled:opacity-50"
+  >
+    Close
+  </button>
 
-        <button
-          onClick={inviteInterview}
-          disabled={busyId === interviewTarget.id}
-          className="forsa-button rounded-full px-5 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
-        >
-          {busyId === interviewTarget.id ? "Sending..." : "Send invite"}
-        </button>
-      </div>
+  {interviewTarget.interview ? (
+    <button
+      type="button"
+      onClick={cancelInterview}
+      disabled={busyId === interviewTarget.id}
+      className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-wait disabled:opacity-60"
+    >
+      {busyId === interviewTarget.id
+        ? "Cancelling..."
+        : "Cancel interview"}
+    </button>
+  ) : (
+    <button
+      type="button"
+      onClick={inviteInterview}
+      disabled={busyId === interviewTarget.id}
+      className="forsa-button rounded-full px-5 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+    >
+      {busyId === interviewTarget.id ? "Sending..." : "Send invite"}
+    </button>
+  )}
+</div>
     </div>
   )}
 </Modal>

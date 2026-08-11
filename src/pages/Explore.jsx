@@ -743,7 +743,7 @@ export default function Explore() {
     type: item.type,
     pay: item.pay,
     contact: item.contact,
-  },
+},
   conversation: [
     ...(existing?.conversation || []),
     {

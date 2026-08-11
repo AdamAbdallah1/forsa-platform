@@ -3,6 +3,7 @@ import {
   arrayUnion,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   onSnapshot,
   query,
@@ -171,11 +172,9 @@ export async function updateThreadStatus(
   threadId,
   { status, by, systemMessage }
 ) {
-  await updateDoc(doc(db, "applications", threadId), {
+  const updates = {
     status,
-
     lastMessage: systemMessage.text,
-
     updatedAt: serverTimestamp(),
 
     conversation: arrayUnion({
@@ -190,7 +189,16 @@ export async function updateThreadStatus(
       by,
       createdAt: new Date().toISOString(),
     }),
-  });
+  };
+
+  if (status === "rejected" || status === "accepted") {
+    updates.interview = deleteField();
+  }
+
+  await updateDoc(
+    doc(db, "applications", threadId),
+    updates
+  );
 }
 
 export async function scheduleThreadInterview(
@@ -215,6 +223,31 @@ export async function scheduleThreadInterview(
 
     statusHistory: arrayUnion({
       status: "interview",
+      by,
+      createdAt: new Date().toISOString(),
+    }),
+  });
+}
+
+export async function cancelThreadInterview(
+  threadId,
+  { by, systemMessage, status = "pending" }
+) {
+  await updateDoc(doc(db, "applications", threadId), {
+    status,
+    interview: deleteField(),
+    lastMessage: systemMessage.text,
+    updatedAt: serverTimestamp(),
+
+    conversation: arrayUnion({
+      ...systemMessage,
+      createdAt:
+        systemMessage.createdAt ||
+        new Date().toISOString(),
+    }),
+
+    statusHistory: arrayUnion({
+      status,
       by,
       createdAt: new Date().toISOString(),
     }),
