@@ -273,9 +273,6 @@ export default function Auth() {
 
         <div className="relative mx-auto flex w-full max-w-[470px] flex-col justify-center py-4 lg:min-h-0 lg:py-0">
           <div className="mb-6 lg:hidden">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--forsa-primary)]">
-              forsa.digital
-            </p>
 
             <h1 className="mt-3 text-[32px] sm:text-[40px] font-semibold leading-[0.95] tracking-[-0.06em] text-neutral-950">
               Work and hiring,
