@@ -180,7 +180,7 @@ allow delete: if signedIn() &&
 
     match /outreachLeads/{leadId} {
       allow read, create, update, delete: if signedIn() &&
-        request.auth.token.email == "adamabdallahayln1@gmail.com";
+        request.auth.token.email == "support.forsa@gmail.com";
     }
   }
 }

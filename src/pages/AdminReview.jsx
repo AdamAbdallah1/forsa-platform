@@ -171,7 +171,7 @@ export default function AdminReview() {
   const isAdmin = useMemo(() => {
     return (
       account?.email === "support.forsa@gmail.com" ||
-      account?.email === "adamabdallahayln1@gmail.com" ||
+      account?.email === "adamabdallah.dev@gmail.com" ||
       account?.role === "admin"
     );
   }, [account]);

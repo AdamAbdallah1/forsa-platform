@@ -304,6 +304,11 @@ export default function Profile() {
 
   const [account, setAccount] = useState(savedAccount);
   const [profile, setProfile] = useState(savedProfile);
+  const [experiences, setExperiences] = useState(
+  Array.isArray(savedAccount?.experience)
+    ? savedAccount.experience
+    : []
+);
   const [posts, setPosts] = useState(() => {
     const allPosts = safeJson("forsaPosts", []);
     if (!savedAccount || savedAccount.accountType !== "hiring") return allPosts;
@@ -325,6 +330,8 @@ export default function Profile() {
   const [selectedApplicantsPost, setSelectedApplicantsPost] = useState(null);
   const [tab, setTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
+  const [cvLinkInput, setCvLinkInput] = useState("");
+
   const [editingPostId, setEditingPostId] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -623,7 +630,7 @@ const saveChanges = async () => {
   const nextAccount = {
     ...account,
     bio: account.bio || "",
-    experience: account.experience || "",
+    experience: experiences,
     education: account.education || "",
     portfolioLinks: account.portfolioLinks || "",
   };
@@ -667,10 +674,11 @@ const saveChanges = async () => {
 };
 
   const cancelEdit = () => {
-    setAccount(savedAccount);
-    setProfile(savedProfile);
-    setIsEditing(false);
-  };
+  setAccount(savedAccount);
+  setProfile(savedProfile);
+  setCvLinkInput(savedProfile?.cv?.url || "");
+  setIsEditing(false);
+};
 
   const removeSavedJob = (jobId) => {
     const updated = savedJobs.filter((job) => job.id !== jobId);
@@ -737,27 +745,27 @@ const saveChanges = async () => {
     setEditingPost((prev) => ({ ...prev, [field]: value }));
   };
 
-  const savePostEdit = async () => {
-    if (!editingPostId || !editingPost) return;
+    const savePostEdit = async () => {
+      if (!editingPostId || !editingPost) return;
 
-    const updatePayload = {
-      title: editingPost.title || "",
-      location: editingPost.location || "",
-      pay: editingPost.pay || "",
-      contact: editingPost.contact || "",
-      description: editingPost.description || "",
-      type: editingPost.type || "Project",
-      category: editingPost.category || "",
-      experience: editingPost.experience || "",
-      shift: editingPost.shift || "",
-      gender: editingPost.gender || "",
-      packageDetails: editingPost.packageDetails || "",
-      requirements: editingPost.requirements || "",
-      tags: editingPost.tags || [],
-      questions: editingPost.questions || [],
-    };
+      const updatePayload = {
+        title: editingPost.title || "",
+        location: editingPost.location || "",
+        pay: editingPost.pay || "",
+        contact: editingPost.contact || "",
+        description: editingPost.description || "",
+        type: editingPost.type || "Project",
+        category: editingPost.category || "",
+        experience: editingPost.experience || "",
+        shift: editingPost.shift || "",
+        gender: editingPost.gender || "",
+        packageDetails: editingPost.packageDetails || "",
+        requirements: editingPost.requirements || "",
+        tags: editingPost.tags || [],
+        questions: editingPost.questions || [],
+      };
 
-    try {
+      try {
       await updatePost(editingPostId, updatePayload);
 
       const updatedPosts = posts.map((post) =>
@@ -971,7 +979,10 @@ const saveChanges = async () => {
 
             {!isEditing ? (
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={() => {
+  setCvLinkInput(profile?.cv?.url || "");
+  setIsEditing(true);
+}}
                 className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-neutral-500 sm:w-fit"
               >
                 <FaEdit className="text-xs" />
@@ -1043,6 +1054,10 @@ const saveChanges = async () => {
               updateAccount={updateAccount}
               toggleProfileItem={toggleProfileItem}
               handleCvLinkSave={handleCvLinkSave}
+              cvLinkInput={cvLinkInput}
+              experiences={experiences}
+              setExperiences={setExperiences}
+              setCvLinkInput={setCvLinkInput}
               removeCv={removeCv}
             />
           ) : (
@@ -1060,6 +1075,7 @@ const saveChanges = async () => {
                   recentlyViewed={recentlyViewed}
                   account={account}
                   onRequestVerification={requestVerification}
+                  experiences={experiences}
                 />
               )}
 
@@ -1211,6 +1227,7 @@ function OverviewTab({
   seekerApplications = [],
   recentlyViewed = [],
   account,
+  experiences,
   onRequestVerification,
 }) {
   return (
@@ -1253,6 +1270,62 @@ function OverviewTab({
             : "This profile helps opportunity posters understand your skills, city, CV, and what kind of work you are looking for."}
         </p>
       </div>
+      {!isHiring && experiences.length > 0 && (
+  <div className="mt-5 rounded-[24px] border border-neutral-100 bg-white p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
+    <div>
+      <p className="text-sm font-medium text-neutral-950">
+        Experience
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-neutral-500">
+        Professional, freelance, internship, and project experience.
+      </p>
+    </div>
+
+    <div className="mt-5 space-y-5">
+      {experiences.map((experience) => (
+        <div
+          key={experience.id}
+          className="relative border-l-2 border-neutral-200 pl-4"
+        >
+          <div className="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-[var(--forsa-primary)]" />
+
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-950">
+                {experience.title || "Untitled position"}
+              </h3>
+
+              <p className="mt-1 text-sm text-neutral-600">
+                {experience.company || "Company / Organization"}
+              </p>
+            </div>
+
+            <p className="text-xs text-neutral-500">
+              {experience.startDate || "Start date"}
+              {" — "}
+              {experience.current
+                ? "Present"
+                : experience.endDate || "End date"}
+            </p>
+          </div>
+
+          {experience.location && (
+            <p className="mt-2 text-xs text-neutral-500">
+              {experience.location}
+            </p>
+          )}
+
+          {experience.description && (
+            <p className="mt-3 text-sm leading-6 text-neutral-600">
+              {experience.description}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
       {!isHiring && (
         <div className="mt-5 grid gap-3 sm:mt-6 sm:gap-4 md:grid-cols-2">
@@ -2251,6 +2324,10 @@ function ProfileEdit({
   toggleProfileItem,
   handleCvLinkSave,
   removeCv,
+  cvLinkInput,
+  setCvLinkInput,
+  experiences,
+  setExperiences,
 }) {
   return (
     <div className="mt-6 sm:mt-8">
@@ -2450,6 +2527,267 @@ function ProfileEdit({
       />
     </div>
   </div>
+
+  <div className="mt-6 rounded-[24px] border border-neutral-100 bg-white p-4 sm:rounded-[26px] sm:p-5">
+  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h3 className="text-sm font-bold text-neutral-950">
+        Experience
+      </h3>
+
+      <p className="mt-1 text-xs leading-5 text-neutral-500">
+        Add your work, internship, freelance, or project experience.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      onClick={() => {
+        setExperiences((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            title: "",
+            company: "",
+            location: "",
+            startDate: "",
+            endDate: "",
+            current: false,
+            description: "",
+            employmentType: "",
+          },
+        ]);
+      }}
+      className="forsa-click inline-flex w-full items-center justify-center rounded-full forsa-button px-4 py-2.5 text-sm font-medium text-white sm:w-fit"
+    >
+      + Add experience
+    </button>
+  </div>
+
+  {experiences.length === 0 ? (
+    <div className="mt-5 rounded-2xl bg-[var(--forsa-bg)] p-5 text-center">
+      <p className="text-sm font-medium text-neutral-800">
+        No experience added yet.
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-neutral-500">
+        Add internships, jobs, freelance work, or relevant projects.
+      </p>
+    </div>
+  ) : (
+    <div className="mt-5 space-y-4">
+      {experiences.map((experience) => (
+        <div
+  key={experience.id}
+  className="rounded-2xl border border-neutral-200 bg-[var(--forsa-bg)] p-4"
+>
+  <div className="grid gap-4 sm:grid-cols-2">
+    <Field
+      label="Job title"
+      value={experience.title}
+      onChange={(value) => {
+        setExperiences((prev) =>
+          prev.map((item) =>
+            item.id === experience.id
+              ? { ...item, title: value }
+              : item
+          )
+        );
+      }}
+      placeholder="e.g. Frontend Developer Intern"
+    />
+
+    <Field
+      label="Company / Organization"
+      value={experience.company}
+      onChange={(value) => {
+        setExperiences((prev) =>
+          prev.map((item) =>
+            item.id === experience.id
+              ? { ...item, company: value }
+              : item
+          )
+        );
+      }}
+      placeholder="e.g. Vanrise Solutions"
+    />
+
+    <Field
+      label="Location"
+      value={experience.location}
+      onChange={(value) => {
+        setExperiences((prev) =>
+          prev.map((item) =>
+            item.id === experience.id
+              ? { ...item, location: value }
+              : item
+          )
+        );
+      }}
+      placeholder="e.g. Beirut"
+    />
+
+    <Field
+      label="Start date"
+      value={experience.startDate}
+      onChange={(value) => {
+        setExperiences((prev) =>
+          prev.map((item) =>
+            item.id === experience.id
+              ? { ...item, startDate: value }
+              : item
+          )
+        );
+      }}
+      placeholder="e.g. June 2025"
+    />
+
+    {!experience.current && (
+      <Field
+        label="End date"
+        value={experience.endDate}
+        onChange={(value) => {
+          setExperiences((prev) =>
+            prev.map((item) =>
+              item.id === experience.id
+                ? { ...item, endDate: value }
+                : item
+            )
+          );
+        }}
+        placeholder="e.g. August 2025"
+      />
+    )}
+  </div>
+
+  <label className="mt-4 flex items-center gap-2 text-sm text-neutral-700">
+    <input
+      type="checkbox"
+      checked={experience.current}
+      onChange={(e) => {
+        setExperiences((prev) =>
+          prev.map((item) =>
+            item.id === experience.id
+              ? {
+                  ...item,
+                  current: e.target.checked,
+                  endDate: e.target.checked ? "" : item.endDate,
+                }
+              : item
+          )
+        );
+      }}
+      className="h-4 w-4 rounded border-neutral-300"
+    />
+
+    I currently work here
+  </label>
+
+  <div className="mt-4">
+    <label className="text-sm font-medium text-neutral-900">
+      Description
+    </label>
+
+    <textarea
+      value={experience.description}
+      onChange={(e) => {
+        const value = e.target.value;
+
+        setExperiences((prev) =>
+          prev.map((item) =>
+            item.id === experience.id
+              ? { ...item, description: value }
+              : item
+          )
+        );
+      }}
+      placeholder="Describe what you did, what you built, and what you learned..."
+      rows={4}
+      className="mt-2 w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-[var(--forsa-primary)] focus:ring-2 focus:ring-[var(--forsa-primary)]/10"
+    />
+  </div>
+
+  <div className="mt-4 flex justify-end">
+    <button
+      type="button"
+      onClick={() => {
+        setExperiences((prev) =>
+          prev.filter((item) => item.id !== experience.id)
+        );
+      }}
+      className="rounded-full border border-red-200 bg-white px-4 py-2 text-xs font-medium text-red-600 transition hover:border-red-300"
+    >
+      Delete experience
+    </button>
+  </div>
+</div>
+      ))}
+    </div>
+  )}
+</div>
+
+  <div className="mt-6 rounded-[24px] border border-neutral-100 bg-white p-4 sm:rounded-[26px] sm:p-5">
+  <div>
+    <h3 className="text-sm font-bold text-neutral-950">
+      CV / Resume
+    </h3>
+
+    <p className="mt-1 text-xs leading-5 text-neutral-500">
+      Add a shareable link to your CV. Google Drive, Dropbox, or your
+      personal website can be used.
+    </p>
+  </div>
+
+  <div className="mt-4">
+    <Field
+      label="CV link"
+      value={cvLinkInput}
+      onChange={(value) => setCvLinkInput(value)}
+      placeholder="https://drive.google.com/..."
+    />
+
+    <button
+      type="button"
+      onClick={() => handleCvLinkSave(cvLinkInput)}
+      className="mt-3 rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium transition hover:border-neutral-500"
+    >
+      Add CV link
+    </button>
+  </div>
+
+  {profile?.cv?.url && (
+    <div className="mt-3 flex flex-col gap-3 rounded-2xl bg-[var(--forsa-bg)] p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-neutral-900">
+          CV added
+        </p>
+
+        <p className="mt-1 truncate text-xs text-neutral-500">
+          {profile.cv.url}
+        </p>
+      </div>
+
+      <div className="flex shrink-0 gap-2">
+        <a
+          href={profile.cv.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-medium transition hover:border-neutral-500"
+        >
+          View
+        </a>
+
+        <button
+          type="button"
+          onClick={removeCv}
+          className="rounded-full border border-red-200 bg-white px-4 py-2 text-xs font-medium text-red-600 transition hover:border-red-300"
+        >
+          Remove
+        </button>
+      </div>
+    </div>
+  )}
+</div>
 
   <div className="mt-6 rounded-[24px] border border-neutral-100 bg-white p-4 sm:rounded-[26px] sm:p-5">
     <div>

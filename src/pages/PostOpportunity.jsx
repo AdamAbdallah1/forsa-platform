@@ -242,7 +242,7 @@ export default function PostOpportunity() {
 
   const isForsaAdmin =
     account?.email === "support.forsa@gmail.com" ||
-    account?.email === "adamabdallahayln1@gmail.com" ||
+    account?.email === "adamabdallah.dev@gmail.com" ||
     account?.role === "admin";
 
   const [form, setForm] = useState(() => emptyForm(account));

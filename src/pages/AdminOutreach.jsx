@@ -13,7 +13,7 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../lib/firebase";
 
-const ADMIN_EMAIL = "adamabdallahayln1@gmail.com";
+const ADMIN_EMAIL = "suuport.forsa@gmail.com";
 
 const emptyForm = {
   company: "",

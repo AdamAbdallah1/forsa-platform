@@ -1,17 +1,18 @@
+import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   FaBell,
   FaBookmark,
   FaCompass,
   FaPlus,
-  FaUser,
   FaBriefcase,
   FaUsers,
   FaTachometerAlt,
   FaInbox,
 } from "react-icons/fa";
-import BrandLogo from "./BrandLogo";
 import { BsFillPeopleFill } from "react-icons/bs";
+
+import BrandLogo from "./BrandLogo";
 
 function safeJson(key, fallback) {
   try {
@@ -25,23 +26,49 @@ export default function AppHeader() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const account = safeJson("forsaAccount", null);
-  const notifications = safeJson("forsaNotificationsCache", []);
+  const [account, setAccount] = useState(() =>
+    safeJson("forsaAccount", null)
+  );
+
+  const [notifications, setNotifications] = useState(() =>
+    safeJson("forsaNotificationsCache", [])
+  );
 
   const isHiring = account?.accountType === "hiring";
   const isAuthPage = location.pathname === "/auth";
 
-  const unreadNot = notifications.filter(
-    (item) =>
-      !item.read &&
-      (!item.targetEmail || item.targetEmail === account?.email)
-  ).length;
+  useEffect(() => {
+    const refreshHeader = () => {
+      setAccount(safeJson("forsaAccount", null));
+      setNotifications(safeJson("forsaNotificationsCache", []));
+    };
 
-  const unreadMessages = notifications.filter(
+    refreshHeader();
+
+    window.addEventListener("storage", refreshHeader);
+    window.addEventListener("forsa:notifications-updated", refreshHeader);
+    window.addEventListener("forsa:account-updated", refreshHeader);
+
+    return () => {
+      window.removeEventListener("storage", refreshHeader);
+      window.removeEventListener(
+        "forsa:notifications-updated",
+        refreshHeader
+      );
+      window.removeEventListener("forsa:account-updated", refreshHeader);
+    };
+  }, []);
+
+  const unreadNotifications = notifications.filter(
     (item) =>
-      item.type === "message" &&
       !item.read &&
       (!item.targetEmail || item.targetEmail === account?.email)
+  );
+
+  const unreadNot = unreadNotifications.length;
+
+  const unreadMessages = unreadNotifications.filter(
+    (item) => item.type === "message"
   ).length;
 
   const linkClass = ({ isActive }) =>
@@ -54,7 +81,6 @@ export default function AppHeader() {
   return (
     <header className="sticky top-0 z-40 border-[var(--forsa-border)]/80 bg-[var(--forsa-bg)]/85 backdrop-blur-2xl">
       <div className="mx-auto flex max-w-[1180px] items-center justify-between px-5 py-5 sm:px-6">
-
         <button
           onClick={() => navigate("/")}
           className="group flex shrink-0 items-center gap-2"
@@ -63,7 +89,6 @@ export default function AppHeader() {
         </button>
 
         <nav className="hidden items-center gap-1.5 rounded-full border border-[var(--forsa-border)] bg-white/65 p-1 shadow-sm lg:flex">
-
           {account && isHiring && (
             <>
               <NavLink to="/dashboard" className={linkClass}>
@@ -86,7 +111,6 @@ export default function AppHeader() {
                   Applicants
                 </span>
               </NavLink>
-
             </>
           )}
 
@@ -121,14 +145,12 @@ export default function AppHeader() {
               </NavLink>
             </>
           )}
-
         </nav>
 
         <div className="flex items-center gap-2">
-
           {account ? (
             <>
-            <NavLink
+              <NavLink
                 to="/messages"
                 className={({ isActive }) =>
                   `relative flex h-9 w-9 items-center justify-center rounded-full border text-sm transition-all duration-200 ${
@@ -146,6 +168,7 @@ export default function AppHeader() {
                   </span>
                 )}
               </NavLink>
+
               <NavLink
                 to="/notifications"
                 className={({ isActive }) =>
@@ -166,12 +189,10 @@ export default function AppHeader() {
               </NavLink>
 
               <button
-                onClick={() =>
-                  navigate(isHiring ? "/profile" : "/profile")
-                }
+                onClick={() => navigate("/profile")}
                 className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-[var(--forsa-primary-light)] sm:block"
               >
-                {isHiring ? "Profile" : "Profile"}
+                Profile
               </button>
             </>
           ) : !isAuthPage ? (
@@ -189,7 +210,6 @@ export default function AppHeader() {
               Explore
             </button>
           )}
-
         </div>
       </div>
     </header>
