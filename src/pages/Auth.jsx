@@ -284,7 +284,7 @@ export default function Auth() {
             </p>
           </div>
 
-          <div className="w-full rounded-[24px] border border-[var(--forsa-border)] bg-white/90 p-4 shadow-[0_20px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-5">
+          <div className="w-full rounded-[24px] p-4 sm:p-5">
             {step === "welcome" ? (
               <>
                 {error && (

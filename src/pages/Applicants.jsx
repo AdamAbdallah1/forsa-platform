@@ -576,41 +576,7 @@ if (interviewForm.type === "in_person" && !interviewForm.locationName.trim()) {
     In Person
   </button>
 </div>
-<div className="mt-4 grid grid-cols-2 gap-2">
-  <button
-    type="button"
-    onClick={() =>
-      setInterviewForm((prev) => ({
-        ...prev,
-        type: "online",
-      }))
-    }
-    className={`rounded-2xl border px-4 py-3 ${
-      interviewForm.type === "online"
-        ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)]"
-        : "border-[var(--forsa-border)]"
-    }`}
-  >
-    Online
-  </button>
 
-  <button
-    type="button"
-    onClick={() =>
-      setInterviewForm((prev) => ({
-        ...prev,
-        type: "in_person",
-      }))
-    }
-    className={`rounded-2xl border px-4 py-3 ${
-      interviewForm.type === "in_person"
-        ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)]"
-        : "border-[var(--forsa-border)]"
-    }`}
-  >
-    In Person
-  </button>
-</div>
 {interviewForm.type === "online" ? (
   <div className="mt-3">
     <InterviewField

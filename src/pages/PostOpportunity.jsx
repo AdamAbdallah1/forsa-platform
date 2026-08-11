@@ -1507,49 +1507,10 @@ function AdminPostingSection({
     form.postingMode === "managed";
 
   return (
-    <div className="mb-8 rounded-[24px] border border-violet-100 bg-violet-50/40 p-5">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[var(--forsa-primary)] shadow-sm">
-          <FaShieldAlt />
-        </div>
+    <div className="rounded-[24px]">
+     
 
-        <div>
-          <p className="text-sm font-bold text-neutral-950">
-            Admin posting
-          </p>
-
-          <p className="mt-1 text-xs leading-5 text-neutral-500">
-            Publish normally under the company account,
-            or add an opportunity collected by Forsa.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <ChoiceButton
-          selected={!managed}
-          onClick={() =>
-            updateForm(
-              "postingMode",
-              "company"
-            )
-          }
-        >
-          Company-owned post
-        </ChoiceButton>
-
-        <ChoiceButton
-          selected={managed}
-          onClick={() =>
-            updateForm(
-              "postingMode",
-              "managed"
-            )
-          }
-        >
-          Managed by Forsa
-        </ChoiceButton>
-      </div>
+      
 
       {managed && (
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
