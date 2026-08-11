@@ -53,7 +53,7 @@ export default function Home() {
       <HomeNavbar />
 
       <main className="relative">
-        <section className="relative flex min-h-[calc(100svh-72px)] flex-col items-center justify-between overflow-hidden px-5 pb-6 pt-12 sm:px-8 lg:px-10">
+        <section className="relative flex min-h-[calc(100svh-72px)] flex-col items-center justify-between overflow-hidden px-5 pb-6 pt-5 sm:px-8 lg:px-10">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-70"

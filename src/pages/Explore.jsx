@@ -1051,9 +1051,9 @@ try {
 
 function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
   return (
-    <div className="relative mt-3 overflow-hidden rounded-[30px] border border-white bg-white p-4 shadow-[0_16px_55px_rgba(109,40,217,0.08)] sm:mt-8 sm:rounded-[34px] sm:p-7">
-      <div className="pointer-events-none absolute -right-24 -top-24 h-60 w-60 rounded-full bg-[var(--forsa-glow)]/18 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
+    <div className="relative mt-3 overflow-hidden rounded-[30px]  p-4  sm:mt-8 sm:rounded-[34px] sm:p-7">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-60 w-60 rounded-full " />
+      <div className="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full " />
 
       <div className="relative flex items-start justify-between gap-4">
         <div className="min-w-0">
@@ -1118,7 +1118,7 @@ function SearchPanel({
 
   return (
     <>
-      <div className="sticky top-[72px] z-30 -mx-3 mt-3 border-y border-[var(--forsa-border)]/70 bg-[#fbfafc]/92 px-3 py-3 backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[28px] sm:border sm:bg-white/90 sm:p-3 sm:shadow-[0_12px_40px_rgba(109,40,217,0.06)]">
+      <div className="sticky top-[72px] z-30 -mx-3 mt-3  px-3 py-3 backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[28px]  sm:p-3">
         <div className="flex items-center gap-2">
           <div className="forsa-focus flex min-w-0 flex-1 items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-3 shadow-sm transition focus-within:border-[var(--forsa-primary)]">
             <FaSearch className="shrink-0 text-sm text-[var(--forsa-primary)]" />
