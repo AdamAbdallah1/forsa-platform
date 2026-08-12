@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
+  FaBell,
+  FaBookmark,
   FaBriefcase,
   FaCompass,
-  FaPaperPlane,
+  FaInbox,
   FaPlus,
-  FaUser,
-  FaUsers,
   FaTachometerAlt,
+  FaUsers,
 } from "react-icons/fa";
+import { BsFillPeopleFill } from "react-icons/bs";
 
 function safeJson(key, fallback) {
   try {
@@ -20,7 +22,39 @@ function safeJson(key, fallback) {
 
 export default function MobileNav() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const [account, setAccount] = useState(() =>
+    safeJson("forsaAccount", null)
+  );
+
+  const [notifications, setNotifications] = useState(() =>
+    safeJson("forsaNotificationsCache", [])
+  );
+
   const [hiddenOnScroll, setHiddenOnScroll] = useState(false);
+
+  useEffect(() => {
+    const refreshHeader = () => {
+      setAccount(safeJson("forsaAccount", null));
+      setNotifications(safeJson("forsaNotificationsCache", []));
+    };
+
+    refreshHeader();
+
+    window.addEventListener("storage", refreshHeader);
+    window.addEventListener("forsa:account-updated", refreshHeader);
+    window.addEventListener("forsa:notifications-updated", refreshHeader);
+
+    return () => {
+      window.removeEventListener("storage", refreshHeader);
+      window.removeEventListener("forsa:account-updated", refreshHeader);
+      window.removeEventListener(
+        "forsa:notifications-updated",
+        refreshHeader
+      );
+    };
+  }, []);
 
   useEffect(() => {
     let lastY = window.scrollY;
@@ -33,11 +67,11 @@ export default function MobileNav() {
         const currentY = window.scrollY;
         const diff = currentY - lastY;
 
-        if (currentY < 40) {
+        if (currentY <= 24) {
           setHiddenOnScroll(false);
-        } else if (diff > 8) {
+        } else if (diff > 10) {
           setHiddenOnScroll(true);
-        } else if (diff < -8) {
+        } else if (diff < -10) {
           setHiddenOnScroll(false);
         }
 
@@ -50,8 +84,10 @@ export default function MobileNav() {
 
     window.addEventListener("scroll", onScroll, { passive: true });
 
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [location.pathname]);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
 
   const hiddenRoutes = ["/", "/auth", "/onboarding"];
 
@@ -60,18 +96,22 @@ export default function MobileNav() {
     document.documentElement.classList.contains("forsa-modal-open");
 
   if (modalOpen) return null;
+
   if (hiddenRoutes.includes(location.pathname)) return null;
 
-  const account = safeJson("forsaAccount", null);
   const isHiring = account?.accountType === "hiring";
 
-  const guestItems = [
-    {
-      label: "Explore",
-      to: "/explore",
-      icon: FaCompass,
-    },
-  ];
+  const unreadNotifications = notifications.filter(
+    (item) =>
+      !item.read &&
+      (!item.targetEmail || item.targetEmail === account?.email)
+  );
+
+  const unreadNotificationsCount = unreadNotifications.length;
+
+  const unreadMessagesCount = unreadNotifications.filter(
+    (item) => item.type === "message"
+  ).length;
 
   const seekerItems = [
     {
@@ -82,122 +122,171 @@ export default function MobileNav() {
     {
       label: "Saved",
       to: "/saved",
+      icon: FaBookmark,
+    },
+    {
+      label: "Connect",
+      to: "/people",
+      icon: BsFillPeopleFill,
+    },
+    {
+      label: "Applications",
+      to: "/applications",
       icon: FaBriefcase,
-    },
-    {
-      label: "Messages",
-      to: "/messages",
-      icon: FaPaperPlane,
-    },
-    {
-      label: "Profile",
-      to: "/profile",
-      icon: FaUser,
     },
   ];
 
   const hiringItems = [
-  {
-    label: "Dashboard",
-    to: "/dashboard",
-    icon: FaTachometerAlt,
-  },
-  {
-    label: "Applicants",
-    to: "/applicants",
-    icon: FaUsers,
-  },
-  {
-    label: "Post",
-    to: "/post",
-    icon: FaPlus,
-  },
-  {
-    label: "Messages",
-    to: "/messages",
-    icon: FaPaperPlane,
-  },
-  {
-    label: "Profile",
-    to: "/profile",
-    icon: FaUser,
-  },
-];
+    {
+      label: "Dashboard",
+      to: "/dashboard",
+      icon: FaTachometerAlt,
+    },
+    {
+      label: "Post",
+      to: "/post",
+      icon: FaPlus,
+    },
+    {
+      label: "Applicants",
+      to: "/applicants",
+      icon: FaUsers,
+    },
+  ];
 
-  const items = !account
-    ? guestItems
-    : isHiring
-    ? hiringItems
-    : seekerItems;
+  const items = account
+    ? isHiring
+      ? hiringItems
+      : seekerItems
+    : [];
 
-  const gridConfig = {
-    1: "grid-cols-1 max-w-[120px]",
-    4: "grid-cols-4",
-    5: "grid-cols-5",
-  };
-
-  const currentGridClass =
-    gridConfig[items.length] || "grid-cols-5";
+  if (!items.length) return null;
 
   return (
-    <nav
-      className={`fixed bottom-0 left-0 right-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] transition-all duration-300 ease-out md:hidden ${
-        hiddenOnScroll
-          ? "translate-y-[120%] opacity-0 pointer-events-none"
-          : "translate-y-0 opacity-100"
-      }`}
-    >
+    <>
       <div
-        className={`mx-auto rounded-[24px] border border-white/60 bg-white/70 p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.08),inset_0_1px_2px_rgba(255,255,255,0.7)] backdrop-blur-xl transition-all duration-300 ${
-          items.length === 1
-            ? "max-w-[100px]"
-            : "max-w-md"
+  className={`fixed right-3 top-3 z-50 flex items-center gap-2 transition-all duration-300 ease-out md:hidden ${
+    hiddenOnScroll
+      ? "pointer-events-none -translate-y-[130%] opacity-0"
+      : "translate-y-0 opacity-100"
+  }`}
+>
+        <NavLink
+          to="/messages"
+          aria-label="Messages"
+          className={({ isActive }) =>
+            `relative flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-xl transition-all duration-200 active:scale-95 ${
+              isActive
+                ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-sm"
+                : "border-neutral-200/80 bg-white/90 text-neutral-600 shadow-sm hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+            }`
+          }
+        >
+          <FaInbox className="text-[12px]" />
+
+          {unreadMessagesCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--forsa-gold)] px-1 text-[9px] font-bold leading-none text-black ring-2 ring-white">
+              {unreadMessagesCount > 9 ? "9+" : unreadMessagesCount}
+            </span>
+          )}
+        </NavLink>
+
+        <NavLink
+          to="/notifications"
+          aria-label="Notifications"
+          className={({ isActive }) =>
+            `relative flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-xl transition-all duration-200 active:scale-95 ${
+              isActive
+                ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-sm"
+                : "border-neutral-200/80 bg-white/90 text-neutral-600 shadow-sm hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+            }`
+          }
+        >
+          <FaBell className="text-[12px]" />
+
+          {unreadNotificationsCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--forsa-gold)] px-1 text-[9px] font-bold leading-none text-black ring-2 ring-white">
+              {unreadNotificationsCount > 9
+                ? "9+"
+                : unreadNotificationsCount}
+            </span>
+          )}
+        </NavLink>
+
+        <button
+          type="button"
+          aria-label="Profile"
+          onClick={() => navigate("/profile")}
+          className={`flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-xl transition-all duration-200 active:scale-95 ${
+            location.pathname === "/profile"
+              ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-sm"
+              : "border-neutral-200/80 bg-[var(--forsa-primary)] text-white shadow-sm hover:bg-[var(--forsa-primary-light)]"
+          }`}
+        >
+          <span className="text-[11px] font-bold">
+            {account?.name?.trim()?.charAt(0)?.toUpperCase() || "P"}
+          </span>
+        </button>
+      </div>
+
+      <nav
+        aria-label="Mobile navigation"
+        className={`fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] transition-all duration-300 ease-out md:hidden ${
+          hiddenOnScroll
+            ? "pointer-events-none translate-y-[130%] opacity-0"
+            : "translate-y-0 opacity-100"
         }`}
       >
-        <div
-          className={`grid gap-0.5 ${currentGridClass} mx-auto`}
-        >
-          {items.map((item) => {
-            const Icon = item.icon;
+        <div className="mx-auto w-full max-w-[430px]">
+          <div className="rounded-[22px] border border-neutral-200/80 bg-white/90 p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.10)] backdrop-blur-xl">
+            <div
+              className={`grid ${
+                items.length === 3 ? "grid-cols-3" : "grid-cols-4"
+              } gap-1`}
+            >
+              {items.map((item) => {
+                const Icon = item.icon;
 
-            return (
-              <NavLink
-                key={item.label}
-                to={item.to}
-                className={({ isActive }) =>
-                  `relative flex min-h-[56px] flex-col items-center justify-center rounded-[18px] px-1 py-1.5 text-[10px] font-medium tracking-wide uppercase transition-all duration-300 active:scale-90 ${
-                    isActive
-                      ? "text-[var(--forsa-primary)] font-bold bg-[var(--forsa-primary)]/[0.04]"
-                      : "text-neutral-400 hover:text-neutral-600 active:bg-neutral-100/50"
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <div
-                      className={`transition-transform duration-300 ${
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      `relative flex min-w-0 flex-col items-center justify-center rounded-[16px] px-1 py-2.5 transition-all duration-200 active:scale-[0.96] ${
                         isActive
-                          ? "-translate-y-1 scale-110 text-[var(--forsa-primary)]"
-                          : ""
-                      }`}
-                    >
-                      <Icon className="text-[16px]" />
-                    </div>
+                          ? "bg-[var(--forsa-primary)]/[0.07] text-[var(--forsa-primary)]"
+                          : "text-neutral-400 hover:bg-neutral-50 hover:text-neutral-600"
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Icon
+                          className={`text-[15px] transition-transform duration-200 ${
+                            isActive ? "scale-105" : ""
+                          }`}
+                        />
 
-                    <span className="mt-1.5 text-[9px] leading-none tracking-tight font-semibold">
-                      {item.label}
-                    </span>
+                        <span
+                          className={`mt-1.5 max-w-full truncate text-[9px] leading-none tracking-[-0.01em] ${
+                            isActive ? "font-bold" : "font-semibold"
+                          }`}
+                        >
+                          {item.label}
+                        </span>
 
-                    {isActive && (
-                      <div className="absolute bottom-1 h-[3px] w-4 rounded-full bg-[var(--forsa-primary)] shadow-[0_1px_4px_rgba(0,0,0,0.15)] animate-fade-in" />
+                        {isActive && (
+                          <span className="absolute bottom-1 h-[2.5px] w-4 rounded-full bg-[var(--forsa-primary)]" />
+                        )}
+                      </>
                     )}
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 }

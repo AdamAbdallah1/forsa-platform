@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -21,6 +21,7 @@ import TalentCompanySection from "../components/TalentCompanySection";
 import Footer from "../components/Footer";
 
 export default function Home() {
+  
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,22 +54,22 @@ export default function Home() {
       <HomeNavbar />
 
       <main className="relative">
-        <section className="relative flex min-h-[calc(100svh-72px)] flex-col items-center justify-between overflow-hidden px-5 pb-6 pt-5 sm:px-8 lg:px-10">
+        <section className="relative flex min-h-[calc(100svh-64px)] flex-col items-center justify-between overflow-hidden px-4 pb-8 pt-4 sm:px-8 sm:pb-10 sm:pt-6 lg:min-h-[calc(100svh-72px)] lg:px-10">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-70"
+            className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-[320px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-60 sm:h-[500px] sm:w-[700px] sm:opacity-70"
             style={{
               background:
                 "radial-gradient(circle, color-mix(in srgb, var(--forsa-primary) 10%, transparent), transparent 70%)",
             }}
           />
 
-          <div className="flex w-full max-w-5xl flex-1 flex-col items-center justify-center py-8 text-center">
+          <div className="flex w-full max-w-5xl flex-1 flex-col items-center justify-center py-5 sm:py-8 text-center">
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="inline-flex items-center gap-2 rounded-full border border-neutral-200/80 bg-neutral-50 px-3 py-1 text-[11px] font-semibold text-neutral-600 m-6"
+              className="inline-flex items-center gap-2 rounded-full border border-neutral-200/80 bg-neutral-50 px-3 py-1.5 text-[10px] font-semibold text-neutral-600 sm:text-[11px]"
             >
               <span>The Early-Career & Opportunity Ecosystem</span>
             </motion.div>
@@ -80,7 +81,7 @@ export default function Home() {
                 duration: 0.55,
                 ease: [0.22, 1, 0.36, 1],
               }}
-              className="mx-auto max-w-4xl text-3xl font-bold leading-[1.08] tracking-[-0.055em] text-neutral-950 sm:text-5xl sm:leading-[0.98] lg:text-[4.25rem]"
+              className="mx-auto max-w-4xl text-[2rem] font-bold leading-[1.05] tracking-[-0.055em] text-neutral-950 sm:text-5xl sm:leading-[0.98] lg:text-[4.25rem]"
             >
               <span className="block">Find the opportunity</span>
 
@@ -110,7 +111,7 @@ export default function Home() {
                 duration: 0.45,
                 delay: 0.12,
               }}
-              className="mx-auto mt-4 max-w-2xl text-xs leading-6 text-neutral-500 sm:mt-6 sm:text-base sm:leading-7"
+              className="mx-auto mt-4 max-w-[34rem] px-2 text-sm leading-6 text-neutral-500 sm:mt-6 sm:px-0 sm:text-base sm:leading-7"
             >
               Discover jobs, internships, projects, and early-career
               opportunities that match where you're going.
@@ -124,7 +125,7 @@ export default function Home() {
                 duration: 0.45,
                 delay: 0.19,
               }}
-              className="mt-8 flex w-full max-w-3xl flex-col gap-2 rounded-2xl border border-neutral-200/90 bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 focus-within:shadow-[0_12px_40px_rgb(82,39,255,0.12)] sm:flex-row sm:items-center sm:rounded-full"
+              className="mt-7 flex w-full max-w-3xl flex-col gap-1.5 rounded-2xl border border-neutral-200/90 bg-white p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-shadow duration-300 focus-within:shadow-[0_12px_40px_rgb(82,39,255,0.12)] sm:mt-8 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:p-2"
             >
               <div className="flex flex-1 items-center gap-3 px-4 py-2 sm:py-0">
                 <FaSearch className="shrink-0 text-sm text-neutral-400" />
@@ -134,7 +135,7 @@ export default function Home() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Job title, keyword, or skill..."
-                  className="w-full bg-transparent text-xs font-medium text-neutral-900 placeholder-neutral-400 focus:outline-none sm:text-sm"
+                  className="w-full min-w-0 bg-transparent text-sm font-medium text-neutral-900 placeholder-neutral-400 focus:outline-none"
                 />
               </div>
 
@@ -147,7 +148,7 @@ export default function Home() {
                   <select
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="z-10 w-full cursor-pointer appearance-none bg-transparent pr-7 text-xs font-semibold text-neutral-800 focus:outline-none sm:text-sm"
+                    className="z-10 w-full cursor-pointer appearance-none bg-transparent pr-7 text-sm font-semibold text-neutral-800 focus:outline-none"
                   >
                     <option value="" className="bg-white text-neutral-800">
                       All Locations
@@ -202,7 +203,7 @@ export default function Home() {
 
               <button
                 type="submit"
-                className="group inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl px-6 py-3 text-xs font-semibold text-white shadow-md transition-all duration-200 hover:opacity-95 active:scale-[0.98] sm:w-auto sm:rounded-full"
+                className="group inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-md transition-transform duration-200 hover:opacity-95 active:scale-[0.98] sm:w-auto sm:rounded-full"
                 style={{
                   backgroundColor: "var(--forsa-primary)",
                 }}
@@ -217,7 +218,7 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.45, delay: 0.25 }}
-              className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-neutral-500"
+              className="mt-4 flex max-w-full flex-wrap items-center justify-center gap-2 px-1 text-xs text-neutral-500"
             >
               <span className="font-medium text-neutral-400">Popular:</span>
 
@@ -231,41 +232,11 @@ export default function Home() {
                   key={tag}
                   type="button"
                   onClick={() => handleQuickTag(tag)}
-                  className="rounded-full border border-neutral-200/80 bg-neutral-50/80 px-3 py-1 text-[11px] font-medium text-neutral-700 transition-all hover:border-neutral-300 hover:bg-neutral-100 hover:shadow-xs"
+                  className="min-h-9 rounded-full border border-neutral-200/80 bg-neutral-50/80 px-3 py-1.5 text-[11px] font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-100"
                 >
                   {tag}
                 </button>
               ))}
-            </motion.div>
-          </div>
-
-          <div className="w-full pb-2 pt-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: 0.6,
-                delay: 0.3,
-              }}
-              className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden"
-            >
-              <TextLoop
-                text="JOBS ✦ INTERNSHIPS ✦ PROJECTS ✦ EARLY CAREERS"
-                shape="wave"
-                speed={60}
-                direction="forward"
-                separator="✦"
-                curviness={20}
-                fontSize={10}
-                fontWeight={700}
-                letterSpacing={1}
-                uppercase
-                color="#ffffff"
-                ribbon
-                ribbonColor="var(--forsa-primary)"
-                ribbonWidth={35}
-                pauseOnHover={false}
-              />
             </motion.div>
           </div>
         </section>
@@ -282,10 +253,10 @@ export default function Home() {
 
         <TalentCompanySection />
 
-        <section className="relative overflow-hidden border-t border-neutral-200/60 bg-gradient-to-b from-white via-neutral-50/50 to-neutral-100/60 py-20">
+        <section className="relative overflow-hidden border-t border-neutral-200/60 bg-gradient-to-b from-white via-neutral-50/50 to-neutral-100/60 py-12 sm:py-16 lg:py-20">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 top-1/2 -z-0 h-[350px] w-[550px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-60"
+            className="pointer-events-none absolute left-1/2 top-1/2 -z-0 h-[240px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-50 sm:h-[350px] sm:w-[550px] sm:opacity-60"
             style={{
               background:
                 "radial-gradient(circle, color-mix(in srgb, var(--forsa-primary) 12%, transparent), transparent 70%)",
@@ -293,7 +264,7 @@ export default function Home() {
           />
 
           <div className="relative z-10 mx-auto max-w-6xl px-5 sm:px-8 lg:px-10">
-            <div className="rounded-3xl border border-neutral-200/90 bg-white/90 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)] backdrop-blur-md sm:p-12">
+            <div className="rounded-3xl border border-neutral-200/90 bg-white/90 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.04)] sm:p-8 lg:p-12">
               <div className="grid w-full items-center gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14">
                 <motion.div
                   initial={{ opacity: 0, x: -15 }}
@@ -303,7 +274,7 @@ export default function Home() {
                     duration: 0.6,
                     ease: [0.22, 1, 0.36, 1],
                   }}
-                  className="mx-auto h-[190px] w-full max-w-[270px] sm:h-[220px] sm:max-w-[300px]"
+                  className="mx-auto h-[150px] w-full max-w-[220px] sm:h-[220px] sm:max-w-[300px]"
                 >
                   <DotLottieReact
                     src={ctaHero}
@@ -365,7 +336,7 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => navigate("/auth")}
-                      className="group inline-flex w-full items-center justify-center gap-2.5 rounded-full px-6 py-3.5 text-xs font-bold text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 sm:w-auto"
+                      className="group inline-flex w-full items-center justify-center gap-2.5 rounded-full min-h-11 px-6 py-3 text-sm font-bold text-white shadow-lg transition-colors duration-200 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 sm:w-auto"
                       style={{
                         backgroundColor: "var(--forsa-primary)",
                         boxShadow:
@@ -381,7 +352,7 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => navigate("/auth")}
-                      className="group inline-flex w-full items-center justify-center gap-2.5 rounded-full border border-neutral-200 bg-neutral-50/80 px-6 py-3.5 text-xs font-bold text-neutral-800 transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-100 sm:w-auto"
+                      className="group inline-flex w-full items-center justify-center gap-2.5 rounded-full border border-neutral-200 bg-neutral-50/80 min-h-11 px-6 py-3 text-sm font-bold text-neutral-800 transition-colors duration-200 hover:border-neutral-300 hover:bg-neutral-100 sm:w-auto"
                     >
                       <FaBriefcase className="text-[11px] text-neutral-500 transition-colors group-hover:text-[var(--forsa-primary)]" />
                       Post an Opportunity

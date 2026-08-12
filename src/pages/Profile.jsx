@@ -797,7 +797,7 @@ const saveChanges = async () => {
   const logout = () => {
     localStorage.removeItem("forsaAccount");
     setAccount(null);
-    navigate("/auth", { replace: true });
+    navigate("/", { replace: true });
   };
 
   const resetDemoAccount = () => {
