@@ -1,18 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   FaArrowRight,
   FaSearch,
   FaMapMarkerAlt,
-  FaBriefcase,
   FaChevronDown,
-  FaUserPlus,
 } from "react-icons/fa";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 import ctaHero from "../assets/cta-hero.lottie";
-import TextLoop from "../components/TextLoop";
 import SEO from "../components/SEO";
 import FoldText from "../components/FoldText";
 import WhyForsa from "../components/WhyForsa";
@@ -21,8 +18,14 @@ import TalentCompanySection from "../components/TalentCompanySection";
 import Footer from "../components/Footer";
 
 export default function Home() {
-  
   const navigate = useNavigate();
+  const goToLogin = () => {
+  navigate("/auth?mode=login");
+};
+
+const goToSignup = () => {
+  navigate("/auth?mode=signup");
+};
 
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
@@ -32,15 +35,20 @@ export default function Home() {
 
     const params = new URLSearchParams();
 
-    if (searchQuery.trim()) {
-      params.append("q", searchQuery.trim());
+    const query = searchQuery.trim();
+    const selectedLocation = location.trim();
+
+    if (query) {
+      params.set("q", query);
     }
 
-    if (location.trim()) {
-      params.append("location", location.trim());
+    if (selectedLocation) {
+      params.set("location", selectedLocation);
     }
 
-    navigate(`/explore?${params.toString()}`);
+    const queryString = params.toString();
+
+    navigate(queryString ? `/explore?${queryString}` : "/explore");
   };
 
   const handleQuickTag = (tag) => {
@@ -54,22 +62,22 @@ export default function Home() {
       <HomeNavbar />
 
       <main className="relative">
-        <section className="relative flex min-h-[calc(100svh-64px)] flex-col items-center justify-between overflow-hidden px-4 pb-8 pt-4 sm:px-8 sm:pb-10 sm:pt-6 lg:min-h-[calc(100svh-72px)] lg:px-10">
+        <section className="relative flex min-h-[calc(100svh-64px)] flex-col items-center overflow-hidden px-4 pb-8 pt-4 sm:min-h-[calc(100svh-72px)] sm:px-6 sm:pb-10 sm:pt-6 lg:px-10">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-[320px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-60 sm:h-[500px] sm:w-[700px] sm:opacity-70"
+            className="pointer-events-none absolute left-1/2 top-[28%] -z-0 h-[300px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-60 sm:top-1/3 sm:h-[500px] sm:w-[700px] sm:opacity-70"
             style={{
               background:
                 "radial-gradient(circle, color-mix(in srgb, var(--forsa-primary) 10%, transparent), transparent 70%)",
             }}
           />
 
-          <div className="flex w-full max-w-5xl flex-1 flex-col items-center justify-center py-5 sm:py-8 text-center">
+          <div className="relative z-10 flex w-full max-w-5xl flex-1 flex-col items-center justify-center py-5 text-center sm:py-8">
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="inline-flex items-center gap-2 rounded-full border border-neutral-200/80 bg-neutral-50 px-3 py-1.5 text-[10px] font-semibold text-neutral-600 sm:text-[11px]"
+              className="inline-flex max-w-full items-center justify-center rounded-full border border-neutral-200/80 bg-neutral-50 px-3 py-1.5 text-[10px] font-semibold text-neutral-600 sm:text-[11px]"
             >
               <span>The Early-Career & Opportunity Ecosystem</span>
             </motion.div>
@@ -81,7 +89,7 @@ export default function Home() {
                 duration: 0.55,
                 ease: [0.22, 1, 0.36, 1],
               }}
-              className="mx-auto max-w-4xl text-[2rem] font-bold leading-[1.05] tracking-[-0.055em] text-neutral-950 sm:text-5xl sm:leading-[0.98] lg:text-[4.25rem]"
+              className="mx-auto mt-5 max-w-4xl text-[2rem] font-bold leading-[1.04] tracking-[-0.055em] text-neutral-950 sm:mt-6 sm:text-5xl sm:leading-[0.98] lg:text-[4.25rem]"
             >
               <span className="block">Find the opportunity</span>
 
@@ -111,7 +119,7 @@ export default function Home() {
                 duration: 0.45,
                 delay: 0.12,
               }}
-              className="mx-auto mt-4 max-w-[34rem] px-2 text-sm leading-6 text-neutral-500 sm:mt-6 sm:px-0 sm:text-base sm:leading-7"
+              className="mx-auto mt-4 max-w-[34rem] px-3 text-sm leading-6 text-neutral-500 sm:mt-6 sm:px-0 sm:text-base sm:leading-7"
             >
               Discover jobs, internships, projects, and early-career
               opportunities that match where you're going.
@@ -125,9 +133,9 @@ export default function Home() {
                 duration: 0.45,
                 delay: 0.19,
               }}
-              className="mt-7 flex w-full max-w-3xl flex-col gap-1.5 rounded-2xl border border-neutral-200/90 bg-white p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-shadow duration-300 focus-within:shadow-[0_12px_40px_rgb(82,39,255,0.12)] sm:mt-8 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:p-2"
+              className="mt-6 flex w-full max-w-3xl flex-col gap-1.5 rounded-2xl border border-neutral-200/90 bg-white p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-shadow duration-300 focus-within:shadow-[0_12px_40px_rgb(82,39,255,0.12)] sm:mt-8 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:p-2"
             >
-              <div className="flex flex-1 items-center gap-3 px-4 py-2 sm:py-0">
+              <div className="flex min-w-0 flex-1 items-center gap-3 px-3.5 py-2.5 sm:px-4 sm:py-0">
                 <FaSearch className="shrink-0 text-sm text-neutral-400" />
 
                 <input
@@ -135,66 +143,30 @@ export default function Home() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Job title, keyword, or skill..."
-                  className="w-full min-w-0 bg-transparent text-sm font-medium text-neutral-900 placeholder-neutral-400 focus:outline-none"
+                  aria-label="Search jobs, keywords, or skills"
+                  className="w-full min-w-0 bg-transparent text-sm font-medium text-neutral-900 outline-none placeholder:text-neutral-400"
                 />
               </div>
 
               <div className="hidden h-6 w-px bg-neutral-200 sm:block" />
 
-              <div className="relative flex flex-1 items-center gap-2.5 px-4 py-2 sm:py-0">
+              <div className="relative flex min-w-0 flex-1 items-center gap-2.5 px-3.5 py-2.5 sm:px-4 sm:py-0">
                 <FaMapMarkerAlt className="shrink-0 text-sm text-neutral-400" />
 
-                <div className="relative flex w-full items-center">
+                <div className="relative flex min-w-0 w-full items-center">
                   <select
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="z-10 w-full cursor-pointer appearance-none bg-transparent pr-7 text-sm font-semibold text-neutral-800 focus:outline-none"
+                    aria-label="Select location"
+                    className="z-10 w-full cursor-pointer appearance-none truncate bg-transparent pr-7 text-sm font-semibold text-neutral-800 outline-none"
                   >
-                    <option value="" className="bg-white text-neutral-800">
-                      All Locations
-                    </option>
-
-                    <option
-                      value="Beirut"
-                      className="bg-white text-neutral-800"
-                    >
-                      Beirut
-                    </option>
-
-                    <option
-                      value="Mount Lebanon"
-                      className="bg-white text-neutral-800"
-                    >
-                      Mount Lebanon
-                    </option>
-
-                    <option
-                      value="Tripoli"
-                      className="bg-white text-neutral-800"
-                    >
-                      Tripoli
-                    </option>
-
-                    <option
-                      value="Sidon"
-                      className="bg-white text-neutral-800"
-                    >
-                      Sidon
-                    </option>
-
-                    <option
-                      value="Zahle"
-                      className="bg-white text-neutral-800"
-                    >
-                      Zahle
-                    </option>
-
-                    <option
-                      value="Remote"
-                      className="bg-white text-neutral-800"
-                    >
-                      Remote
-                    </option>
+                    <option value="">All Locations</option>
+                    <option value="Beirut">Beirut</option>
+                    <option value="Mount Lebanon">Mount Lebanon</option>
+                    <option value="Tripoli">Tripoli</option>
+                    <option value="Sidon">Sidon</option>
+                    <option value="Zahle">Zahle</option>
+                    <option value="Remote">Remote</option>
                   </select>
 
                   <FaChevronDown className="pointer-events-none absolute right-1 text-[10px] text-neutral-400" />
@@ -203,7 +175,7 @@ export default function Home() {
 
               <button
                 type="submit"
-                className="group inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-md transition-transform duration-200 hover:opacity-95 active:scale-[0.98] sm:w-auto sm:rounded-full"
+                className="group inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:opacity-95 active:scale-[0.98] sm:w-auto sm:rounded-full"
                 style={{
                   backgroundColor: "var(--forsa-primary)",
                 }}
@@ -217,10 +189,15 @@ export default function Home() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.45, delay: 0.25 }}
-              className="mt-4 flex max-w-full flex-wrap items-center justify-center gap-2 px-1 text-xs text-neutral-500"
+              transition={{
+                duration: 0.45,
+                delay: 0.25,
+              }}
+              className="mt-4 flex max-w-full flex-wrap items-center justify-center gap-1.5 px-1 text-xs text-neutral-500 sm:gap-2"
             >
-              <span className="font-medium text-neutral-400">Popular:</span>
+              <span className="mr-0.5 font-medium text-neutral-400">
+                Popular:
+              </span>
 
               {[
                 "Software Engineer",
@@ -232,11 +209,40 @@ export default function Home() {
                   key={tag}
                   type="button"
                   onClick={() => handleQuickTag(tag)}
-                  className="min-h-9 rounded-full border border-neutral-200/80 bg-neutral-50/80 px-3 py-1.5 text-[11px] font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-100"
+                  className="min-h-9 rounded-full border border-neutral-200/80 bg-neutral-50/80 px-3 py-1.5 text-[11px] font-medium text-neutral-700 transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-100 active:scale-[0.97]"
                 >
                   {tag}
                 </button>
               ))}
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.45,
+                delay: 0.3,
+              }}
+              className="mt-5 flex w-full max-w-sm items-center justify-center gap-2.5 sm:hidden"
+            >
+              <button
+  type="button"
+  onClick={goToLogin}
+  className="min-h-11 flex-1 rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 shadow-sm transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.98]"
+>
+Login
+</button>
+
+<button
+  type="button"
+  onClick={goToSignup}
+  className="min-h-11 flex-1 rounded-full px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:opacity-95 active:scale-[0.98]"
+  style={{
+    backgroundColor: "var(--forsa-primary)",
+  }}
+>
+  Get Started
+</button> 
             </motion.div>
           </div>
         </section>
@@ -263,8 +269,8 @@ export default function Home() {
             }}
           />
 
-          <div className="relative z-10 mx-auto max-w-6xl px-5 sm:px-8 lg:px-10">
-            <div className="rounded-3xl border border-neutral-200/90 bg-white/90 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.04)] sm:p-8 lg:p-12">
+          <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-8 lg:px-10">
+            <div className="rounded-3xl border border-neutral-200/90 bg-white/90 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.04)] backdrop-blur-md sm:p-8 lg:p-12">
               <div className="grid w-full items-center gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14">
                 <motion.div
                   initial={{ opacity: 0, x: -15 }}
@@ -316,7 +322,7 @@ export default function Home() {
                       duration: 0.45,
                       delay: 0.1,
                     }}
-                    className="mt-3 max-w-lg text-sm leading-6 text-neutral-500 sm:text-base lg:mx-0"
+                    className="mx-auto mt-3 max-w-lg text-sm leading-6 text-neutral-500 sm:text-base lg:mx-0"
                   >
                     Whether you're seeking your next role or building a team,
                     Forsa provides direct access to opportunities and verified
@@ -335,27 +341,26 @@ export default function Home() {
                   >
                     <button
                       type="button"
-                      onClick={() => navigate("/auth")}
-                      className="group inline-flex w-full items-center justify-center gap-2.5 rounded-full min-h-11 px-6 py-3 text-sm font-bold text-white shadow-lg transition-colors duration-200 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 sm:w-auto"
+                      onClick={goToSignup}
+                      className="group inline-flex min-h-11 w-full items-center justify-center gap-2.5 rounded-full px-6 py-3 text-sm font-bold text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 sm:w-auto"
                       style={{
                         backgroundColor: "var(--forsa-primary)",
                         boxShadow:
                           "0 8px 24px -4px color-mix(in srgb, var(--forsa-primary) 35%, transparent)",
                       }}
                     >
-                      <FaUserPlus className="text-[11px]" />
-                      Create Profile
+                      Get Started
 
                       <FaArrowRight className="text-[9px] transition-transform duration-200 group-hover:translate-x-1" />
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => navigate("/auth")}
-                      className="group inline-flex w-full items-center justify-center gap-2.5 rounded-full border border-neutral-200 bg-neutral-50/80 min-h-11 px-6 py-3 text-sm font-bold text-neutral-800 transition-colors duration-200 hover:border-neutral-300 hover:bg-neutral-100 sm:w-auto"
+                      onClick={goToLogin}
+
+                      className="inline-flex min-h-11 w-full items-center justify-center gap-2.5 rounded-full border border-neutral-200 bg-neutral-50/80 px-6 py-3 text-sm font-bold text-neutral-800 transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-100 active:scale-[0.98] sm:w-auto"
                     >
-                      <FaBriefcase className="text-[11px] text-neutral-500 transition-colors group-hover:text-[var(--forsa-primary)]" />
-                      Post an Opportunity
+                      Login
                     </button>
                   </motion.div>
                 </div>

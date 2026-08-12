@@ -4,6 +4,7 @@ import { FaArrowRight, FaBars, FaTimes } from "react-icons/fa";
 import BrandLogo from "./BrandLogo";
 
 export default function HomeNavbar() {
+  
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 

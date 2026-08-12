@@ -388,8 +388,15 @@ export default function Messages() {
   return (
     <section>
       <AppHeader />
+      
 
       <div className="mx-auto max-w-[1180px] px-5 pb-28 sm:px-6 lg:pb-20">
+        <MessageToolbar
+          search={messageSearch}
+          setSearch={setMessageSearch}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+        />
         <div className="relative mt-6 overflow-hidden rounded-[30px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:mt-8 sm:p-6">
           <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-[var(--forsa-gold-soft)]/35 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-28 -left-28 h-64 w-64 rounded-full forsa-button/10 blur-3xl" />
@@ -414,12 +421,7 @@ export default function Messages() {
           </div>
         </div>
 
-        <MessageToolbar
-          search={messageSearch}
-          setSearch={setMessageSearch}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-        />
+        
 
         {loadingMessages ? (
           <LoadingMessages />
