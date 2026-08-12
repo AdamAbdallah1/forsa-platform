@@ -20,9 +20,19 @@ import {
 
 import { auth, db } from "./firebase";
 
+/* =========================================================
+   LOCAL SESSION HELPERS
+   ========================================================= */
+
 export function safeJson(key, fallback) {
   try {
-    return JSON.parse(localStorage.getItem(key)) || fallback;
+    const value = localStorage.getItem(key);
+
+    if (!value) {
+      return fallback;
+    }
+
+    return JSON.parse(value) || fallback;
   } catch {
     return fallback;
   }
@@ -36,14 +46,55 @@ export function setSession(account) {
   localStorage.setItem("forsaAccount", JSON.stringify(account));
 }
 
+/* =========================================================
+   EMAIL VERIFICATION HELPERS
+   ========================================================= */
+
+/**
+ * Reload Firebase Auth state.
+ *
+ * This is important because emailVerified can change on
+ * Firebase's servers after the user clicks the email link.
+ */
+async function reloadCurrentUser() {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("No authenticated user.");
+  }
+
+  await user.reload();
+
+  return user;
+}
+
+/**
+ * Force Firebase to refresh the user's ID token.
+ *
+ * Firestore security rules read:
+ *
+ * request.auth.token.email_verified
+ *
+ * The refreshed token allows Firestore rules to see the
+ * newly verified email state.
+ */
+async function refreshAuthToken(user) {
+  await user.getIdToken(true);
+}
+
+/* =========================================================
+   REGISTRATION
+   ========================================================= */
+
 /**
  * Register a new email/password user.
  *
- * After registration:
- * - Firebase creates the account
- * - A verification email is sent
- * - The user is NOT added to the Forsa local session yet
- * - The caller should redirect the user to the verification screen
+ * Flow:
+ * 1. Firebase creates the Auth account.
+ * 2. Firebase sends the verification email.
+ * 3. Firestore creates the user profile.
+ * 4. No local application session is created yet.
+ * 5. Caller redirects to the verification screen.
  */
 export async function registerUser(accountData) {
   const email = accountData.email.trim().toLowerCase();
@@ -58,9 +109,14 @@ export async function registerUser(accountData) {
   const user = credential.user;
   const uid = user.uid;
 
-  // Send Firebase's email verification message.
+  /*
+   * Send verification email immediately after account creation.
+   */
   await sendEmailVerification(user);
 
+  /*
+   * Never store the password in Firestore.
+   */
   const { password: _, ...safeAccountData } = accountData;
 
   const cleanAccount = {
@@ -75,12 +131,10 @@ export async function registerUser(accountData) {
   await setDoc(doc(db, "users", uid), cleanAccount);
 
   /*
-   * IMPORTANT:
-   * Do NOT call setSession() here.
+   * Do NOT create the local session yet.
    *
-   * The user must verify their email first.
+   * The user must verify the email first.
    */
-
   return {
     ...safeAccountData,
     uid,
@@ -90,10 +144,14 @@ export async function registerUser(accountData) {
   };
 }
 
+/* =========================================================
+   LOGIN
+   ========================================================= */
+
 /**
  * Login with email/password.
  *
- * Unverified email accounts are not allowed into the application.
+ * Unverified email accounts are rejected.
  */
 export async function loginUser(email, password) {
   const credential = await signInWithEmailAndPassword(
@@ -104,12 +162,20 @@ export async function loginUser(email, password) {
 
   const user = credential.user;
 
-  // Reload Firebase's latest user state.
+  /*
+   * Always reload Auth state before checking verification.
+   */
   await user.reload();
 
   if (!user.emailVerified) {
     throw new Error("EMAIL_NOT_VERIFIED");
   }
+
+  /*
+   * Refresh the token so Firestore rules have the latest
+   * email_verified claim.
+   */
+  await refreshAuthToken(user);
 
   const uid = user.uid;
   const snap = await getDoc(doc(db, "users", uid));
@@ -125,77 +191,197 @@ export async function loginUser(email, password) {
   };
 
   setSession(account);
+
   return account;
 }
 
+/* =========================================================
+   CHECK EMAIL VERIFICATION
+   ========================================================= */
+
 /**
- * Check whether the currently authenticated Firebase user
- * has verified their email.
+ * Check the latest Firebase Auth verification state.
+ *
+ * Returns:
+ *   true  -> email is verified
+ *   false -> email is not verified / no user
  */
 export async function checkEmailVerification() {
   if (!auth.currentUser) {
     return false;
   }
 
-  await auth.currentUser.reload();
+  const user = await reloadCurrentUser();
 
-  return auth.currentUser.emailVerified;
+  return user.emailVerified;
 }
 
-/**
- * Resend the Firebase verification email.
- */
-export async function resendVerificationEmail() {
-  if (!auth.currentUser) {
-    throw new Error("No authenticated user.");
-  }
-
-  if (auth.currentUser.emailVerified) {
-    return;
-  }
-
-  await sendEmailVerification(auth.currentUser);
-}
+/* =========================================================
+   SYNC EMAIL VERIFICATION
+   ========================================================= */
 
 /**
- * Complete the verification process.
+ * Sync Firebase Auth email verification state to Firestore.
  *
- * Call this after the user clicks "I've verified my email".
+ * This should be called after the user clicks the verification
+ * link and then returns to Forsa.
+ *
+ * Important:
+ * Firebase Auth is the source of truth for verification.
+ *
+ * Firestore:
+ * users/{uid}.emailVerified
+ *
+ * is only synchronized AFTER Firebase Auth reports:
+ *
+ * user.emailVerified === true
  */
-export async function completeEmailVerification() {
-  if (!auth.currentUser) {
-    throw new Error("No authenticated user.");
-  }
+export async function syncEmailVerification() {
+  const user = await reloadCurrentUser();
 
-  await auth.currentUser.reload();
-
-  if (!auth.currentUser.emailVerified) {
+  /*
+   * User has not verified their email yet.
+   */
+  if (!user.emailVerified) {
     return false;
   }
 
-  const uid = auth.currentUser.uid;
-  const snap = await getDoc(doc(db, "users", uid));
+  /*
+   * Refresh the Auth token FIRST.
+   *
+   * Firestore rules use:
+   * request.auth.token.email_verified
+   */
+  await refreshAuthToken(user);
+
+  const userRef = doc(db, "users", user.uid);
+
+  /*
+   * Make sure the Firestore profile exists before updating it.
+   */
+  const snap = await getDoc(userRef);
 
   if (!snap.exists()) {
     throw new Error("User profile not found.");
   }
 
+  /*
+   * Synchronize Firestore profile.
+   */
+  await updateDoc(userRef, {
+    emailVerified: true,
+    updatedAt: serverTimestamp(),
+  });
+
+  return true;
+}
+
+/* =========================================================
+   RESEND VERIFICATION EMAIL
+   ========================================================= */
+
+/**
+ * Resend Firebase's verification email.
+ */
+export async function resendVerificationEmail() {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("No authenticated user.");
+  }
+
+  /*
+   * Always check the latest Auth state.
+   */
+  await user.reload();
+
+  /*
+   * Do not send another verification email if already verified.
+   */
+  if (user.emailVerified) {
+    return;
+  }
+
+  await sendEmailVerification(user);
+}
+
+/* =========================================================
+   COMPLETE EMAIL VERIFICATION
+   ========================================================= */
+
+/**
+ * Complete the verification process.
+ *
+ * Called after the user clicks:
+ *
+ * "I've verified my email"
+ *
+ * Flow:
+ * 1. Reload Firebase Auth.
+ * 2. Confirm emailVerified.
+ * 3. Refresh Auth token.
+ * 4. Read Firestore profile.
+ * 5. Update Firestore emailVerified.
+ * 6. Create the local application session.
+ */
+export async function completeEmailVerification() {
+  const user = await reloadCurrentUser();
+
+  /*
+   * Verification has not happened yet.
+   */
+  if (!user.emailVerified) {
+    return false;
+  }
+
+  /*
+   * Refresh token so Firestore sees:
+   *
+   * request.auth.token.email_verified == true
+   */
+  await refreshAuthToken(user);
+
+  const uid = user.uid;
+  const userRef = doc(db, "users", uid);
+
+  /*
+   * Make sure the profile exists.
+   */
+  const snap = await getDoc(userRef);
+
+  if (!snap.exists()) {
+    throw new Error("User profile not found.");
+  }
+
+  /*
+   * Synchronize Firestore.
+   */
+  await updateDoc(userRef, {
+    emailVerified: true,
+    updatedAt: serverTimestamp(),
+  });
+
+  /*
+   * Build the application session from the latest Firestore data.
+   */
   const account = {
     uid,
     ...snap.data(),
     emailVerified: true,
   };
 
-  await updateDoc(doc(db, "users", uid), {
-    emailVerified: true,
-    updatedAt: serverTimestamp(),
-  });
-
   setSession(account);
 
   return true;
 }
 
+/* =========================================================
+   USER PROFILE
+   ========================================================= */
+
+/**
+ * Update the current user's Firestore profile.
+ */
 export async function updateUserAccount(uid, data) {
   await updateDoc(doc(db, "users", uid), {
     ...data,
@@ -203,11 +389,20 @@ export async function updateUserAccount(uid, data) {
   });
 
   const current = getAccount();
-  const next = { ...current, ...data };
+
+  const next = {
+    ...current,
+    ...data,
+  };
+
   setSession(next);
 
   return next;
 }
+
+/* =========================================================
+   GOOGLE LOGIN
+   ========================================================= */
 
 export async function loginWithGoogle() {
   const provider = new GoogleAuthProvider();
@@ -219,8 +414,15 @@ export async function loginWithGoogle() {
   const credential = await signInWithPopup(auth, provider);
   const user = credential.user;
 
+  /*
+   * Google accounts are considered verified by Firebase
+   * for this application's purposes.
+   */
   const snap = await getDoc(doc(db, "users", user.uid));
 
+  /*
+   * Existing Google/Firebase account.
+   */
   if (snap.exists()) {
     const account = {
       uid: user.uid,
@@ -236,6 +438,9 @@ export async function loginWithGoogle() {
     };
   }
 
+  /*
+   * New Google account.
+   */
   const newAccount = {
     uid: user.uid,
     accountType: "finder",
@@ -251,6 +456,9 @@ export async function loginWithGoogle() {
 
   await setDoc(doc(db, "users", user.uid), newAccount);
 
+  /*
+   * Convert server timestamps into serializable local values.
+   */
   const sessionAccount = {
     ...newAccount,
     createdAt: new Date().toISOString(),
@@ -265,10 +473,26 @@ export async function loginWithGoogle() {
   };
 }
 
+/* =========================================================
+   PASSWORD RESET
+   ========================================================= */
+
 export async function resetPassword(email) {
-  await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+  await sendPasswordResetEmail(
+    auth,
+    email.trim().toLowerCase()
+  );
 }
 
+/* =========================================================
+   CHANGE EMAIL
+   ========================================================= */
+
+/**
+ * Change the current user's email.
+ *
+ * The new email must be verified again.
+ */
 export async function changeCurrentUserEmail(newEmail) {
   if (!auth.currentUser) {
     throw new Error("No authenticated user.");
@@ -278,25 +502,27 @@ export async function changeCurrentUserEmail(newEmail) {
 
   await updateEmail(auth.currentUser, email);
 
-  // A changed email must be verified again.
+  /*
+   * The new address must be verified again.
+   */
   await sendEmailVerification(auth.currentUser);
 
-  const current = getAccount();
-
-  const next = {
-    ...current,
-    email,
-    emailVerified: false,
-  };
-
   /*
-   * Remove the local session because the new email
-   * needs to be verified again.
+   * Remove the old application session because the account
+   * is now waiting for email verification.
    */
   localStorage.removeItem("forsaAccount");
 
-  return next;
+  return {
+    ...getAccount(),
+    email,
+    emailVerified: false,
+  };
 }
+
+/* =========================================================
+   CHANGE PASSWORD
+   ========================================================= */
 
 export async function changeCurrentUserPassword(newPassword) {
   if (!auth.currentUser) {
@@ -306,7 +532,12 @@ export async function changeCurrentUserPassword(newPassword) {
   await updatePassword(auth.currentUser, newPassword);
 }
 
+/* =========================================================
+   LOGOUT
+   ========================================================= */
+
 export async function logout() {
   await signOut(auth);
+
   localStorage.removeItem("forsaAccount");
 }

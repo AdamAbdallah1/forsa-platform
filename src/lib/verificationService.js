@@ -7,25 +7,24 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-import { db } from "./firebase";
+import { auth, db } from "./firebase";
 
 export async function createVerificationRequest(data) {
-  const email = (
-    data.requestedByEmail ||
-    data.companyEmail ||
-    data.email ||
-    ""
-  )
-    .trim()
-    .toLowerCase();
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    throw new Error("You must be signed in to request verification.");
+  }
+
+  const email = currentUser.email?.trim().toLowerCase();
 
   if (!email) {
-    throw new Error("Company email is required.");
+    throw new Error("Your account does not have an email address.");
   }
 
   const existingQuery = query(
     collection(db, "verificationRequests"),
-    where("requestedByEmail", "==", email),
+    where("uid", "==", currentUser.uid),
     where("status", "==", "pending")
   );
 
@@ -37,6 +36,7 @@ export async function createVerificationRequest(data) {
 
   const ref = await addDoc(collection(db, "verificationRequests"), {
     ...data,
+    uid: currentUser.uid,
     requestedByEmail: email,
     companyEmail: (data.companyEmail || email).trim().toLowerCase(),
     status: "pending",
@@ -49,8 +49,9 @@ export async function createVerificationRequest(data) {
   return {
     id: ref.id,
     ...data,
+    uid: currentUser.uid,
     requestedByEmail: email,
-    companyEmail: data.companyEmail || email,
+    companyEmail: (data.companyEmail || email).trim().toLowerCase(),
     status: "pending",
   };
 }

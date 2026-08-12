@@ -146,17 +146,11 @@ const getMatchMeta = (post, profile) => {
 
 const updatePostAnalytics = async (postId, field) => {
   try {
-    console.log("TRACKING POST METRIC:", {
-      postId,
-      field,
-    });
+    
 
     await incrementPostMetric(postId, field);
 
-    console.log("POST METRIC UPDATED:", {
-      postId,
-      field,
-    });
+    
   } catch (error) {
     console.error("Post analytics increment failed:", error);
   }
@@ -758,15 +752,7 @@ export default function Explore() {
   ],
 };
 
-// ADD THIS DIRECTLY HERE
-console.log("APPLICATION DEBUG", {
-  accountUid: account?.uid,
-  seekerUid: baseThreadPayload.seeker?.uid,
-  ownerUid: baseThreadPayload.ownerUid,
-  status: baseThreadPayload.status,
-  authUid: auth.currentUser?.uid,
-  emailVerified: auth.currentUser?.emailVerified,
-});
+
 
 try {
   let createdThread;
@@ -781,7 +767,6 @@ try {
         }
       : await createApplicationThread(baseThreadPayload);
 
-    console.log("APPLICATION CREATED SUCCESSFULLY:", createdThread);
   } catch (error) {
     console.error("APPLICATION CREATION FAILED:", error);
     throw error;
@@ -805,7 +790,6 @@ try {
       targetEmail: item.ownerEmail || item.contact || null,
     });
 
-    console.log("NOTIFICATION CREATED SUCCESSFULLY");
   } catch (error) {
     console.error("NOTIFICATION CREATION FAILED:", error);
     throw error;
@@ -834,7 +818,12 @@ try {
       
 
       <div className="mx-auto max-w-[1180px] px-3 pb-36 pt-1 sm:px-6 md:pb-28 lg:pb-20">
-        
+        <HeroBar
+          isHiring={isHiring}
+          isLoggedIn={isLoggedIn}
+          navigate={navigate}
+          stats={stats}
+        />
         <SearchPanel
           search={search}
           setSearch={setSearch}
@@ -849,13 +838,6 @@ try {
           setShowFilters={setShowFilters}
           hasActiveFilters={Boolean(hasActiveFilters)}
           clearFilters={clearFilters}
-        />
-
-        <HeroBar
-          isHiring={isHiring}
-          isLoggedIn={isLoggedIn}
-          navigate={navigate}
-          stats={stats}
         />
         
 
@@ -1052,29 +1034,43 @@ try {
 
 function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
   return (
-    <div className="relative mt-3 overflow-hidden rounded-[30px]  p-4  sm:mt-8 sm:rounded-[34px] sm:p-7">
-      <div className="pointer-events-none absolute -right-24 border border-white/70 bg-white/85 shadow-[0_24px_80px_rgba(109,40,217,0.10)] backdrop-blur-2xl -top-24 h-60 w-60 rounded-full " />
-      <div className="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full bg-[var(--forsa-glow)]/20 blur-3xl" />
+    <div className="relative mt-3 overflow-hidden rounded-[26px] border border-[#e8e2f5] bg-white px-5 py-5 shadow-[0_10px_35px_rgba(76,29,149,0.05)] sm:mt-6 sm:rounded-[30px] sm:px-7 sm:py-6">
+      {/* subtle Forsa accent */}
+      <div className="pointer-events-none absolute -right-16 -top-20 h-40 w-40 rounded-full bg-[#7c3aed]/[0.07] blur-3xl" />
 
-      <div className="relative flex items-start justify-between gap-4 ">
-        <div className="min-w-0">
+      <div className="relative">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
 
-          <h1 className="mt-3 max-w-2xl text-[28px] font-semibold leading-[0.96] tracking-[-0.065em] text-neutral-950 sm:text-5xl">
-            Find work without the noise.
-          </h1>
+            <h1 className="text-[28px] font-semibold leading-none tracking-[-0.055em] text-[#18121f] sm:text-4xl">
+              Find work{" "}
+              <span className="text-[#7c3aed]">without the noise.</span>
+            </h1>
 
-          <p className="mt-3 max-w-xl text-[13px] leading-6 text-neutral-600 sm:text-base sm:leading-7">
-            Jobs, internships, freelance gigs, agency posts, and abroad opportunities.
-          </p>
+            <p className="mt-2 max-w-xl text-xs leading-5 text-[#756b82] sm:text-sm">
+              Jobs, internships, freelance work, and opportunities in Lebanon
+              and abroad.
+            </p>
+          </div>
+
+          {isLoggedIn && !isHiring && (
+            <button
+              type="button"
+              onClick={() => navigate("/profile")}
+              className="hidden shrink-0 rounded-full border border-[#e5def2] bg-white px-4 py-2 text-xs font-semibold text-[#5b21b6] transition hover:border-[#cfc1eb] hover:bg-[#faf8ff] sm:block"
+            >
+              Improve profile
+            </button>
+          )}
         </div>
-      </div>
 
-      <div className="relative mt-5 grid grid-cols-5 gap-1.5 sm:gap-2">
-        <MiniStat label="Jobs" value={stats.total} />
-        <MiniStat label="Urgent" value={stats.urgent} />
-        <MiniStat label="Abroad" value={stats.abroad} />
-        <MiniStat label="Saved" value={stats.saved} />
-        <MiniStat label="Applied" value={stats.applied} />
+        <div className="mt-5 grid grid-cols-5 gap-2">
+          <MiniStat label="Jobs" value={stats.total} />
+          <MiniStat label="Urgent" value={stats.urgent} />
+          <MiniStat label="Abroad" value={stats.abroad} />
+          <MiniStat label="Saved" value={stats.saved} />
+          <MiniStat label="Applied" value={stats.applied} />
+        </div>
       </div>
     </div>
   );
@@ -1082,9 +1078,14 @@ function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
 
 function MiniStat({ label, value }) {
   return (
-    <div className="rounded-[18px] border border-[var(--forsa-border)] bg-white/80 px-2 py-3 text-center shadow-sm backdrop-blur-xl sm:rounded-[22px] sm:p-4">
-      <p className="text-lg font-semibold tracking-[-0.05em] sm:text-2xl">{value}</p>
-      <p className="mt-0.5 truncate text-[10px] font-semibold text-neutral-400 sm:text-xs">{label}</p>
+    <div className="rounded-[18px] border border-[var(--forsa-border)] bg-white/90 px-3 py-3.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:rounded-[22px] sm:p-4">
+      <p className="text-xl font-semibold tracking-[-0.05em] text-neutral-950 sm:text-2xl">
+        {value}
+      </p>
+
+      <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400 sm:text-xs">
+        {label}
+      </p>
     </div>
   );
 }

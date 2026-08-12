@@ -81,16 +81,6 @@ export async function deleteCurrentAccount(account) {
 
   // Delete verification requests.
   await deleteQueryResults("verificationRequests", "uid", uid);
-  await deleteQueryResults(
-    "verificationRequests",
-    "requestedByUid",
-    uid
-  );
-  await deleteQueryResults(
-    "verificationRequests",
-    "requestedByEmail",
-    email
-  );
 
   // Delete Firestore user profile.
   console.log("[ACCOUNT DELETE] Deleting users/" + uid);

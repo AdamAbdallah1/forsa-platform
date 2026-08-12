@@ -93,60 +93,14 @@ async function updateVerificationRequest(id, data) {
   });
 }
 
-async function findUserByEmail(email) {
-  if (!email) return null;
-
-  const usersRef = collection(db, "users");
-  const snap = await getDocs(query(usersRef, where("email", "==", email)));
-
-  if (!snap.empty) {
-    const item = snap.docs[0];
-    return { id: item.id, ...item.data() };
-  }
-
-  const companySnap = await getDocs(
-    query(usersRef, where("companyEmail", "==", email))
-  );
-
-  if (!companySnap.empty) {
-    const item = companySnap.docs[0];
-    return { id: item.id, ...item.data() };
-  }
-
-  return null;
-}
-
 async function verifyCompanyUser(request, verified) {
-  const uid = request.uid || request.requestedByUid;
+  const uid = request.uid;
 
-  const email = (
-    request.companyEmail ||
-    request.requestedByEmail ||
-    request.email ||
-    ""
-  )
-    .trim()
-    .toLowerCase();
-
-  if (uid) {
-    await updateDoc(doc(db, "users", uid), {
-      verified,
-      trusted: verified,
-      verificationStatus: verified ? "approved" : "rejected",
-      verifiedAt: verified ? serverTimestamp() : null,
-      updatedAt: serverTimestamp(),
-    });
-
-    return uid;
+  if (!uid) {
+    throw new Error("Verification request is missing a user UID.");
   }
 
-  const user = await findUserByEmail(email);
-
-  if (!user?.id) {
-    throw new Error(`Company user not found for ${email}`);
-  }
-
-  await updateDoc(doc(db, "users", user.id), {
+  await updateDoc(doc(db, "users", uid), {
     verified,
     trusted: verified,
     verificationStatus: verified ? "approved" : "rejected",
@@ -154,7 +108,7 @@ async function verifyCompanyUser(request, verified) {
     updatedAt: serverTimestamp(),
   });
 
-  return user.id;
+  return uid;
 }
 
 export default function AdminReview() {
