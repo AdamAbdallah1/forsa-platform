@@ -872,6 +872,19 @@ try {
             onOpen={(item) => openDetails(item)}
           />
         )}
+        {recommendedOpportunities.length > 0 && (
+          <RecommendedSection
+            items={recommendedOpportunities}
+            savedJobs={savedJobs}
+            appliedIds={appliedIds}
+            canInteract={canInteract}
+            onSave={toggleSave}
+            onDetails={openDetails}
+            onApply={openApply}
+            onShare={shareOpportunity}
+            navigate={navigate}
+          />
+        )}
 
         {featuredOpportunities.length > 0 && (
           <FeaturedSection
@@ -901,19 +914,7 @@ try {
           />
         )}
 
-        {recommendedOpportunities.length > 0 && (
-          <RecommendedSection
-            items={recommendedOpportunities}
-            savedJobs={savedJobs}
-            appliedIds={appliedIds}
-            canInteract={canInteract}
-            onSave={toggleSave}
-            onDetails={openDetails}
-            onApply={openApply}
-            onShare={shareOpportunity}
-            navigate={navigate}
-          />
-        )}
+        
 
         <div className="mt-5 flex items-center justify-between gap-3">
           <div>
@@ -1052,10 +1053,10 @@ try {
 function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
   return (
     <div className="relative mt-3 overflow-hidden rounded-[30px]  p-4  sm:mt-8 sm:rounded-[34px] sm:p-7">
-      <div className="pointer-events-none absolute -right-24 -top-24 h-60 w-60 rounded-full " />
-      <div className="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full " />
+      <div className="pointer-events-none absolute -right-24 border border-white/70 bg-white/85 shadow-[0_24px_80px_rgba(109,40,217,0.10)] backdrop-blur-2xl -top-24 h-60 w-60 rounded-full " />
+      <div className="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full bg-[var(--forsa-glow)]/20 blur-3xl" />
 
-      <div className="relative flex items-start justify-between gap-4">
+      <div className="relative flex items-start justify-between gap-4 ">
         <div className="min-w-0">
 
           <h1 className="mt-3 max-w-2xl text-[28px] font-semibold leading-[0.96] tracking-[-0.065em] text-neutral-950 sm:text-5xl">
@@ -1118,7 +1119,7 @@ function SearchPanel({
 
   return (
     <>
-      <div className="sticky top-[72px] z-30 -mx-3 mt-3  px-3 py-3 backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[28px]  sm:p-3">
+      <div className="sticky top-[72px] z-30 -mx-3 mt-3 border-y border-[var(--forsa-border)] bg-white/92 px-3 py-3 backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[28px]  sm:p-3">
         <div className="flex items-center gap-2">
           <div className="forsa-focus flex min-w-0 flex-1 items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-3 shadow-sm transition focus-within:border-[var(--forsa-primary)]">
             <FaSearch className="shrink-0 text-sm text-[var(--forsa-primary)]" />
