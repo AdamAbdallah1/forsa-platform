@@ -626,10 +626,19 @@ export default async function handler(
   res
 ) {
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed",
-    });
-  }
+  return res.status(405).json({
+    error: "Method not allowed",
+  });
+}
+
+const authHeader = req.headers.authorization;
+const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
+
+if (!process.env.CRON_SECRET || authHeader !== expectedAuth) {
+  return res.status(401).json({
+    error: "Unauthorized",
+  });
+}
 
   try {
     const body = req.body || {};
