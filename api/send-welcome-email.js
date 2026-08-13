@@ -48,6 +48,7 @@ if (getApps().length === 0) {
 
 const db = getFirestore();
 const adminAuth = getAuth();
+
 /* -------------------------------------------------------------------------- */
 /* Resend                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -86,6 +87,21 @@ function getDisplayName(account) {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Shared email styles                                                        */
+/* -------------------------------------------------------------------------- */
+
+const emailStyles = {
+  background: "#f4f6f8",
+  card: "#ffffff",
+  text: "#101828",
+  muted: "#667085",
+  subtle: "#98a2b3",
+  border: "#eaecf0",
+  accent: "#635bff",
+  accentDark: "#5148d8",
+};
+
+/* -------------------------------------------------------------------------- */
 /* Email templates                                                            */
 /* -------------------------------------------------------------------------- */
 
@@ -96,46 +112,333 @@ function seekerEmail({ name }) {
     subject: "Welcome to Forsa — your next opportunity starts here",
     html: `
 <!doctype html>
-<html>
-<body style="margin:0;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#111827;">
-  <div style="max-width:620px;margin:0 auto;padding:40px 20px;">
-    <div style="background:#ffffff;border-radius:20px;padding:40px;">
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Welcome to Forsa</title>
+</head>
 
-      <div style="font-size:28px;font-weight:800;letter-spacing:-0.04em;">
-        Forsa
-      </div>
+<body
+  style="
+    margin:0;
+    padding:0;
+    background:${emailStyles.background};
+    font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif;
+    color:${emailStyles.text};
+    -webkit-font-smoothing:antialiased;
+  "
+>
+  <table
+    role="presentation"
+    width="100%"
+    cellspacing="0"
+    cellpadding="0"
+    border="0"
+    style="width:100%;background:${emailStyles.background};"
+  >
+    <tr>
+      <td align="center" style="padding:48px 16px;">
 
-      <div style="margin-top:32px;">
-        <h1 style="margin:0;font-size:30px;line-height:1.2;">
-          Welcome to Forsa, ${safeName}.
-        </h1>
-
-        <p style="font-size:16px;line-height:1.7;color:#4b5563;margin-top:20px;">
-          Your account is verified and you're ready to start discovering
-          opportunities that match your skills, interests, and goals.
-        </p>
-
-        <p style="font-size:16px;line-height:1.7;color:#4b5563;">
-          Complete your profile, explore opportunities, and put yourself
-          in front of the right companies.
-        </p>
-
-        <a
-          href="https://forsa.digital/profile"
-          style="display:inline-block;margin-top:16px;padding:14px 22px;background:#111827;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;"
+        <table
+          role="presentation"
+          width="100%"
+          cellspacing="0"
+          cellpadding="0"
+          border="0"
+          style="max-width:620px;width:100%;"
         >
-          Complete your profile
-        </a>
-      </div>
 
-      <div style="margin-top:36px;padding-top:24px;border-top:1px solid #e5e7eb;">
-        <p style="margin:0;font-size:13px;color:#9ca3af;">
-          You're receiving this email because you created a verified Forsa account.
-        </p>
-      </div>
+          <!-- Header -->
+          <tr>
+            <td style="padding:0 8px 24px 8px;">
+              <table
+                role="presentation"
+                width="100%"
+                cellspacing="0"
+                cellpadding="0"
+                border="0"
+              >
+                <tr>
+                  <td align="left">
+                    <div
+                      style="
+                        font-size:26px;
+                        line-height:32px;
+                        font-weight:800;
+                        letter-spacing:-0.06em;
+                        color:${emailStyles.text};
+                      "
+                    >
+                      Forsa<span style="color:${emailStyles.accent};">.</span>
+                    </div>
+                  </td>
 
-    </div>
-  </div>
+                  <td align="right">
+                    <div
+                      style="
+                        display:inline-block;
+                        padding:7px 11px;
+                        border:1px solid ${emailStyles.border};
+                        border-radius:999px;
+                        background:#ffffff;
+                        color:${emailStyles.muted};
+                        font-size:11px;
+                        line-height:16px;
+                        font-weight:600;
+                      "
+                    >
+                      ACCOUNT VERIFIED
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main card -->
+          <tr>
+            <td
+              style="
+                background:${emailStyles.card};
+                border:1px solid ${emailStyles.border};
+                border-radius:24px;
+                overflow:hidden;
+              "
+            >
+
+              <!-- Accent -->
+              <div
+                style="
+                  height:5px;
+                  background:${emailStyles.accent};
+                  line-height:5px;
+                  font-size:0;
+                "
+              >
+                &nbsp;
+              </div>
+
+              <table
+                role="presentation"
+                width="100%"
+                cellspacing="0"
+                cellpadding="0"
+                border="0"
+              >
+                <tr>
+                  <td style="padding:44px 42px 42px 42px;">
+
+                    <!-- Eyebrow -->
+                    <div
+                      style="
+                        font-size:13px;
+                        line-height:20px;
+                        font-weight:700;
+                        color:${emailStyles.accent};
+                        letter-spacing:0.02em;
+                        text-transform:uppercase;
+                      "
+                    >
+                      You're in
+                    </div>
+
+                    <!-- Heading -->
+                    <h1
+                      style="
+                        margin:12px 0 0 0;
+                        font-size:36px;
+                        line-height:43px;
+                        font-weight:800;
+                        letter-spacing:-0.045em;
+                        color:${emailStyles.text};
+                      "
+                    >
+                      Welcome to Forsa,<br>
+                      ${safeName}.
+                    </h1>
+
+                    <!-- Intro -->
+                    <p
+                      style="
+                        margin:20px 0 0 0;
+                        font-size:16px;
+                        line-height:27px;
+                        color:${emailStyles.muted};
+                      "
+                    >
+                      Your account is verified and you're ready to discover
+                      opportunities that match your skills, interests, and goals.
+                    </p>
+
+                    <!-- Feature block -->
+                    <table
+                      role="presentation"
+                      width="100%"
+                      cellspacing="0"
+                      cellpadding="0"
+                      border="0"
+                      style="
+                        margin-top:28px;
+                        background:#f8f9fc;
+                        border:1px solid ${emailStyles.border};
+                        border-radius:16px;
+                      "
+                    >
+                      <tr>
+                        <td style="padding:20px;">
+
+                          <table
+                            role="presentation"
+                            width="100%"
+                            cellspacing="0"
+                            cellpadding="0"
+                            border="0"
+                          >
+                            <tr>
+                              <td width="36" valign="top">
+                                <div
+                                  style="
+                                    width:30px;
+                                    height:30px;
+                                    line-height:30px;
+                                    text-align:center;
+                                    border-radius:10px;
+                                    background:#eeecff;
+                                    color:${emailStyles.accent};
+                                    font-size:15px;
+                                    font-weight:800;
+                                  "
+                                >
+                                  ✓
+                                </div>
+                              </td>
+
+                              <td valign="top" style="padding-left:12px;">
+                                <div
+                                  style="
+                                    font-size:14px;
+                                    line-height:21px;
+                                    font-weight:700;
+                                    color:${emailStyles.text};
+                                  "
+                                >
+                                  Your next step
+                                </div>
+
+                                <div
+                                  style="
+                                    margin-top:4px;
+                                    font-size:14px;
+                                    line-height:22px;
+                                    color:${emailStyles.muted};
+                                  "
+                                >
+                                  Complete your profile so companies can
+                                  understand who you are and what you can offer.
+                                </div>
+                              </td>
+                            </tr>
+                          </table>
+
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- CTA -->
+                    <table
+                      role="presentation"
+                      cellspacing="0"
+                      cellpadding="0"
+                      border="0"
+                      style="margin-top:30px;"
+                    >
+                      <tr>
+                        <td
+                          align="center"
+                          style="
+                            border-radius:12px;
+                            background:${emailStyles.accent};
+                          "
+                        >
+                          <a
+                            href="https://forsa.digital/profile"
+                            style="
+                              display:inline-block;
+                              padding:15px 24px;
+                              border-radius:12px;
+                              color:#ffffff;
+                              font-size:14px;
+                              line-height:20px;
+                              font-weight:700;
+                              text-decoration:none;
+                            "
+                          >
+                            Complete your profile
+                            <span style="padding-left:6px;">→</span>
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Secondary text -->
+                    <p
+                      style="
+                        margin:18px 0 0 0;
+                        font-size:13px;
+                        line-height:21px;
+                        color:${emailStyles.subtle};
+                      "
+                    >
+                      You can always come back to your profile and update
+                      your information later.
+                    </p>
+
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 8px 0 8px;">
+
+              <p
+                style="
+                  margin:0;
+                  font-size:12px;
+                  line-height:20px;
+                  color:${emailStyles.subtle};
+                  text-align:center;
+                "
+              >
+                You're receiving this email because you created a verified
+                Forsa account.
+              </p>
+
+              <p
+                style="
+                  margin:8px 0 0 0;
+                  font-size:12px;
+                  line-height:20px;
+                  color:${emailStyles.subtle};
+                  text-align:center;
+                "
+              >
+                © Forsa
+              </p>
+
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
 `,
@@ -149,45 +452,334 @@ function companyEmail({ name }) {
     subject: "Welcome to Forsa — start finding the right talent",
     html: `
 <!doctype html>
-<html>
-<body style="margin:0;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#111827;">
-  <div style="max-width:620px;margin:0 auto;padding:40px 20px;">
-    <div style="background:#ffffff;border-radius:20px;padding:40px;">
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Welcome to Forsa</title>
+</head>
 
-      <div style="font-size:28px;font-weight:800;letter-spacing:-0.04em;">
-        Forsa
-      </div>
+<body
+  style="
+    margin:0;
+    padding:0;
+    background:${emailStyles.background};
+    font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif;
+    color:${emailStyles.text};
+    -webkit-font-smoothing:antialiased;
+  "
+>
+  <table
+    role="presentation"
+    width="100%"
+    cellspacing="0"
+    cellpadding="0"
+    border="0"
+    style="width:100%;background:${emailStyles.background};"
+  >
+    <tr>
+      <td align="center" style="padding:48px 16px;">
 
-      <div style="margin-top:32px;">
-        <h1 style="margin:0;font-size:30px;line-height:1.2;">
-          Welcome to Forsa, ${safeName}.
-        </h1>
-
-        <p style="font-size:16px;line-height:1.7;color:#4b5563;margin-top:20px;">
-          Your company account is verified and ready to go.
-        </p>
-
-        <p style="font-size:16px;line-height:1.7;color:#4b5563;">
-          You can now discover promising candidates, publish opportunities,
-          and build a stronger hiring pipeline through Forsa.
-        </p>
-
-        <a
-          href="https://forsa.digital"
-          style="display:inline-block;margin-top:16px;padding:14px 22px;background:#111827;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;"
+        <table
+          role="presentation"
+          width="100%"
+          cellspacing="0"
+          cellpadding="0"
+          border="0"
+          style="max-width:620px;width:100%;"
         >
-          Open Forsa
-        </a>
-      </div>
 
-      <div style="margin-top:36px;padding-top:24px;border-top:1px solid #e5e7eb;">
-        <p style="margin:0;font-size:13px;color:#9ca3af;">
-          You're receiving this email because you created a verified Forsa company account.
-        </p>
-      </div>
+          <!-- Header -->
+          <tr>
+            <td style="padding:0 8px 24px 8px;">
+              <table
+                role="presentation"
+                width="100%"
+                cellspacing="0"
+                cellpadding="0"
+                border="0"
+              >
+                <tr>
+                  <td align="left">
+                    <div
+                      style="
+                        font-size:26px;
+                        line-height:32px;
+                        font-weight:800;
+                        letter-spacing:-0.06em;
+                        color:${emailStyles.text};
+                      "
+                    >
+                      Forsa<span style="color:${emailStyles.accent};">.</span>
+                    </div>
+                  </td>
 
-    </div>
-  </div>
+                  <td align="right">
+                    <div
+                      style="
+                        display:inline-block;
+                        padding:7px 11px;
+                        border:1px solid ${emailStyles.border};
+                        border-radius:999px;
+                        background:#ffffff;
+                        color:${emailStyles.muted};
+                        font-size:11px;
+                        line-height:16px;
+                        font-weight:600;
+                      "
+                    >
+                      ACCOUNT VERIFIED
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main card -->
+          <tr>
+            <td
+              style="
+                background:${emailStyles.card};
+                border:1px solid ${emailStyles.border};
+                border-radius:24px;
+                overflow:hidden;
+              "
+            >
+
+              <!-- Accent -->
+              <div
+                style="
+                  height:5px;
+                  background:${emailStyles.accent};
+                  line-height:5px;
+                  font-size:0;
+                "
+              >
+                &nbsp;
+              </div>
+
+              <table
+                role="presentation"
+                width="100%"
+                cellspacing="0"
+                cellpadding="0"
+                border="0"
+              >
+                <tr>
+                  <td style="padding:44px 42px 42px 42px;">
+
+                    <!-- Eyebrow -->
+                    <div
+                      style="
+                        font-size:13px;
+                        line-height:20px;
+                        font-weight:700;
+                        color:${emailStyles.accent};
+                        letter-spacing:0.02em;
+                        text-transform:uppercase;
+                      "
+                    >
+                      Your company is ready
+                    </div>
+
+                    <!-- Heading -->
+                    <h1
+                      style="
+                        margin:12px 0 0 0;
+                        font-size:36px;
+                        line-height:43px;
+                        font-weight:800;
+                        letter-spacing:-0.045em;
+                        color:${emailStyles.text};
+                      "
+                    >
+                      Welcome to Forsa,<br>
+                      ${safeName}.
+                    </h1>
+
+                    <!-- Intro -->
+                    <p
+                      style="
+                        margin:20px 0 0 0;
+                        font-size:16px;
+                        line-height:27px;
+                        color:${emailStyles.muted};
+                      "
+                    >
+                      Your company account is verified and ready to help you
+                      discover promising candidates and build a stronger
+                      hiring pipeline.
+                    </p>
+
+                    <!-- Feature block -->
+                    <table
+                      role="presentation"
+                      width="100%"
+                      cellspacing="0"
+                      cellpadding="0"
+                      border="0"
+                      style="
+                        margin-top:28px;
+                        background:#f8f9fc;
+                        border:1px solid ${emailStyles.border};
+                        border-radius:16px;
+                      "
+                    >
+                      <tr>
+                        <td style="padding:20px;">
+
+                          <table
+                            role="presentation"
+                            width="100%"
+                            cellspacing="0"
+                            cellpadding="0"
+                            border="0"
+                          >
+                            <tr>
+                              <td width="36" valign="top">
+                                <div
+                                  style="
+                                    width:30px;
+                                    height:30px;
+                                    line-height:30px;
+                                    text-align:center;
+                                    border-radius:10px;
+                                    background:#eeecff;
+                                    color:${emailStyles.accent};
+                                    font-size:15px;
+                                    font-weight:800;
+                                  "
+                                >
+                                  ✓
+                                </div>
+                              </td>
+
+                              <td valign="top" style="padding-left:12px;">
+                                <div
+                                  style="
+                                    font-size:14px;
+                                    line-height:21px;
+                                    font-weight:700;
+                                    color:${emailStyles.text};
+                                  "
+                                >
+                                  Start building your pipeline
+                                </div>
+
+                                <div
+                                  style="
+                                    margin-top:4px;
+                                    font-size:14px;
+                                    line-height:22px;
+                                    color:${emailStyles.muted};
+                                  "
+                                >
+                                  Explore talent, publish opportunities, and
+                                  connect with people who match your needs.
+                                </div>
+                              </td>
+                            </tr>
+                          </table>
+
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- CTA -->
+                    <table
+                      role="presentation"
+                      cellspacing="0"
+                      cellpadding="0"
+                      border="0"
+                      style="margin-top:30px;"
+                    >
+                      <tr>
+                        <td
+                          align="center"
+                          style="
+                            border-radius:12px;
+                            background:${emailStyles.accent};
+                          "
+                        >
+                          <a
+                            href="https://forsa.digital"
+                            style="
+                              display:inline-block;
+                              padding:15px 24px;
+                              border-radius:12px;
+                              color:#ffffff;
+                              font-size:14px;
+                              line-height:20px;
+                              font-weight:700;
+                              text-decoration:none;
+                            "
+                          >
+                            Open Forsa
+                            <span style="padding-left:6px;">→</span>
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Secondary text -->
+                    <p
+                      style="
+                        margin:18px 0 0 0;
+                        font-size:13px;
+                        line-height:21px;
+                        color:${emailStyles.subtle};
+                      "
+                    >
+                      Your company profile can be updated at any time as your
+                      hiring needs evolve.
+                    </p>
+
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 8px 0 8px;">
+
+              <p
+                style="
+                  margin:0;
+                  font-size:12px;
+                  line-height:20px;
+                  color:${emailStyles.subtle};
+                  text-align:center;
+                "
+              >
+                You're receiving this email because you created a verified
+                Forsa company account.
+              </p>
+
+              <p
+                style="
+                  margin:8px 0 0 0;
+                  font-size:12px;
+                  line-height:20px;
+                  color:${emailStyles.subtle};
+                  text-align:center;
+                "
+              >
+                © Forsa
+              </p>
+
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
 `,
@@ -208,31 +800,31 @@ export default async function handler(req, res) {
   try {
     const authHeader = req.headers.authorization;
 
-if (!authHeader?.startsWith("Bearer ")) {
-  return res.status(401).json({
-    error: "Unauthorized.",
-  });
-}
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({
+        error: "Unauthorized.",
+      });
+    }
 
-const idToken = authHeader.slice("Bearer ".length);
+    const idToken = authHeader.slice("Bearer ".length);
 
-let decodedToken;
+    let decodedToken;
 
-try {
-  decodedToken = await adminAuth.verifyIdToken(idToken);
-} catch {
-  return res.status(401).json({
-    error: "Invalid authentication token.",
-  });
-}
+    try {
+      decodedToken = await adminAuth.verifyIdToken(idToken);
+    } catch {
+      return res.status(401).json({
+        error: "Invalid authentication token.",
+      });
+    }
 
-const uid = decodedToken.uid;
+    const uid = decodedToken.uid;
 
-if (decodedToken.email_verified !== true) {
-  return res.status(403).json({
-    error: "Email is not verified.",
-  });
-}
+    if (decodedToken.email_verified !== true) {
+      return res.status(403).json({
+        error: "Email is not verified.",
+      });
+    }
 
     const userRef = db.collection("users").doc(uid);
     const snap = await userRef.get();
