@@ -668,9 +668,9 @@ export default async function handler(
      * The 7-day cooldown is respected.
      */
     const users =
-      await findIncompleteProfiles({
-        respectCooldown: true,
-      });
+  await findIncompleteProfiles({
+    respectCooldown: !testEmail,
+  });
 
     /* ---------------------------------------------------------------------- */
     /* Single test email                                                      */
