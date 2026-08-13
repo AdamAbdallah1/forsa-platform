@@ -1238,8 +1238,8 @@ function FormStep({
             ? "Please wait..."
             : isSignup
             ? isHiring
-              ? "Continue to post"
-              : "Continue to profile"
+              ? "Verify your account"
+              : "Verify your account"
             : "Log in"}
 
           {!loading && (

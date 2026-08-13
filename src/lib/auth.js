@@ -21,8 +21,8 @@ import {
 import { auth, db } from "./firebase";
 
 /* =========================================================
-   LOCAL SESSION HELPERS
-   ========================================================= */
+LOCAL SESSION HELPERS
+========================================================= */
 
 export function safeJson(key, fallback) {
   try {
@@ -47,8 +47,8 @@ export function setSession(account) {
 }
 
 /* =========================================================
-   EMAIL VERIFICATION HELPERS
-   ========================================================= */
+EMAIL VERIFICATION HELPERS
+========================================================= */
 
 /**
  * Reload Firebase Auth state.
@@ -83,13 +83,14 @@ async function refreshAuthToken(user) {
 }
 
 /* =========================================================
-   REGISTRATION
-   ========================================================= */
+REGISTRATION
+========================================================= */
 
 /**
  * Register a new email/password user.
  *
  * Flow:
+ *
  * 1. Firebase creates the Auth account.
  * 2. Firebase sends the verification email.
  * 3. Firestore creates the user profile.
@@ -145,8 +146,8 @@ export async function registerUser(accountData) {
 }
 
 /* =========================================================
-   LOGIN
-   ========================================================= */
+LOGIN
+========================================================= */
 
 /**
  * Login with email/password.
@@ -196,15 +197,15 @@ export async function loginUser(email, password) {
 }
 
 /* =========================================================
-   CHECK EMAIL VERIFICATION
-   ========================================================= */
+CHECK EMAIL VERIFICATION
+========================================================= */
 
 /**
  * Check the latest Firebase Auth verification state.
  *
  * Returns:
- *   true  -> email is verified
- *   false -> email is not verified / no user
+ * true  -> email is verified
+ * false -> email is not verified / no user
  */
 export async function checkEmailVerification() {
   if (!auth.currentUser) {
@@ -217,8 +218,8 @@ export async function checkEmailVerification() {
 }
 
 /* =========================================================
-   SYNC EMAIL VERIFICATION
-   ========================================================= */
+SYNC EMAIL VERIFICATION
+========================================================= */
 
 /**
  * Sync Firebase Auth email verification state to Firestore.
@@ -273,12 +274,45 @@ export async function syncEmailVerification() {
     updatedAt: serverTimestamp(),
   });
 
+  /*
+   * Send the personalized welcome email.
+   *
+   * The API verifies the Firebase ID token server-side
+   * and prevents duplicate welcome emails.
+   */
+  try {
+    const idToken = await user.getIdToken();
+
+    const response = await fetch("/api/send-welcome-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => null);
+
+      console.error(
+        "Welcome email request failed:",
+        errorBody || response.status
+      );
+    }
+  } catch (error) {
+    /*
+     * Welcome email failure should not prevent the user
+     * from completing verification and entering Forsa.
+     */
+    console.error("Welcome email request failed:", error);
+  }
+
   return true;
 }
 
 /* =========================================================
-   RESEND VERIFICATION EMAIL
-   ========================================================= */
+RESEND VERIFICATION EMAIL
+========================================================= */
 
 /**
  * Resend Firebase's verification email.
@@ -306,8 +340,8 @@ export async function resendVerificationEmail() {
 }
 
 /* =========================================================
-   COMPLETE EMAIL VERIFICATION
-   ========================================================= */
+COMPLETE EMAIL VERIFICATION
+========================================================= */
 
 /**
  * Complete the verification process.
@@ -317,12 +351,14 @@ export async function resendVerificationEmail() {
  * "I've verified my email"
  *
  * Flow:
+ *
  * 1. Reload Firebase Auth.
  * 2. Confirm emailVerified.
  * 3. Refresh Auth token.
  * 4. Read Firestore profile.
  * 5. Update Firestore emailVerified.
- * 6. Create the local application session.
+ * 6. Send personalized welcome email.
+ * 7. Create the local application session.
  */
 export async function completeEmailVerification() {
   const user = await reloadCurrentUser();
@@ -362,6 +398,42 @@ export async function completeEmailVerification() {
   });
 
   /*
+   * Send the personalized welcome email.
+   *
+   * The API verifies the Firebase ID token server-side
+   * and prevents duplicate welcome emails.
+   *
+   * Failure to send the welcome email must NOT prevent
+   * the user from completing verification.
+   */
+  try {
+    const idToken = await user.getIdToken();
+
+    const response = await fetch("/api/send-welcome-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => null);
+
+      console.error(
+        "Welcome email request failed:",
+        errorBody || response.status
+      );
+    }
+  } catch (error) {
+    /*
+     * Welcome email failure should not prevent the user
+     * from completing verification and entering Forsa.
+     */
+    console.error("Welcome email request failed:", error);
+  }
+
+  /*
    * Build the application session from the latest Firestore data.
    */
   const account = {
@@ -376,8 +448,8 @@ export async function completeEmailVerification() {
 }
 
 /* =========================================================
-   USER PROFILE
-   ========================================================= */
+USER PROFILE
+========================================================= */
 
 /**
  * Update the current user's Firestore profile.
@@ -401,8 +473,8 @@ export async function updateUserAccount(uid, data) {
 }
 
 /* =========================================================
-   GOOGLE LOGIN
-   ========================================================= */
+GOOGLE LOGIN
+========================================================= */
 
 export async function loginWithGoogle() {
   const provider = new GoogleAuthProvider();
@@ -474,8 +546,8 @@ export async function loginWithGoogle() {
 }
 
 /* =========================================================
-   PASSWORD RESET
-   ========================================================= */
+PASSWORD RESET
+========================================================= */
 
 export async function resetPassword(email) {
   await sendPasswordResetEmail(
@@ -485,8 +557,8 @@ export async function resetPassword(email) {
 }
 
 /* =========================================================
-   CHANGE EMAIL
-   ========================================================= */
+CHANGE EMAIL
+========================================================= */
 
 /**
  * Change the current user's email.
@@ -521,8 +593,8 @@ export async function changeCurrentUserEmail(newEmail) {
 }
 
 /* =========================================================
-   CHANGE PASSWORD
-   ========================================================= */
+CHANGE PASSWORD
+========================================================= */
 
 export async function changeCurrentUserPassword(newPassword) {
   if (!auth.currentUser) {
@@ -533,8 +605,8 @@ export async function changeCurrentUserPassword(newPassword) {
 }
 
 /* =========================================================
-   LOGOUT
-   ========================================================= */
+LOGOUT
+========================================================= */
 
 export async function logout() {
   await signOut(auth);
