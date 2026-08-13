@@ -297,10 +297,14 @@ export default function Profile() {
 
   const savedAccount = safeJson("forsaAccount", null);
   const savedProfile = safeJson("forsaProfile", {
-    skills: [],
-    lookingFor: [],
-    cv: null,
-  });
+  skills: [],
+  lookingFor: [],
+  cv: null,
+});
+
+if (!Array.isArray(savedProfile.skills)) {
+  savedProfile.skills = [];
+}
 
   const [account, setAccount] = useState(savedAccount);
   const [profile, setProfile] = useState(savedProfile);
@@ -627,6 +631,21 @@ const handleDeleteAccount = async () => {
   };
 
 const saveChanges = async () => {
+  const cleanSkills = Array.isArray(profile.skills)
+    ? profile.skills
+        .map((skill) => String(skill).trim())
+        .filter(Boolean)
+    : [];
+
+  const cleanProfile = {
+    ...profile,
+    skills: cleanSkills,
+    lookingFor: Array.isArray(profile.lookingFor)
+      ? profile.lookingFor
+      : [],
+    cv: profile.cv || null,
+  };
+
   const nextAccount = {
     ...account,
     bio: account.bio || "",
@@ -636,38 +655,50 @@ const saveChanges = async () => {
   };
 
   const publicProfileData = {
-  name: nextAccount.name || "",
-  bio: nextAccount.bio || "",
-  experience: nextAccount.experience || "",
-  education: nextAccount.education || "",
-  portfolioLinks: nextAccount.portfolioLinks || "",
+    name: nextAccount.name || "",
+    bio: nextAccount.bio || "",
+    experience: nextAccount.experience || "",
+    education: nextAccount.education || "",
+    portfolioLinks: nextAccount.portfolioLinks || "",
 
-  desiredRole: nextAccount.desiredRole || "",
-  opportunityType: nextAccount.opportunityType || "",
-  preferredLocation: nextAccount.preferredLocation || "",
-  workPreference: nextAccount.workPreference || "",
+    desiredRole: nextAccount.desiredRole || "",
+    opportunityType: nextAccount.opportunityType || "",
+    preferredLocation: nextAccount.preferredLocation || "",
+    workPreference: nextAccount.workPreference || "",
 
-  skills: profile.skills || [],
-  lookingFor: profile.lookingFor || [],
-  cv: profile.cv || null,
+    skills: cleanProfile.skills,
+    lookingFor: cleanProfile.lookingFor,
+    cv: cleanProfile.cv,
 
-  publicSkills: profile.skills || [],
-  publicLookingFor: profile.lookingFor || [],
-  publicCv: profile.cv || null,
+    publicSkills: cleanProfile.skills,
+    publicLookingFor: cleanProfile.lookingFor,
+    publicCv: cleanProfile.cv,
 
-  updatedAt: new Date(),
-};
+    updatedAt: new Date(),
+  };
 
   try {
     if (account?.uid) {
-      await setDoc(doc(db, "users", account.uid), publicProfileData, {
-        merge: true,
-      });
+      await setDoc(
+        doc(db, "users", account.uid),
+        publicProfileData,
+        { merge: true }
+      );
     }
 
+    setProfile(cleanProfile);
     setAccount(nextAccount);
-    localStorage.setItem("forsaAccount", JSON.stringify(nextAccount));
-    localStorage.setItem("forsaProfile", JSON.stringify(profile));
+
+    localStorage.setItem(
+      "forsaAccount",
+      JSON.stringify(nextAccount)
+    );
+
+    localStorage.setItem(
+      "forsaProfile",
+      JSON.stringify(cleanProfile)
+    );
+
     syncUserRecord(nextAccount);
 
     showToast("Profile updated");
@@ -1055,11 +1086,12 @@ const saveChanges = async () => {
 
           {isEditing ? (
             <ProfileEdit
-              account={account}
-              profile={profile}
-              isHiring={isHiring}
-              updateAccount={updateAccount}
-              toggleProfileItem={toggleProfileItem}
+  account={account}
+  profile={profile}
+  setProfile={setProfile}
+  isHiring={isHiring}
+  updateAccount={updateAccount}
+  toggleProfileItem={toggleProfileItem}
               handleCvLinkSave={handleCvLinkSave}
               cvLinkInput={cvLinkInput}
               experiences={experiences}
@@ -2438,6 +2470,7 @@ function ApplicationsSentBox({ applications }) {
 function ProfileEdit({
   account,
   profile,
+  setProfile,
   isHiring,
   updateAccount,
   toggleProfileItem,
@@ -3059,23 +3092,128 @@ function ProfileEdit({
 </div>
 
   <div className="mt-6 rounded-[24px] border border-neutral-100 bg-white p-4 sm:rounded-[26px] sm:p-5">
-    <div>
-      <h3 className="text-sm font-bold text-neutral-950">
-        Skills
-      </h3>
+  <div>
+    <h3 className="text-sm font-bold text-neutral-950">
+      Skills
+    </h3>
 
-      <p className="mt-1 text-xs leading-5 text-neutral-500">
-        Add the skills and technologies you want companies to discover.
-      </p>
+    <p className="mt-1 text-xs leading-5 text-neutral-500">
+      Add the skills and technologies you want companies to discover.
+    </p>
+  </div>
+
+  <div className="mt-4">
+    {/* Existing skills */}
+    <div className="flex flex-wrap gap-2">
+      {(profile.skills || []).map((skill) => (
+        <span
+          key={skill}
+          className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-[var(--forsa-bg)] px-3 py-2 text-sm font-medium text-neutral-800"
+        >
+          {skill}
+
+          <button
+            type="button"
+            onClick={() => {
+              setProfile((prev) => ({
+                ...prev,
+                skills: (prev.skills || []).filter(
+                  (item) => item !== skill
+                ),
+              }));
+            }}
+            className="text-neutral-400 transition hover:text-red-500"
+            aria-label={`Remove ${skill}`}
+          >
+            ×
+          </button>
+        </span>
+      ))}
     </div>
 
-    <Field
-      label="Skills"
-      value={account.skills || ""}
-      onChange={(value) => updateAccount("skills", value)}
-      placeholder="e.g. React, JavaScript, Figma, Git"
-    />
+    {/* Add skill */}
+    <div className="mt-4 flex gap-2">
+      <input
+        type="text"
+        id="profile-skill-input"
+        placeholder="e.g. React"
+        className="min-w-0 flex-1 rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--forsa-green)]"
+        onKeyDown={(e) => {
+          if (e.key !== "Enter") return;
+
+          e.preventDefault();
+
+          const value = e.currentTarget.value.trim();
+
+          if (!value) return;
+
+          setProfile((prev) => {
+            const currentSkills = prev.skills || [];
+
+            const alreadyExists = currentSkills.some(
+              (skill) =>
+                skill.toLowerCase() === value.toLowerCase()
+            );
+
+            if (alreadyExists) {
+              return prev;
+            }
+
+            return {
+              ...prev,
+              skills: [...currentSkills, value],
+            };
+          });
+
+          e.currentTarget.value = "";
+        }}
+      />
+
+      <button
+        type="button"
+        onClick={() => {
+          const input = document.getElementById(
+            "profile-skill-input"
+          );
+
+          const value = input?.value.trim();
+
+          if (!value) return;
+
+          setProfile((prev) => {
+            const currentSkills = prev.skills || [];
+
+            const alreadyExists = currentSkills.some(
+              (skill) =>
+                skill.toLowerCase() === value.toLowerCase()
+            );
+
+            if (alreadyExists) {
+              return prev;
+            }
+
+            return {
+              ...prev,
+              skills: [...currentSkills, value],
+            };
+          });
+
+          if (input) {
+            input.value = "";
+            input.focus();
+          }
+        }}
+        className="shrink-0 rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-neutral-500"
+      >
+        Add
+      </button>
+    </div>
+
+    <p className="mt-2 text-xs text-neutral-400">
+      Press Enter or click Add to add each skill.
+    </p>
   </div>
+</div>
 
   <div className="mt-6 rounded-[24px] border border-neutral-100 bg-white p-4 sm:rounded-[26px] sm:p-5">
     <div>
