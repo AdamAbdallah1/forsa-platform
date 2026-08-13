@@ -19,22 +19,44 @@ const PROFILE_URL = "https://forsa.digital/profile";
 /* -------------------------------------------------------------------------- */
 
 if (getApps().length === 0) {
-  const serviceAccountPath =
-    process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+  let serviceAccount;
 
-  if (!serviceAccountPath) {
-    throw new Error(
-      "Missing FIREBASE_SERVICE_ACCOUNT_PATH in .env.local"
+  // Production / Vercel
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    try {
+      serviceAccount = JSON.parse(
+        process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+      );
+    } catch (error) {
+      throw new Error(
+        "FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON."
+      );
+    }
+  }
+
+  // Local development
+  else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+    serviceAccount = JSON.parse(
+      readFileSync(
+        process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
+        "utf8"
+      )
     );
   }
 
-  const serviceAccount = JSON.parse(
-    readFileSync(serviceAccountPath, "utf8")
-  );
+  else {
+    throw new Error(
+      "Missing Firebase service account configuration. " +
+      "Set FIREBASE_SERVICE_ACCOUNT_JSON for Vercel " +
+      "or FIREBASE_SERVICE_ACCOUNT_PATH for local development."
+    );
+  }
 
   initializeApp({
     credential: cert(serviceAccount),
-    projectId: process.env.FIREBASE_PROJECT_ID,
+    projectId:
+      process.env.FIREBASE_PROJECT_ID ||
+      serviceAccount.project_id,
   });
 }
 
