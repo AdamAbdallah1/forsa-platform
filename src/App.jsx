@@ -17,6 +17,7 @@ import Companies from "./pages/Companies";
 import PostOpportunity from "./pages/PostOpportunity";
 import Dashboard from "./pages/Dashboard";
 import AdminOutreach from "./pages/AdminOutreach";
+import AdminEmail from "./pages/AdminEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import Text from "./pages/Text";
 import Notifications from "./pages/Notifications";
@@ -109,6 +110,7 @@ export default function App() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/text" element={<Text />} />
           <Route path="/admin/outreach" element={<AdminOutreach />} />
+          <Route path="/admin/email" element={<AdminEmail />} />
           <Route path="/applicants" element={<HiringRoute><Applicants /></HiringRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/company/:email" element={<CompanyProfile />} />
