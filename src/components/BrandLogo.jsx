@@ -10,7 +10,7 @@ export default function BrandLogo({ to = "/" }) {
       <img
         src="/forsa-logo.svg"
         alt="Forsa"
-        className="h-8 w-auto transition duration-300 group-hover:opacity-80 sm:h-7"
+        className="h-6 w-auto transition duration-300 group-hover:opacity-80 sm:h-7"
       />
     </Link>
   );
