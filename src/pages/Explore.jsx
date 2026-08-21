@@ -216,10 +216,10 @@ export default function Explore() {
   const [selectedOpportunity, setSelectedOpportunity] = useState(null);
   const [applyOpportunity, setApplyOpportunity] = useState(null);
   const [authModal, setAuthModal] = useState(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [activeType, setActiveType] = useState("All");
   const [sortBy, setSortBy] = useState("Best match");
-  const [locationFilter, setLocationFilter] = useState("All");
+  const [locationFilter, setLocationFilter] = useState(() => searchParams.get("location") || "All");
   const [showFilters, setShowFilters] = useState(false);
   const [savedJobs, setSavedJobs] = useState(safeJson("forsaSavedJobs", []));
   const [savedLoading, setSavedLoading] = useState(false);
