@@ -6,12 +6,16 @@ import {
   FaSearch,
   FaMapMarkerAlt,
   FaChevronDown,
+  FaBuilding,
+  FaClock,
+  FaLaptopCode,
+  FaCode,
+  FaGlobe,
 } from "react-icons/fa";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 import ctaHero from "../assets/cta-hero.lottie";
 import SEO from "../components/SEO";
-import FoldText from "../components/FoldText";
 import WhyForsa from "../components/WhyForsa";
 import HomeNavbar from "../components/HomeNavbar";
 import TalentCompanySection from "../components/TalentCompanySection";
@@ -19,13 +23,14 @@ import Footer from "../components/Footer";
 
 export default function Home() {
   const navigate = useNavigate();
-  const goToLogin = () => {
-  navigate("/auth?mode=login");
-};
 
-const goToSignup = () => {
-  navigate("/auth?mode=signup");
-};
+  const goToLogin = () => {
+    navigate("/auth?mode=login");
+  };
+
+  const goToSignup = () => {
+    navigate("/auth?mode=signup");
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
@@ -34,7 +39,6 @@ const goToSignup = () => {
     e.preventDefault();
 
     const params = new URLSearchParams();
-
     const query = searchQuery.trim();
     const selectedLocation = location.trim();
 
@@ -47,7 +51,6 @@ const goToSignup = () => {
     }
 
     const queryString = params.toString();
-
     navigate(queryString ? `/explore?${queryString}` : "/explore");
   };
 
@@ -56,200 +59,248 @@ const goToSignup = () => {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white text-neutral-900 selection:bg-[var(--forsa-primary)] selection:text-white">
+    <div className="min-h-screen overflow-x-hidden bg-white text-[#111113] selection:bg-[#5B3DF5] selection:text-white font-['Inter',sans-serif]">
       <SEO />
-
       <HomeNavbar />
 
       <main className="relative">
-        <section className="relative flex min-h-[calc(100svh-64px)] flex-col items-center overflow-hidden px-4 pb-8 pt-4 sm:min-h-[calc(100svh-72px)] sm:px-6 sm:pb-10 sm:pt-6 lg:px-10">
+        <section className="relative overflow-hidden pt-6 pb-12 sm:pt-10 sm:pb-16 lg:pt-12 lg:pb-20 bg-white">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 top-[28%] -z-0 h-[300px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-60 sm:top-1/3 sm:h-[500px] sm:w-[700px] sm:opacity-70"
+            className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[350px] opacity-40"
             style={{
               background:
-                "radial-gradient(circle, color-mix(in srgb, var(--forsa-primary) 10%, transparent), transparent 70%)",
+                "radial-gradient(50% 50% at 50% 0%, rgba(91, 61, 245, 0.08) 0%, rgba(255, 255, 255, 0) 100%)",
             }}
           />
 
-          <div className="relative z-10 flex w-full max-w-5xl flex-1 flex-col items-center justify-center py-5 text-center sm:py-8">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="inline-flex max-w-full items-center justify-center rounded-full border border-neutral-200/80 bg-neutral-50 px-3 py-1.5 text-[10px] font-semibold text-neutral-600 sm:text-[11px]"
-            >
-              <span>The Early-Career & Opportunity Ecosystem</span>
-            </motion.div>
+          <div className="relative z-10 mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-3xl text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="inline-flex items-center gap-2 rounded-full border border-[#E8E8EC] bg-[#F8F8FA] px-3 py-0.5 text-[11px] font-semibold tracking-wide text-[#6B6B73] uppercase"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-[#5B3DF5]" />
+                The Early-Career Opportunity Platform
+              </motion.div>
 
-            <motion.h1
+              <motion.h1
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.04 }}
+                className="mt-3 text-2xl font-bold tracking-tight text-[#111113] sm:text-4xl lg:text-5xl font-['Sora',sans-serif] leading-[1.1]"
+              >
+                Find where your next{" "}
+                <span className="text-[#5B3DF5]">opportunity</span> starts.
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.08 }}
+                className="mt-2.5 text-xs sm:text-sm lg:text-base leading-normal text-[#6B6B73] max-w-2xl mx-auto font-normal"
+              >
+                Jobs, internships, freelance work, and early-career opportunities across Lebanon in one structured ecosystem.
+              </motion.p>
+
+              <motion.form
+                onSubmit={handleSearch}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.12 }}
+                className="mt-5 rounded-xl border border-[#E8E8EC] bg-white p-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-all duration-200 focus-within:border-[#5B3DF5]/40 focus-within:shadow-[0_4px_20px_rgba(91,61,245,0.08)]"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center">
+                  <div className="flex flex-1 items-center gap-2.5 px-3 py-2 sm:py-1">
+                    <FaSearch className="text-xs text-[#6B6B73] shrink-0" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Role, skill, or keywords..."
+                      aria-label="Search jobs, keywords, or skills"
+                      className="w-full bg-transparent text-xs font-medium text-[#111113] placeholder-[#6B6B73] outline-none"
+                    />
+                  </div>
+
+                  <div className="hidden h-6 w-px bg-[#E8E8EC] sm:block" />
+                  <div className="h-px w-full bg-[#E8E8EC] sm:hidden" />
+
+                  <div className="flex flex-1 items-center gap-2.5 px-3 py-2 sm:py-1">
+                    <FaMapMarkerAlt className="text-xs text-[#6B6B73] shrink-0" />
+                    <div className="relative w-full">
+                      <select
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        aria-label="Select location"
+                        className="w-full cursor-pointer appearance-none bg-transparent pr-5 text-xs font-medium text-[#111113] outline-none"
+                      >
+                        <option value="">All Locations</option>
+                        <option value="Beirut">Beirut</option>
+                        <option value="Mount Lebanon">Mount Lebanon</option>
+                        <option value="Tripoli">Tripoli</option>
+                        <option value="Sidon">Sidon</option>
+                        <option value="Zahle">Zahle</option>
+                        <option value="Remote">Remote</option>
+                      </select>
+                      <FaChevronDown className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[10px] text-[#6B6B73]" />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="mt-1.5 sm:mt-0 flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#5B3DF5] px-5 py-2.5 text-xs font-semibold text-white transition-all duration-150 hover:bg-[#4930D4] active:scale-[0.99]"
+                  >
+                    <span>Search</span>
+                    <FaArrowRight className="text-[10px]" />
+                  </button>
+                </div>
+              </motion.form>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.35, delay: 0.16 }}
+                className="mt-3 flex flex-wrap items-center justify-center gap-1.5 text-[11px]"
+              >
+                <span className="text-[#6B6B73] font-medium">Quick search:</span>
+                {[
+                  { label: "Jobs", query: "Full-time" },
+                  { label: "Internships", query: "Internship" },
+                  { label: "Freelance", query: "Freelance" },
+                  { label: "Projects", query: "Project" },
+                  { label: "Remote", query: "Remote" },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => handleQuickTag(item.query)}
+                    className="rounded-md border border-[#E8E8EC] bg-[#F8F8FA] px-2 py-0.5 text-[11px] font-medium text-[#111113] transition-colors hover:border-neutral-300 hover:bg-neutral-100"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.18 }}
+                className="mt-4 flex items-center justify-center gap-2.5 sm:hidden"
+              >
+                <button
+                  type="button"
+                  onClick={goToLogin}
+                  className="flex-1 rounded-lg border border-[#E8E8EC] bg-white py-2 text-xs font-semibold text-[#111113]"
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={goToSignup}
+                  className="flex-1 rounded-lg bg-[#5B3DF5] py-2 text-xs font-semibold text-white"
+                >
+                  Get Started
+                </button>
+              </motion.div>
+            </div>
+
+            <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.55,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              className="mx-auto mt-5 max-w-4xl text-[2rem] font-bold leading-[1.04] tracking-[-0.055em] text-neutral-950 sm:mt-6 sm:text-5xl sm:leading-[0.98] lg:text-[4.25rem]"
+              transition={{ duration: 0.45, delay: 0.2 }}
+              className="mt-6 sm:mt-8 lg:mt-10"
             >
-              <span className="block">Find the opportunity</span>
+              <div className="relative mx-auto max-w-4xl rounded-xl  bg-[#F8F8FA] p-2.5 sm:p-3 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                <div className="flex items-center justify-between  pb-2 px-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-neutral-300" />
+                    <span className="h-2 w-2 rounded-full bg-neutral-300" />
+                    <span className="h-2 w-2 rounded-full bg-neutral-300" />
+                    <span className="ml-1.5 text-[11px] font-medium text-[#6B6B73]">
+                      Forsa Live Feed
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-[#5B3DF5] bg-[#5B3DF5]/10 px-2 py-0.5 rounded">
+                    Verified Opportunities
+                  </span>
+                </div>
 
-              <span className="mt-1 block">
-                <FoldText
-                  text="that fits you."
-                  splitBy="word"
-                  hinge="top"
-                  trigger="mount"
-                  duration={0.55}
-                  stagger={0.07}
-                  ease="power3.out"
-                  perspective={900}
-                  creaseShading={0.12}
-                  fontSize="inherit"
-                  fontWeight={700}
-                  color="var(--forsa-primary)"
-                  className="inline-block"
-                />
-              </span>
-            </motion.h1>
+                <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
+                  <div className="rounded-lg border border-[#E8E8EC] bg-white p-3 shadow-xs">
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#E8E8EC] bg-[#F8F8FA] text-[#5B3DF5]">
+                          <FaCode className="text-xs" />
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-semibold text-[#111113]">
+                            Frontend Developer
+                          </h3>
+                          <p className="text-[11px] text-[#6B6B73] flex items-center gap-1 mt-0.5">
+                            <FaBuilding className="text-[9px]" /> Tech Corp · Beirut
+                          </p>
+                        </div>
+                      </div>
+                      <span className="rounded bg-[#F8F8FA] px-1.5 py-0.5 text-[10px] font-medium text-[#111113]">
+                        Full-time
+                      </span>
+                    </div>
+                    <div className="mt-2.5 flex items-center justify-between border-t border-[#E8E8EC] pt-2 text-[11px] text-[#6B6B73]">
+                      <div className="flex gap-1">
+                        <span className="rounded border border-[#E8E8EC] bg-[#F8F8FA] px-1.5 py-0.5 text-[10px]">
+                          React
+                        </span>
+                        <span className="rounded border border-[#E8E8EC] bg-[#F8F8FA] px-1.5 py-0.5 text-[10px]">
+                          TypeScript
+                        </span>
+                      </div>
+                      <span className="flex items-center gap-1 text-[10px]">
+                        <FaClock className="text-[9px]" /> Posted 2h ago
+                      </span>
+                    </div>
+                  </div>
 
-            <motion.p
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.45,
-                delay: 0.12,
-              }}
-              className="mx-auto mt-4 max-w-[34rem] px-3 text-sm leading-6 text-neutral-500 sm:mt-6 sm:px-0 sm:text-base sm:leading-7"
-            >
-              Discover jobs, internships, projects, and early-career
-              opportunities that match where you're going.
-            </motion.p>
-
-            <motion.form
-              onSubmit={handleSearch}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.45,
-                delay: 0.19,
-              }}
-              className="mt-6 flex w-full max-w-3xl flex-col gap-1.5 rounded-2xl border border-neutral-200/90 bg-white p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-shadow duration-300 focus-within:shadow-[0_12px_40px_rgb(82,39,255,0.12)] sm:mt-8 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:p-2"
-            >
-              <div className="flex min-w-0 flex-1 items-center gap-3 px-3.5 py-2.5 sm:px-4 sm:py-0">
-                <FaSearch className="shrink-0 text-sm text-neutral-400" />
-
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Job title, keyword, or skill..."
-                  aria-label="Search jobs, keywords, or skills"
-                  className="w-full min-w-0 bg-transparent text-sm font-medium text-neutral-900 outline-none placeholder:text-neutral-400"
-                />
-              </div>
-
-              <div className="hidden h-6 w-px bg-neutral-200 sm:block" />
-
-              <div className="relative flex min-w-0 flex-1 items-center gap-2.5 px-3.5 py-2.5 sm:px-4 sm:py-0">
-                <FaMapMarkerAlt className="shrink-0 text-sm text-neutral-400" />
-
-                <div className="relative flex min-w-0 w-full items-center">
-                  <select
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    aria-label="Select location"
-                    className="z-10 w-full cursor-pointer appearance-none truncate bg-transparent pr-7 text-sm font-semibold text-neutral-800 outline-none"
-                  >
-                    <option value="">All Locations</option>
-                    <option value="Beirut">Beirut</option>
-                    <option value="Mount Lebanon">Mount Lebanon</option>
-                    <option value="Tripoli">Tripoli</option>
-                    <option value="Sidon">Sidon</option>
-                    <option value="Zahle">Zahle</option>
-                    <option value="Remote">Remote</option>
-                  </select>
-
-                  <FaChevronDown className="pointer-events-none absolute right-1 text-[10px] text-neutral-400" />
+                  <div className="rounded-lg border border-[#E8E8EC] bg-white p-3 shadow-xs">
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#E8E8EC] bg-[#F8F8FA] text-[#5B3DF5]">
+                          <FaLaptopCode className="text-xs" />
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-semibold text-[#111113]">
+                            Marketing Intern
+                          </h3>
+                          <p className="text-[11px] text-[#6B6B73] flex items-center gap-1 mt-0.5">
+                            <FaGlobe className="text-[9px]" /> Growth Studio · Remote
+                          </p>
+                        </div>
+                      </div>
+                      <span className="rounded bg-[#5B3DF5]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#5B3DF5]">
+                        Internship
+                      </span>
+                    </div>
+                    <div className="mt-2.5 flex items-center justify-between border-t border-[#E8E8EC] pt-2 text-[11px] text-[#6B6B73]">
+                      <div className="flex gap-1">
+                        <span className="rounded border border-[#E8E8EC] bg-[#F8F8FA] px-1.5 py-0.5 text-[10px]">
+                          SEO
+                        </span>
+                        <span className="rounded border border-[#E8E8EC] bg-[#F8F8FA] px-1.5 py-0.5 text-[10px]">
+                          Content
+                        </span>
+                      </div>
+                      <span className="flex items-center gap-1 text-[10px]">
+                        <FaClock className="text-[9px]" /> Posted 5h ago
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <button
-                type="submit"
-                className="group inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:opacity-95 active:scale-[0.98] sm:w-auto sm:rounded-full"
-                style={{
-                  backgroundColor: "var(--forsa-primary)",
-                }}
-              >
-                Search
-
-                <FaArrowRight className="text-[9px] transition-transform duration-200 group-hover:translate-x-1" />
-              </button>
-            </motion.form>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: 0.45,
-                delay: 0.25,
-              }}
-              className="mt-4 flex max-w-full flex-wrap items-center justify-center gap-1.5 px-1 text-xs text-neutral-500 sm:gap-2"
-            >
-              <span className="mr-0.5 font-medium text-neutral-400">
-                Popular:
-              </span>
-
-              {[
-                "Software Engineer",
-                "Graphic Design",
-                "Marketing",
-                "Remote Internship",
-              ].map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => handleQuickTag(tag)}
-                  className="min-h-9 rounded-full border border-neutral-200/80 bg-neutral-50/80 px-3 py-1.5 text-[11px] font-medium text-neutral-700 transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-100 active:scale-[0.97]"
-                >
-                  {tag}
-                </button>
-              ))}
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.45,
-                delay: 0.3,
-              }}
-              className="mt-5 flex w-full max-w-sm items-center justify-center gap-2.5 sm:hidden"
-            >
-              <button
-  type="button"
-  onClick={goToLogin}
-  className="min-h-11 flex-1 rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 shadow-sm transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.98]"
->
-Login
-</button>
-
-<button
-  type="button"
-  onClick={goToSignup}
-  className="min-h-11 flex-1 rounded-full px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:opacity-95 active:scale-[0.98]"
-  style={{
-    backgroundColor: "var(--forsa-primary)",
-  }}
->
-  Get Started
-</button> 
             </motion.div>
           </div>
         </section>
-
-        <div className="relative z-10 -my-3 flex justify-center">
-          <div className="h-8 w-px bg-gradient-to-b from-[var(--forsa-primary)]/40 to-transparent" />
-        </div>
 
         <WhyForsa />
 
@@ -259,7 +310,7 @@ Login
 
         <TalentCompanySection />
 
-        <section className="relative overflow-hidden border-t border-neutral-200/60 bg-gradient-to-b from-white via-neutral-50/50 to-neutral-100/60 py-12 sm:py-16 lg:py-20">
+        <section className="relative overflow-hidden py-12 sm:py-16 lg:py-20">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute left-1/2 top-1/2 -z-0 h-[240px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-50 sm:h-[350px] sm:w-[550px] sm:opacity-60"
@@ -270,7 +321,7 @@ Login
           />
 
           <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-8 lg:px-10">
-            <div className="rounded-3xl border border-neutral-200/90 bg-white/90 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.04)] backdrop-blur-md sm:p-8 lg:p-12">
+            <div className="rounded-3xl  sm:p-8 lg:p-12">
               <div className="grid w-full items-center gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14">
                 <motion.div
                   initial={{ opacity: 0, x: -15 }}
@@ -296,7 +347,7 @@ Login
                     initial={{ opacity: 0, y: 8 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[var(--forsa-primary)]"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#5B3DF5]"
                   >
                     <span>Ready to get started?</span>
                   </motion.div>
@@ -350,14 +401,12 @@ Login
                       }}
                     >
                       Get Started
-
                       <FaArrowRight className="text-[9px] transition-transform duration-200 group-hover:translate-x-1" />
                     </button>
 
                     <button
                       type="button"
                       onClick={goToLogin}
-
                       className="inline-flex min-h-11 w-full items-center justify-center gap-2.5 rounded-full border border-neutral-200 bg-neutral-50/80 px-6 py-3 text-sm font-bold text-neutral-800 transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-100 active:scale-[0.98] sm:w-auto"
                     >
                       Login

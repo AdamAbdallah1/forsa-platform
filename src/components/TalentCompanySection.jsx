@@ -1,11 +1,9 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
-  FaArrowRight,
   FaUser,
   FaBuilding,
   FaCompass,
-  FaCheckCircle,
 } from "react-icons/fa";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
@@ -18,7 +16,6 @@ const FLOW_ITEMS = [
     title: "Show what you can do.",
     description: "Create a portfolio-grade profile focused on skills, real accomplishments, and interests.",
     icon: FaUser,
-    accent: "purple",
   },
   {
     step: "02",
@@ -26,7 +23,6 @@ const FLOW_ITEMS = [
     title: "Find what fits.",
     description: "Algorithmic and search-driven discovery tuned to where you want your career to head.",
     icon: FaCompass,
-    accent: "blue",
   },
   {
     step: "03",
@@ -34,62 +30,45 @@ const FLOW_ITEMS = [
     title: "Meet the right team.",
     description: "Direct outreach to verified companies actively seeking emerging talent.",
     icon: FaBuilding,
-    accent: "emerald",
   },
 ];
-
-const STYLES = {
-  purple: {
-    badge: "bg-purple-50 text-[var(--forsa-primary)] border-purple-100",
-    line: "border-[var(--forsa-primary)]",
-  },
-  blue: {
-    badge: "bg-blue-50 text-blue-600 border-blue-100",
-    line: "border-blue-500",
-  },
-  emerald: {
-    badge: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    line: "border-emerald-500",
-  },
-};
 
 export default function TalentCompanySection() {
   const navigate = useNavigate();
 
   return (
-    <section className="relative overflow-hidden bg-white py-16 sm:py-20 lg:py-24">
-      <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
-        {/* INTRO GRID */}
+    <section className="relative overflow-hidden bg-white py-16 sm:py-20 lg:py-24 font-['Inter',sans-serif]">
+      <div className="relative mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:gap-14">
           <motion.div
-            initial={{ opacity: 0, x: -18 }}
+            initial={{ opacity: 0, x: -12 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.45 }}
             className="max-w-xl"
           >
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#5B3DF5]">
+              How Forsa Works
+            </span>
 
-
-            <h2 className="mt-4 text-3xl font-bold leading-[1.08] tracking-[-0.045em] text-neutral-950 sm:text-4xl lg:text-[2.85rem]">
+            <h2 className="mt-2 text-2xl font-bold leading-[1.12] tracking-tight text-[#111113] sm:text-3xl lg:text-4xl font-['Sora',sans-serif]">
               From potential to{" "}
-              <span style={{ color: "var(--forsa-primary)" }}>
-                opportunity.
-              </span>
+              <span className="text-[#5B3DF5]">opportunity.</span>
             </h2>
 
-            <p className="mt-4 max-w-lg text-sm leading-6 text-neutral-500 sm:text-base sm:leading-7">
+            <p className="mt-3 text-sm sm:text-base leading-relaxed text-[#6B6B73]">
               Forsa makes the connection between capable candidates and forward-thinking companies direct, simple, and reliable.
             </p>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 18, scale: 0.98 }}
-            whileInView={{ opacity: 1, x: 0, scale: 1 }}
+            initial={{ opacity: 0, x: 12 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.65, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.45, delay: 0.05 }}
             className="relative flex items-center justify-center lg:justify-end"
           >
-            <div className="relative z-10 h-[230px] w-full max-w-[310px] sm:h-[270px] sm:max-w-[350px] lg:h-[300px] lg:max-w-[380px]">
+            <div className="relative z-10 h-[210px] w-full max-w-[290px] sm:h-[250px] sm:max-w-[330px] lg:h-[280px] lg:max-w-[360px]">
               <DotLottieReact
                 src={talentHero}
                 loop
@@ -100,39 +79,40 @@ export default function TalentCompanySection() {
           </motion.div>
         </div>
 
-        {/* THREE-STEP CONNECTED FLOW */}
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.5 }}
-          className="mt-16 rounded-2xl border border-neutral-200/80 bg-neutral-50/50 p-6 sm:p-10"
+          transition={{ duration: 0.45 }}
+          className="mt-14 rounded-2xl p-6 sm:p-8"
         >
-          <div className="grid gap-8 md:grid-cols-3 md:gap-6">
-            {FLOW_ITEMS.map((item, index) => {
+          <div className="grid gap-6 md:grid-cols-3">
+            {FLOW_ITEMS.map((item) => {
               const Icon = item.icon;
-              const style = STYLES[item.accent];
 
               return (
-                <div key={item.step} className="relative flex flex-col justify-between">
+                <div
+                  key={item.step}
+                  className="flex flex-col justify-between rounded-xl border border-[#E8E8EC] bg-white p-5 shadow-sm"
+                >
                   <div>
                     <div className="flex items-center justify-between">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl border ${style.badge}`}>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#E8E8EC] bg-[#F8F8FA] text-[#5B3DF5]">
                         <Icon className="text-sm" />
                       </div>
-                      <span className="font-mono text-xs font-bold text-neutral-400">
+                      <span className="font-mono text-xs font-semibold text-[#6B6B73]">
                         {item.step}
                       </span>
                     </div>
 
-                    <div className="mt-5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                    <div className="mt-4">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6B6B73]">
                         {item.label}
                       </span>
-                      <h3 className="mt-1 text-base font-bold tracking-tight text-neutral-950 sm:text-lg">
+                      <h3 className="mt-1 text-base font-semibold text-[#111113] font-['Sora',sans-serif]">
                         {item.title}
                       </h3>
-                      <p className="mt-2 text-xs leading-5 text-neutral-500 sm:text-sm">
+                      <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#6B6B73]">
                         {item.description}
                       </p>
                     </div>

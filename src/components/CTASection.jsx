@@ -5,42 +5,52 @@ export default function CTASection() {
   const navigate = useNavigate();
 
   return (
-    <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-25 pt-20">
-      <div className="relative overflow-hidden rounded-[36px] bg-[var(--forsa-primary)] p-8 text-white shadow-[0_24px_60px_rgba(82,39,255,0.25)] sm:p-12 md:p-16">
-        {/* Subtle, premium backdrop light glow */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute left-10 bottom-0 h-48 w-48 rounded-full bg-black/15 blur-2xl" />
+    <section className="relative overflow-hidden bg-white py-16 sm:py-20 lg:py-24 font-['Inter',sans-serif]">
+      <div className="relative mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden rounded-2xl border border-[#E8E8EC] bg-[#F8F8FA] p-8 sm:p-12 lg:p-16">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-0 h-full w-1/2 opacity-50"
+            style={{
+              background:
+                "radial-gradient(100% 100% at 100% 0%, rgba(91, 61, 245, 0.08) 0%, rgba(255, 255, 255, 0) 100%)",
+            }}
+          />
 
-        <div className="relative flex flex-col justify-between gap-10 lg:flex-row lg:items-center">
-          <div className="text-center lg:text-left space-y-4 max-w-2xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold tracking-wider text-white uppercase backdrop-blur-sm">
-              Start with Forsa
-            </span>
+          <div className="relative z-10 flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
+            <div className="max-w-2xl text-center lg:text-left">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#5B3DF5]/20 bg-[#5B3DF5]/5 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#5B3DF5]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#5B3DF5]" />
+                Start with Forsa
+              </span>
 
-            <h2 className="text-3xl font-bold tracking-[-0.04em] sm:text-4xl lg:text-5xl lg:leading-[1.05]">
-              Build your profile. Find the opportunity. Send the message.
-            </h2>
+              <h2 className="mt-4 text-2xl font-bold leading-[1.12] tracking-tight text-[#111113] sm:text-3xl lg:text-4xl font-['Sora',sans-serif]">
+                Build your profile. Find opportunity. Connect directly.
+              </h2>
 
-            <p className="text-sm sm:text-base leading-relaxed text-purple-100 font-medium max-w-xl mx-auto lg:mx-0">
-              A cleaner ecosystem built intentionally for Lebanon’s ecosystem of students, freelancers, local creators, and small business networks.
-            </p>
-          </div>
+              <p className="mt-3 text-sm sm:text-base leading-relaxed text-[#6B6B73] max-w-xl mx-auto lg:mx-0">
+                A structured, modern talent ecosystem built specifically for Lebanon’s students, graduates, freelancers, and growing companies.
+              </p>
+            </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row justify-center lg:shrink-0 w-full sm:w-auto">
-            <button
-              onClick={() => navigate("/auth")}
-              className="group inline-flex items-center justify-center gap-2.5 rounded-full bg-white px-8 py-4 text-sm font-bold text-neutral-950 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-neutral-50"
-            >
-              Join Forsa
-              <FaArrowRight className="text-xs transition-transform duration-300 group-hover:translate-x-1" />
-            </button>
+            <div className="flex flex-col gap-3 sm:flex-row justify-center lg:shrink-0 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => navigate("/auth")}
+                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#5B3DF5] px-6 py-3.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-[#4930D4] active:scale-[0.99]"
+              >
+                <span>Join Forsa</span>
+                <FaArrowRight className="text-xs transition-transform duration-150 group-hover:translate-x-0.5" />
+              </button>
 
-            <button
-              onClick={() => navigate("/explore")}
-              className="rounded-full border border-white/20 bg-white/5 px-8 py-4 text-sm font-bold text-white backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/10 hover:border-white/40"
-            >
-              Explore first
-            </button>
+              <button
+                type="button"
+                onClick={() => navigate("/explore")}
+                className="inline-flex items-center justify-center rounded-xl border border-[#E8E8EC] bg-white px-6 py-3.5 text-sm font-semibold text-[#111113] transition-all duration-150 hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.99]"
+              >
+                Explore first
+              </button>
+            </div>
           </div>
         </div>
       </div>
