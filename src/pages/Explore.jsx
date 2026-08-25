@@ -811,9 +811,9 @@ try {
   return (
     <section className="min-h-screen bg-[#fbfafc]">
       <SEO
-    title="Explore"
-    description="Explore jobs, internships, freelance gigs, and local opportunities in Lebanon on Forsa."
-  />
+        title="Jobs in Lebanon — Jobs, Internships & Freelance Opportunities | Forsa"
+        description="Find jobs, internships, freelance gigs, and career opportunities in Lebanon. Explore opportunities from Lebanese companies and discover your next opportunity on Forsa."
+      />
       <AppHeader />
       
 
