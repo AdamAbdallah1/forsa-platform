@@ -28,6 +28,15 @@ export default function SEO({ title, description, image, url }) {
     const finalDescription = description || defaults.description;
     const finalImage = image || "https://forsa.digital/og-image.png";
     const finalUrl = url || window.location.href;
+    let canonical = document.querySelector('link[rel="canonical"]');
+
+if (!canonical) {
+  canonical = document.createElement("link");
+  canonical.setAttribute("rel", "canonical");
+  document.head.appendChild(canonical);
+}
+
+canonical.setAttribute("href", finalUrl);
 
     document.title = finalTitle;
 
