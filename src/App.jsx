@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import JobsInLebanon from "./pages/JobsInLebanon";
 import { auth, db } from "./lib/firebase";
 import { setSession } from "./lib/auth";
 import Home from "./pages/Home";
@@ -92,6 +93,7 @@ export default function App() {
       <main className="min-h-screen overflow-x-hidden bg-[var(--forsa-bg)] pb-24 text-[#111111] md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/jobs-in-lebanon" element={<JobsInLebanon />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/onboarding" element={<SeekerRoute><Onboarding /></SeekerRoute>} />

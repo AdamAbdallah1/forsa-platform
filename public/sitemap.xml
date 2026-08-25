@@ -13,4 +13,9 @@
     <loc>https://forsa.digital/companies</loc>
     <priority>0.8</priority>
   </url>
+
+  <url>
+    <loc>https://forsa.digital/jobs-in-lebanon</loc>
+    <priority>1.0</priority>
+  </url>
 </urlset>
