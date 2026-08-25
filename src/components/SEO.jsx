@@ -24,7 +24,7 @@ function setMeta(name, content, attr = "name") {
 
 export default function SEO({ title, description, image, url }) {
   useEffect(() => {
-    const finalTitle = title ? `${siteName} — ${title}` : defaults.title;
+    const finalTitle = title || defaults.title;
     const finalDescription = description || defaults.description;
     const finalImage = image || "https://forsa.digital/og-image.png";
     const finalUrl = url || window.location.href;
