@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FaArrowRight, FaSearch, FaMapMarkerAlt, FaChevronDown,
   FaBuilding, FaClock, FaBriefcase, FaCode, FaGlobe, FaLaptopCode,
@@ -163,6 +163,12 @@ export default function Home() {
               <span className="text-[11px] font-bold uppercase tracking-[.15em] text-[#5B3DF5]">Build your next move</span>
               <h2 className="mt-2 font-['Sora',sans-serif] text-3xl font-bold tracking-[-.04em] sm:text-4xl">Your next opportunity is closer than you think.</h2>
               <p className="mt-3 max-w-xl text-sm leading-6 text-[#696773]">Join Forsa to discover opportunities or connect with the people building the next generation of Lebanese companies.</p>
+              <Link
+                to="/jobs-in-lebanon"
+                className="mt-5 inline-flex font-semibold text-[#5B3DF5] hover:underline"
+              >
+                Find jobs in Lebanon →
+              </Link>
               <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
                 <button onClick={goToSignup} className="rounded-full bg-[#5B3DF5] px-6 py-3 text-sm font-bold text-white shadow-lg hover:bg-[#4930D4]">Get Started <FaArrowRight className="ml-2 inline text-[9px]"/></button>
                 <button onClick={goToLogin} className="rounded-full border border-[#dedde5] bg-white px-6 py-3 text-sm font-bold">Login</button>
