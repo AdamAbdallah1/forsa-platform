@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import SEO from "../components/SEO";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { collection, getDocs, query, where } from "firebase/firestore";
@@ -85,6 +86,10 @@ export default function Companies() {
 
   return (
     <section>
+      <SEO
+  title="Companies Hiring in Lebanon | Forsa"
+  description="Discover companies, businesses, and organizations hiring talent in Lebanon. Explore opportunities and connect with employers through Forsa."
+/>
       <AppHeader />
 
       <div className="mx-auto max-w-7xl px-5 pb-28 sm:px-6 lg:pb-20">
