@@ -1127,7 +1127,7 @@ function MiniStat({ label, value }) {
         {value}
       </p>
 
-      <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400 sm:text-xs">
+      <p className="mt-1 text-[9px] font-semibold uppercase tracking-normal text-neutral-400 sm:text-xs">
         {label}
       </p>
     </div>
@@ -1509,7 +1509,7 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
         <Button onClick={onShare} variant="secondary" className="inline-flex w-full items-center justify-center gap-2">
           <FaShareAlt className="text-xs" />
         </Button>
-        <Button onClick={onApply} disabled={!canInteract} className="w-full">
+        <Button onClick={onApply} disabled={!canInteract} className="w-full text-[10px]">
           {applied
   ? "Open"
   : item.applicationMethod === "external"
@@ -1759,7 +1759,7 @@ function OpportunityCard({
           <button
             type="button"
             onClick={onApply}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-semibold transition-all duration-200 ${
+            className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[9px] font-semibold transition-all duration-200 ${
               canInteract
                 ? "bg-[linear-gradient(135deg,var(--forsa-primary),var(--forsa-glow))] text-white shadow-[0_8px_18px_rgba(109,40,217,0.16)] hover:-translate-y-0.5"
                 : "bg-neutral-200 text-neutral-500"

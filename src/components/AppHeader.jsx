@@ -153,7 +153,7 @@ export default function AppHeader() {
               <NavLink
                 to="/messages"
                 className={({ isActive }) =>
-                  `relative flex h-9 w-9 items-center justify-center rounded-full border text-sm transition-all duration-200 ${
+                  `relative hidden h-9 w-9 lg:flex items-center justify-center rounded-full border text-sm transition-all duration-200 ${
                     isActive
                       ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-sm"
                       : "border-[var(--forsa-border)] bg-white/80 text-neutral-600 hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
@@ -172,7 +172,7 @@ export default function AppHeader() {
               <NavLink
                 to="/notifications"
                 className={({ isActive }) =>
-                  `relative flex h-9 w-9 items-center justify-center rounded-full border text-sm transition-all duration-200 ${
+                  `relative hidden h-9 w-9 lg:flex items-center justify-center rounded-full border text-sm transition-all duration-200 ${
                     isActive
                       ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-sm"
                       : "border-[var(--forsa-border)] bg-white/80 text-neutral-600 hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
