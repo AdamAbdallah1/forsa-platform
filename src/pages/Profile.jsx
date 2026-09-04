@@ -783,12 +783,31 @@ const saveChanges = async () => {
 
     const savePostEdit = async () => {
       if (!editingPostId || !editingPost) return;
+            if (editingPost.applicationMethod === "external") {
+        try {
+          const url = new URL(
+            String(editingPost.applicationUrl || "").trim()
+          );
+
+          if (
+            url.protocol !== "http:" &&
+            url.protocol !== "https:"
+          ) {
+            throw new Error("Unsupported URL protocol");
+          }
+        } catch {
+          showToast("Please enter a valid application URL.", "error");
+          return;
+        }
+      }
 
       const updatePayload = {
         title: editingPost.title || "",
         location: editingPost.location || "",
         pay: editingPost.pay || "",
         contact: editingPost.contact || "",
+        applicationMethod: editingPost.applicationMethod || "forsa",
+        applicationUrl: editingPost.applicationUrl || "",
         description: editingPost.description || "",
         type: editingPost.type || "Project",
         category: editingPost.category || "",
@@ -1977,6 +1996,51 @@ function EditPostCard({
         <Field label="Location" value={editingPost.location} onChange={(value) => updateEditingPost("location", value)} />
         <Field label="Pay" value={editingPost.pay} onChange={(value) => updateEditingPost("pay", value)} />
         <Field label="Contact" value={editingPost.contact} onChange={(value) => updateEditingPost("contact", value)} />
+
+<div>
+  <label className="text-sm font-medium">Application destination</label>
+
+  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+    <button
+      type="button"
+      onClick={() => updateEditingPost("applicationMethod", "forsa")}
+      className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
+        (editingPost.applicationMethod || "forsa") === "forsa"
+          ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
+          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+      }`}
+    >
+      Apply on Forsa
+    </button>
+
+    <button
+      type="button"
+      onClick={() => updateEditingPost("applicationMethod", "external")}
+      className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
+        editingPost.applicationMethod === "external"
+          ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
+          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+      }`}
+    >
+      Apply externally ↗
+    </button>
+  </div>
+
+  {editingPost.applicationMethod === "external" && (
+    <div className="mt-3">
+      <Field
+        label="Application URL"
+        value={editingPost.applicationUrl || ""}
+        onChange={(value) => updateEditingPost("applicationUrl", value)}
+        placeholder="https://company.com/careers/job..."
+      />
+
+      <p className="mt-2 text-xs text-neutral-500">
+        Applicants will leave Forsa and continue on the company’s application page.
+      </p>
+    </div>
+  )}
+</div>
 
         <div>
           <label className="text-sm font-medium">Description</label>
