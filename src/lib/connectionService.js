@@ -38,6 +38,7 @@ export async function followUser({ fromUser, toUser }) {
     title: "Connection request",
     text: `${fromUser.name || "Someone"} wants to connect with you.`,
     targetEmail: String(toUser.email || "").toLowerCase(),
+    targetUid: toUser.uid,
     actionUrl: `/seeker/${fromUser.uid}`,
     connectionId: id,
     fromUid: fromUser.uid,
@@ -66,6 +67,7 @@ export async function acceptConnection(id, currentUser) {
       title: "Connection accepted",
       text: `${currentUser?.name || "Someone"} accepted your connection request.`,
       targetEmail: String(connection.fromEmail).toLowerCase(),
+      targetUid: connection.fromUid,
       actionUrl: `/seeker/${currentUser?.uid}`,
       connectionId: id,
     });

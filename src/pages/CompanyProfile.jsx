@@ -166,7 +166,7 @@ export default function CompanyProfile() {
                     {isFollowing ? "Following" : "Follow company"}
                   </button>
 
-                  <button className="forsa-click inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-600">
+                  <button type="button" onClick={() => showToast("Company reporting is coming soon.", "info")} className="forsa-click inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-600">
                     <FaFlag className="text-xs" />
                     Report
                   </button>

@@ -86,7 +86,120 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      allow create: if signedIn();
+      // New application: only the applicant can notify the job owner.
+      allow create: if signedIn() &&
+        request.resource.data.type == "new_application" &&
+        request.resource.data.applicationId != null &&
+        get(
+          /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+        ).data.seeker.uid == request.auth.uid &&
+        request.resource.data.targetUid ==
+          get(
+            /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+          ).data.ownerUid &&
+        request.resource.data.targetEmail ==
+          get(
+            /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+          ).data.ownerEmail;
+
+      // Application messages: only an application participant can notify
+      // the other participant.
+      allow create: if signedIn() &&
+        request.resource.data.type == "new_message" &&
+        request.resource.data.applicationId != null &&
+        (
+          (
+            get(
+              /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+            ).data.seeker.uid == request.auth.uid &&
+            request.resource.data.targetUid ==
+              get(
+                /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+              ).data.ownerUid &&
+            request.resource.data.targetEmail ==
+              get(
+                /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+              ).data.ownerEmail
+          ) ||
+          (
+            get(
+              /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+            ).data.ownerUid == request.auth.uid &&
+            request.resource.data.targetUid ==
+              get(
+                /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+              ).data.seeker.uid &&
+            request.resource.data.targetEmail ==
+              get(
+                /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+              ).data.seeker.email
+          )
+        );
+
+      // Employer-generated application status/interview notifications.
+      allow create: if signedIn() &&
+        request.resource.data.type in [
+          "application_status",
+          "interview_invite",
+          "interview_cancelled"
+        ] &&
+        request.resource.data.applicationId != null &&
+        get(
+          /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+        ).data.ownerUid == request.auth.uid &&
+        request.resource.data.targetUid ==
+          get(
+            /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+          ).data.seeker.uid &&
+        request.resource.data.targetEmail ==
+          get(
+            /databases/$(database)/documents/applications/$(request.resource.data.applicationId)
+          ).data.seeker.email;
+
+      // Connection request: only the requester can notify the recipient.
+      allow create: if signedIn() &&
+        request.resource.data.type == "connection_request" &&
+        request.resource.data.connectionId != null &&
+        get(
+          /databases/$(database)/documents/connections/$(request.resource.data.connectionId)
+        ).data.fromUid == request.auth.uid &&
+        request.resource.data.targetUid ==
+          get(
+            /databases/$(database)/documents/connections/$(request.resource.data.connectionId)
+          ).data.toUid &&
+        request.resource.data.targetEmail ==
+          get(
+            /databases/$(database)/documents/connections/$(request.resource.data.connectionId)
+          ).data.toEmail;
+
+      // Connection accepted: only the recipient can notify the original requester.
+      allow create: if signedIn() &&
+        request.resource.data.type == "connection_accepted" &&
+        request.resource.data.connectionId != null &&
+        get(
+          /databases/$(database)/documents/connections/$(request.resource.data.connectionId)
+        ).data.toUid == request.auth.uid &&
+        request.resource.data.targetUid ==
+          get(
+            /databases/$(database)/documents/connections/$(request.resource.data.connectionId)
+          ).data.fromUid &&
+        request.resource.data.targetEmail ==
+          get(
+            /databases/$(database)/documents/connections/$(request.resource.data.connectionId)
+          ).data.fromEmail;
+
+      // Company follower notifications currently use localStorage for
+      // follower relationships, so Firestore cannot securely verify the
+      // recipient yet. Keep this temporarily restricted to the post owner.
+      allow create: if signedIn() &&
+        request.resource.data.type == "followed_company_post" &&
+        request.resource.data.postId != null &&
+        get(
+          /databases/$(database)/documents/posts/$(request.resource.data.postId)
+        ).data.ownerUid == request.auth.uid;
+
+      // Admins may create system notifications.
+      allow create: if isAdmin();
 
       allow read, update, delete: if signedIn() &&
         (
@@ -177,14 +290,53 @@ service cloud.firestore {
 
       allow create: if signedIn() &&
         request.resource.data.seeker.uid == request.auth.uid &&
-        request.resource.data.status == "pending";
-
-      allow update: if signedIn() &&
+        request.resource.data.status == "pending" &&
+        request.resource.data.ownerUid ==
+          get(
+            /databases/$(database)/documents/posts/$(request.resource.data.opportunityId)
+          ).data.ownerUid &&
+        get(
+          /databases/$(database)/documents/posts/$(request.resource.data.opportunityId)
+        ).data.status == "active" &&
+        get(
+          /databases/$(database)/documents/posts/$(request.resource.data.opportunityId)
+        ).data.reviewStatus == "approved" &&
+        get(
+          /databases/$(database)/documents/posts/$(request.resource.data.opportunityId)
+        ).data.moderationStatus == "approved" &&
         (
-          resource.data.seeker.uid == request.auth.uid ||
-          resource.data.ownerUid == request.auth.uid ||
-          isAdmin()
+          !request.resource.data.keys().hasAny(["applicationMethod"]) ||
+          request.resource.data.applicationMethod == "forsa"
         );
+
+      // Applicants can only update messaging fields.
+      allow update: if signedIn() &&
+        resource.data.seeker.uid == request.auth.uid &&
+        request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            "lastMessage",
+            "updatedAt",
+            "conversation"
+          ]);
+
+      // Hiring users can manage application status/interviews
+      // and communicate with the applicant.
+      allow update: if signedIn() &&
+        resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            "status",
+            "lastMessage",
+            "updatedAt",
+            "conversation",
+            "statusHistory",
+            "interview"
+          ]);
+
+      // Admins retain full application management access.
+      allow update: if isAdmin();
 
       allow delete: if signedIn() &&
         (

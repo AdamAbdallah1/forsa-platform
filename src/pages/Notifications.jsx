@@ -38,6 +38,7 @@ export default function Notifications() {
     safeJson(CACHE_KEY, [])
   );
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [batchActionLoading, setBatchActionLoading] = useState(false);
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export default function Notifications() {
     let isMounted = true;
 
     const loadNotifications = async () => {
+      setLoadError("");
       try {
         const data = await getUserNotifications(
           String(account.email || "").trim().toLowerCase()
@@ -60,6 +62,7 @@ export default function Notifications() {
         }
       } catch (error) {
         console.error("Load notifications error:", error);
+        setLoadError("We could not refresh your notifications.");
         showToast("Could not load notifications.", "error");
       } finally {
         if (isMounted) setLoading(false);
@@ -287,6 +290,8 @@ export default function Notifications() {
         <div className="mt-6 rounded-[32px] border border-neutral-200/70 bg-white p-2 shadow-[0_20px_50px_rgba(0,0,0,0.015)] sm:p-4">
           {loading ? (
             <LoadingNotifications />
+          ) : loadError ? (
+            <NotificationLoadError onRetry={() => window.location.reload()} />
           ) : filteredNotifications.length === 0 ? (
             <EmptyNotifications />
           ) : (
@@ -333,6 +338,8 @@ function NotificationCard({ item, onRead, onDelete, onAccept, onReject }) {
     }
   };
 
+  const destination = item.actionUrl || (item.applicationId ? "/messages" : "");
+
   return (
     <article
       className={`group relative flex items-start gap-4 p-4 transition-all duration-200 sm:p-5 ${
@@ -372,9 +379,19 @@ function NotificationCard({ item, onRead, onDelete, onAccept, onReject }) {
               )}
             </div>
 
-            <p className="max-w-2xl text-xs font-medium leading-relaxed text-neutral-500 sm:text-sm">
-              {item.text}
-            </p>
+            {destination ? (
+              <Link
+                to={destination}
+                onClick={onRead}
+                className="block max-w-2xl text-xs font-medium leading-relaxed text-neutral-500 transition hover:text-[var(--forsa-primary)] sm:text-sm"
+              >
+                {item.text}
+              </Link>
+            ) : (
+              <p className="max-w-2xl text-xs font-medium leading-relaxed text-neutral-500 sm:text-sm">
+                {item.text}
+              </p>
+            )}
 
             <p className="pt-1 text-[10px] font-bold tracking-tight text-neutral-400">
               {item.createdAt
@@ -459,6 +476,19 @@ function EmptyNotifications() {
           New activity, job updates, and connection requests will appear here.
         </p>
       </div>
+    </div>
+  );
+}
+
+function NotificationLoadError({ onRetry }) {
+  return (
+    <div className="flex flex-col items-center justify-center px-4 py-20 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600">
+        <FaBell className="text-sm" />
+      </div>
+      <h2 className="mt-4 text-sm font-bold text-neutral-950">Notifications are temporarily unavailable</h2>
+      <p className="mt-1 max-w-xs text-xs font-medium leading-relaxed text-neutral-500">Try refreshing to reconnect to your latest activity.</p>
+      <button type="button" onClick={onRetry} className="mt-5 rounded-full forsa-button px-5 py-3 text-xs font-semibold text-white">Try again</button>
     </div>
   );
 }

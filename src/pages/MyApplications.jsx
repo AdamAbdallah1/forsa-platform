@@ -137,6 +137,7 @@ export default function MyApplications() {
 
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -156,6 +157,7 @@ export default function MyApplications() {
     }
 
     setLoading(true);
+    setLoadError("");
 
     console.log(
       "MY APPLICATIONS: starting Firestore listener for",
@@ -204,6 +206,7 @@ export default function MyApplications() {
         );
 
         setLoading(false);
+        setLoadError("We could not refresh your applications.");
       }
     );
 
@@ -673,6 +676,8 @@ export default function MyApplications() {
             </p>
 
           </div>
+        ) : loadError ? (
+          <ApplicationLoadError onRetry={() => window.location.reload()} />
         ) : applications.length === 0 ? (
 
           <EmptyState
@@ -710,6 +715,19 @@ export default function MyApplications() {
       <Footer />
 
     </section>
+  );
+}
+
+function ApplicationLoadError({ onRetry }) {
+  return (
+    <div className="mt-4 rounded-[24px] border border-red-100 bg-white p-8 text-center shadow-sm">
+      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-red-600">
+        <FaTimesCircle />
+      </div>
+      <h2 className="mt-4 text-lg font-semibold">Applications are temporarily unavailable</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-600">Your applications were not deleted. We could not refresh them right now.</p>
+      <button type="button" onClick={onRetry} className="mt-5 rounded-full forsa-button px-5 py-3 text-sm font-semibold text-white">Try again</button>
+    </div>
   );
 }
 

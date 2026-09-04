@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import SEO from "../components/SEO";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { getActivePosts } from "../lib/postService.js";
 import {
@@ -39,11 +39,13 @@ export default function Companies() {
   const [posts, setPosts] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     let active = true;
 
     const load = async () => {
+      setLoadError("");
       try {
         const users = await getHiringCompanies();
 
@@ -55,6 +57,7 @@ export default function Companies() {
         setPosts(activePosts);
       } catch (error) {
         console.error("Companies load error:", error);
+        setLoadError("We could not load the company directory.");
       } finally {
         if (active) setLoading(false);
       }
@@ -128,6 +131,8 @@ export default function Companies() {
           <div className="mt-6 rounded-[28px] border border-[var(--forsa-border)] bg-white p-10 text-center">
             <p className="font-medium">Loading companies...</p>
           </div>
+        ) : loadError ? (
+          <DirectoryError message={loadError} onRetry={() => window.location.reload()} />
         ) : filteredCompanies.length === 0 ? (
           <div className="mt-6 rounded-[28px] border border-[var(--forsa-border)] bg-white p-10 text-center">
             <p className="font-medium">No companies found.</p>
@@ -156,6 +161,16 @@ export default function Companies() {
         )}
       </div>
     </section>
+  );
+}
+
+function DirectoryError({ message, onRetry }) {
+  return (
+    <div className="mt-6 rounded-[28px] border border-red-100 bg-white p-10 text-center shadow-sm">
+      <p className="font-semibold text-red-700">Company directory unavailable</p>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-600">{message} Try again in a moment.</p>
+      <button type="button" onClick={onRetry} className="mt-5 rounded-full forsa-button px-5 py-3 text-sm font-semibold text-white">Try again</button>
+    </div>
   );
 }
 

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import {
@@ -210,7 +210,7 @@ export default function Onboarding() {
                 </h1>
 
                 <p className="text-sm leading-relaxed text-neutral-500 font-medium">
-                  Add your skills, goals, availability, and location parameters so Forsa can deploy native matching layout layers.
+                  Add your skills, goals, availability, and location so Forsa can show more relevant opportunities.
                 </p>
               </div>
             </div>
@@ -221,7 +221,7 @@ export default function Onboarding() {
                 <div>
                   <p className="text-sm font-bold tracking-tight text-neutral-950">Profile strength</p>
                   <p className="mt-0.5 text-xs font-medium text-neutral-400">
-                    Strong profiles maximize fit verification.
+                    Complete profiles get better matches.
                   </p>
                 </div>
                 <span className="rounded-full forsa-button px-3 py-1 text-xs font-bold text-white shadow-sm">
@@ -238,9 +238,9 @@ export default function Onboarding() {
 
               <div className="grid gap-2.5">
                 <StepDone done={Boolean(cityPreference.trim()) && Boolean(availability)} text="Location and availability" />
-                <StepDone done={selectedSkills.length > 0} text="Skills configuration" />
-                <StepDone done={selectedLooking.length > 0} text="Target goals mapped" />
-                <StepDone done={Boolean(portfolio.trim() || savedProfile.cv)} text="Portfolio or CV data assets" />
+                <StepDone done={selectedSkills.length > 0} text="Skills added" />
+                <StepDone done={selectedLooking.length > 0} text="Work preferences" />
+                <StepDone done={Boolean(portfolio.trim() || savedProfile.cv)} text="Portfolio or CV" />
               </div>
             </div>
           </aside>
@@ -286,16 +286,16 @@ export default function Onboarding() {
               {/* Step Components Routing */}
               {step === 0 && (
                 <div className="grid gap-5">
-                  <FieldBlock icon={<FaMapMarkerAlt />} title="Preferred location" subtitle="City, area, or remote choice infrastructure.">
+                  <FieldBlock icon={<FaMapMarkerAlt />} title="Preferred location" subtitle="Tell employers where you can work.">
                     <input
                       value={cityPreference}
                       onChange={(e) => setCityPreference(e.target.value)}
                       placeholder="Beirut, Tripoli, Saida, Remote..."
-                      className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3.5 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-[#6928D0] focus:bg-[#6928D0]]"
+                      className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3.5 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-[var(--forsa-primary)] focus:ring-4 focus:ring-[var(--forsa-primary)]/10"
                     />
                   </FieldBlock>
 
-                  <FieldBlock icon={<FaGlobe />} title="Availability tracking" subtitle="When are you fully available to deploy output?">
+                  <FieldBlock icon={<FaGlobe />} title="Availability" subtitle="When could you start working?">
                     <div className="flex flex-wrap gap-2">
                       {availabilityOptions.map((item) => (
                         <ChoicePill key={item} active={availability === item} onClick={() => setAvailability(item)}>
@@ -334,7 +334,7 @@ export default function Onboarding() {
 
               {step === 3 && (
                 <div className="grid gap-5">
-                  <FieldBlock icon={<FaGlobe />} title="Portfolio / LinkedIn / Digital Hub" subtitle="Highly recommended link node parameters.">
+                  <FieldBlock icon={<FaGlobe />} title="Portfolio or LinkedIn" subtitle="Add a link so employers can learn more about your work.">
                     <input
                       value={portfolio}
                       onChange={(e) => setPortfolio(e.target.value)}
@@ -349,11 +349,11 @@ export default function Onboarding() {
                         <FaFileAlt className="text-sm" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold tracking-tight text-neutral-950 uppercase mt-0.5">CV metadata asset</p>
+                        <p className="text-xs font-bold tracking-tight text-neutral-950 uppercase mt-0.5">CV or resume</p>
                         <p className="mt-1 text-sm leading-relaxed text-neutral-500 font-medium">
                           {savedProfile.cv
-                            ? `${savedProfile.cv.name} successfully mounted.`
-                            : "No localized CV compiled. You can manage attachments in your dashboard profile loops later."}
+                            ? `${savedProfile.cv.name} is attached to your profile.`
+                            : "You can add a CV later from your profile settings."}
                         </p>
                       </div>
                     </div>
@@ -412,7 +412,7 @@ export default function Onboarding() {
 
                 {!canFinish && step === steps.length - 1 && (
                   <p className="mt-3 text-center text-xs font-semibold text-neutral-400">
-                    Complete basic requirements (Location, Availability, Skills, & Goals) to safely dispatch compilation parameters.
+                    Add your location, availability, skills, and work preferences to continue.
                   </p>
                 )}
               </div>
@@ -458,7 +458,7 @@ function OptionSection({
               value={customSkill}
               onChange={(e) => setCustomSkill(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addCustomSkill()}
-              placeholder="Inject custom capability node..."
+              placeholder="Add another skill..."
               className="min-w-0 flex-1 bg-transparent px-2.5 text-sm font-medium text-neutral-800 outline-none placeholder:text-neutral-400"
             />
             <button
@@ -467,7 +467,7 @@ function OptionSection({
               className="inline-flex items-center gap-2 rounded-xl bg-[#7333DE] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-neutral-900 transition-all duration-200"
             >
               <FaPlus className="text-[9px]" />
-              Append
+              Add
             </button>
           </div>
         )}
@@ -476,7 +476,7 @@ function OptionSection({
       {selected.length > 0 && (
         <div className="rounded-2xl border border-neutral-200/60 bg-neutral-50/40 p-4 space-y-2.5">
           <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
-            Selected Node Registry
+            Selected skills
           </p>
           <div className="flex flex-wrap gap-1.5">
             {selected.map((item) => (
@@ -533,18 +533,18 @@ function ChoicePill({ active, onClick, children }) {
 function ProfilePreview({ skills, lookingFor, city, availability, portfolio }) {
   return (
     <div className="rounded-[24px] border border-neutral-200/70 bg-gradient-to-br from-white to-neutral-50/50 p-5 space-y-3">
-      <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">Live configuration preview</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">Profile preview</p>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <PreviewItem title="Location Core" text={city || "Unset Parameter"} />
-        <PreviewItem title="Availability Vector" text={availability || "Unset Parameter"} />
-        <PreviewItem title="Skills Map" text={skills.length ? skills.join(", ") : "Empty Matrix"} />
-        <PreviewItem title="Target Parameters" text={lookingFor.length ? lookingFor.join(", ") : "Empty Matrix"} />
+        <PreviewItem title="Location" text={city || "Not added yet"} />
+        <PreviewItem title="Availability" text={availability || "Not added yet"} />
+        <PreviewItem title="Skills" text={skills.length ? skills.join(", ") : "No skills selected"} />
+        <PreviewItem title="Looking for" text={lookingFor.length ? lookingFor.join(", ") : "No preferences selected"} />
       </div>
 
       {portfolio && (
         <p className="truncate rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-500">
-          <span className="font-bold text-neutral-800">Deployment Node:</span> {portfolio}
+          <span className="font-bold text-neutral-800">Portfolio:</span> {portfolio}
         </p>
       )}
     </div>

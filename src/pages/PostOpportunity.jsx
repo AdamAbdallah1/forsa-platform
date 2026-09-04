@@ -9,13 +9,9 @@ import { createNotification } from "../lib/notificationService";
 import {
   FaArrowRight,
   FaBriefcase,
-  FaBuilding,
   FaCheck,
   FaChevronDown,
-  FaClock,
-  FaEnvelope,
   FaMapMarkerAlt,
-  FaPhone,
   FaPlus,
   FaSearch,
   FaShieldAlt,
@@ -67,11 +63,6 @@ const shiftOptions = [
 ];
 
 const genderOptions = ["Any", "Male", "Female", "Not specified"];
-
-const postSourceOptions = [
-  "Direct company hiring",
-  "Recruitment agency / placement office",
-];
 
 const workCountryOptions = [
   "Lebanon",
@@ -250,6 +241,7 @@ export default function PostOpportunity() {
   const [form, setForm] = useState(() => emptyForm(account));
   const [step, setStep] = useState(1);
   const [posting, setPosting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const [tagsOpen, setTagsOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
@@ -511,6 +503,7 @@ export default function PostOpportunity() {
 
   const handleSubmit = async () => {
   if (!canPost || posting) return;
+    setSubmitError("");
     if (form.applicationMethod === "external") {
     try {
       const url = new URL(form.applicationUrl.trim());
@@ -668,6 +661,7 @@ verified: Boolean(account?.verified),
 
   } catch (error) {
     console.error("Post error:", error);
+    setSubmitError("We could not publish this opportunity. Check your details and try again.");
 
     showToast(
       "Could not publish opportunity. Try again.",
@@ -1134,6 +1128,11 @@ verified: Boolean(account?.verified),
               <p className="mt-3 text-right text-xs font-semibold text-neutral-400">
                 Complete the required fields before publishing.
               </p>
+            )}
+            {submitError && (
+              <div role="alert" className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
+                {submitError}
+              </div>
             )}
           </div>
 

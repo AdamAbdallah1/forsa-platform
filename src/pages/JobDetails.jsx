@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { auth } from "../lib/firebase";
 import {
   FaArrowLeft,
   FaBriefcase,
@@ -10,7 +11,6 @@ import {
   FaBookmark,
   FaRegBookmark,
   FaPaperPlane,
-  FaLock,
   FaCheckCircle,
 } from "react-icons/fa";
 
@@ -18,6 +18,9 @@ import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
 import { getPostById } from "../lib/postService";
+import { createReport } from "../lib/reportService";
+import { getUserSavedJobs, saveJob, unsaveJob } from "../lib/savedJobsService";
+import { showToast } from "../lib/Toast";
 
 const getWorkCountry = (item) => item?.workCountry || "Lebanon";
 
@@ -69,9 +72,25 @@ function InfoRow({ label, value }) {
 
 function Badge({ children }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1.5 text-xs font-medium text-[var(--forsa-primary)]">
+    <span className="inline-flex items-center rounded-full border border-[var(--forsa-border)] bg-[var(--forsa-bg-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--forsa-primary)]">
       {children}
     </span>
+  );
+}
+
+function CompanyMark({ name }) {
+  const initials = String(name || "Company")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--forsa-primary)] text-sm font-bold tracking-wide text-white shadow-[0_10px_24px_rgba(109,40,217,0.18)]">
+      {initials || "F"}
+    </div>
   );
 }
 
@@ -83,6 +102,8 @@ export default function JobDetails() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
 
   useEffect(() => {
@@ -125,6 +146,26 @@ export default function JobDetails() {
     };
   }, [jobId]);
 
+  useEffect(() => {
+    if (!job?.id || !auth.currentUser?.uid) return;
+
+    let active = true;
+
+    getUserSavedJobs(auth.currentUser.uid)
+      .then((items) => {
+        if (active) {
+          setSaved(items.some((item) => String(item.postId) === String(job.id)));
+        }
+      })
+      .catch((error) => {
+        console.error("Could not load saved state:", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [job?.id]);
+
   const handleShare = async () => {
     const url = window.location.href;
 
@@ -165,14 +206,87 @@ export default function JobDetails() {
         }
 
         window.open(url.href, "_blank", "noopener,noreferrer");
+        showToast("Opening the external application page");
       } catch {
-        return;
+        showToast("This application link is unavailable.", "error");
       }
 
       return;
     }
 
-    navigate("/auth");
+    if (auth.currentUser) {
+      navigate(`/explore?post=${encodeURIComponent(job.id)}&apply=1`);
+      return;
+    }
+
+    navigate(`/auth?mode=login&returnTo=${encodeURIComponent(`/jobs/${job.id}`)}`);
+  };
+
+  const handleSave = async () => {
+    if (!job) return;
+
+    if (!auth.currentUser) {
+      showToast("Sign in to save opportunities", "info");
+      navigate("/auth?mode=login");
+      return;
+    }
+
+    const nextSaved = !saved;
+    setSaved(nextSaved);
+    setSaveLoading(true);
+
+    try {
+      if (nextSaved) {
+        await saveJob({ post: job });
+        showToast("Opportunity saved");
+      } else {
+        await unsaveJob({ postId: job.id });
+        showToast("Removed from saved jobs");
+      }
+    } catch (error) {
+      console.error("Save job error:", error);
+      setSaved(!nextSaved);
+      showToast("Could not update saved jobs. Try again.", "error");
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  const handleReport = async () => {
+    if (!job || reporting) return;
+
+    if (!auth.currentUser) {
+      showToast("Sign in to report an opportunity", "info");
+      navigate("/auth?mode=login");
+      return;
+    }
+
+    const reason = window.prompt(
+      "Report reason: fake post, unclear pay, spam, unsafe, or other"
+    );
+
+    if (!reason?.trim()) return;
+
+    setReporting(true);
+
+    try {
+      await createReport({
+        postId: job.id,
+        title: job.title,
+        company: job.company,
+        reason: reason.trim(),
+        reporterUid: auth.currentUser.uid,
+        reporterEmail: auth.currentUser.email || null,
+        ownerUid: job.ownerUid || null,
+        ownerEmail: job.ownerEmail || job.contact || null,
+      });
+      showToast("Report submitted", "info");
+    } catch (error) {
+      console.error("Report opportunity error:", error);
+      showToast("Could not submit the report. Try again.", "error");
+    } finally {
+      setReporting(false);
+    }
   };
 
   if (loading) {
@@ -254,7 +368,7 @@ export default function JobDetails() {
 
       <AppHeader />
 
-      <main className="mx-auto max-w-[1100px] px-4 pb-36 pt-5 sm:px-6 lg:pb-16">
+      <main className="mx-auto max-w-[1100px] px-4 pb-32 pt-5 sm:px-6 lg:pb-16">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -266,11 +380,9 @@ export default function JobDetails() {
 
         <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_340px]">
           <div>
-            <section className="rounded-[28px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-7">
+            <section className="rounded-[24px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:rounded-[28px] sm:p-7">
               <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--forsa-primary)] text-xl text-white">
-                  <FaBriefcase />
-                </div>
+                <CompanyMark name={job.company} />
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -291,7 +403,7 @@ export default function JobDetails() {
                     {job.title}
                   </h1>
 
-                  <p className="mt-2 text-base font-medium text-neutral-600">
+                  <p className="mt-2 text-base font-semibold text-neutral-700">
                     {job.company || "Company"}
                   </p>
 
@@ -313,21 +425,38 @@ export default function JobDetails() {
                 </div>
               </div>
 
-              <div className="mt-7 flex flex-wrap gap-2">
+              <div className="mt-7 flex flex-wrap gap-2 border-t border-[var(--forsa-border)] pt-5">
                 {job.verified && <Badge>Verified company</Badge>}
                 {!job.verified && job.trusted && <Badge>Trusted company</Badge>}
                 {job.featured && <Badge>Featured</Badge>}
+                {!job.verified && !job.trusted && (
+                  <span className="inline-flex items-center rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-500">
+                    New poster
+                  </span>
+                )}
               </div>
 
               <div className="mt-8 border-t border-[var(--forsa-border)] pt-7">
-                <h2 className="text-xl font-semibold tracking-[-0.025em]">
-                  About the opportunity
-                </h2>
+  <h2 className="text-xl font-semibold tracking-[-0.025em]">
+    About the opportunity
+  </h2>
 
-                <div className="mt-4 whitespace-pre-line text-sm leading-7 text-neutral-600 sm:text-base">
-                  {job.description || "No description provided."}
-                </div>
-              </div>
+  <div className="mt-4 whitespace-pre-line text-sm leading-7 text-neutral-600 sm:text-base">
+    {job.description || "No description provided."}
+  </div>
+
+  {job.requirements?.trim() && (
+    <div className="mt-7 border-t border-[var(--forsa-border)] pt-7">
+      <h2 className="text-xl font-semibold tracking-[-0.025em]">
+        Requirements
+      </h2>
+
+      <div className="mt-4 whitespace-pre-line text-sm leading-7 text-neutral-600 sm:text-base">
+        {job.requirements}
+      </div>
+    </div>
+  )}
+</div>
 
               {Array.isArray(job.tags) && job.tags.length > 0 && (
                 <div className="mt-8 border-t border-[var(--forsa-border)] pt-7">
@@ -372,10 +501,10 @@ export default function JobDetails() {
           </div>
 
           <aside className="h-fit lg:sticky lg:top-6">
-            <section className="rounded-[28px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-6">
+            <section className="rounded-[24px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:rounded-[28px] sm:p-6">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.08em] text-neutral-400">
-                  Job details
+                  At a glance
                 </p>
 
                 <div className="mt-3">
@@ -412,7 +541,7 @@ export default function JobDetails() {
                 <button
                   type="button"
                   onClick={handleApply}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3.5 text-sm font-medium text-white transition hover:opacity-90"
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(109,40,217,0.18)] transition hover:bg-[var(--forsa-primary-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forsa-primary)] focus-visible:ring-offset-2"
                 >
                   <FaPaperPlane className="text-xs" />
                   {job.applicationMethod === "external"
@@ -422,7 +551,8 @@ export default function JobDetails() {
 
                 <button
                   type="button"
-                  onClick={() => setSaved((value) => !value)}
+                  onClick={handleSave}
+                  disabled={saveLoading}
                   className={`inline-flex w-full items-center justify-center gap-2 rounded-full border px-5 py-3.5 text-sm font-medium transition ${
                     saved
                       ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white"
@@ -444,14 +574,16 @@ export default function JobDetails() {
 
                 <button
                   type="button"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3.5 text-sm font-medium text-neutral-500 transition hover:border-neutral-400"
+                  onClick={handleReport}
+                  disabled={reporting}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3.5 text-sm font-medium text-neutral-500 transition hover:border-red-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <FaFlag className="text-xs" />
                   Report opportunity
                 </button>
               </div>
 
-              <div className="mt-5 flex items-start gap-3 rounded-2xl bg-[var(--forsa-bg)] p-4">
+              <div className="mt-5 flex items-start gap-3 rounded-2xl border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4">
                 <FaCheckCircle className="mt-0.5 shrink-0 text-[var(--forsa-primary)]" />
 
                 <p className="text-xs leading-5 text-neutral-500">
@@ -461,6 +593,31 @@ export default function JobDetails() {
               </div>
             </section>
           </aside>
+        </div>
+
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--forsa-border)] bg-white/95 p-3 shadow-[0_-10px_30px_rgba(20,12,40,0.08)] backdrop-blur-xl lg:hidden">
+          <div className="mx-auto grid max-w-[1100px] grid-cols-[1fr_auto] gap-2">
+            <button
+              type="button"
+              onClick={handleApply}
+              className="min-h-11 rounded-full bg-[var(--forsa-primary)] px-4 text-sm font-semibold text-white shadow-sm"
+            >
+              {job.applicationMethod === "external" ? "Apply externally" : "Apply now"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saveLoading}
+              aria-label={saved ? "Remove from saved jobs" : "Save opportunity"}
+              className={`flex min-h-11 min-w-11 items-center justify-center rounded-full border ${
+                saved
+                  ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white"
+                  : "border-[var(--forsa-border)] bg-white text-neutral-600"
+              }`}
+            >
+              {saved ? <FaBookmark /> : <FaRegBookmark />}
+            </button>
+          </div>
         </div>
       </main>
 

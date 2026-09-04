@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { auth } from "../lib/firebase";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { showToast } from "../lib/Toast";
 import ExploreSkeleton from "../components/ExploreSkeleton";
-import Skeleton from "../components/Skeleton";
 import { FaWhatsapp, FaCopy } from "react-icons/fa";
 import SEO from "../components/SEO"
 import Modal from "../components/ui/Modal";
@@ -28,7 +26,6 @@ import {
   FaBolt,
   FaStar,
   FaSlidersH,
-  FaArrowRight,
   FaUserCircle,
   FaShareAlt,
   FaFlag,
@@ -226,6 +223,8 @@ export default function Explore() {
   const [recentlyViewed, setRecentlyViewed] = useState(safeJson("forsaRecentlyViewed", []));
   const [firebasePosts, setFirebasePosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState("");
+  const [currentTime] = useState(() => Date.now());
 
   const users = safeJson("forsaUsers", []);
   const trustedPosters = safeJson("forsaTrustedPosters", []);
@@ -281,14 +280,17 @@ export default function Explore() {
         if (!active) return;
 
         setFirebasePosts(posts);
+        setPostsError("");
         writeJson("forsaPostsCache", posts);
       } catch (error) {
         console.error("Load posts error:", error);
 
         if (!active) return;
 
-        setFirebasePosts(safeJson("forsaPostsCache", []));
-        showToast("Could not refresh posts. Showing saved data.", "info");
+        const cachedPosts = safeJson("forsaPostsCache", []);
+        setFirebasePosts(cachedPosts);
+        setPostsError(cachedPosts.length ? "" : "We could not load opportunities right now.");
+        if (cachedPosts.length) showToast("Could not refresh posts. Showing saved data.", "info");
       } finally {
         if (active) setPostsLoading(false);
       }
@@ -351,8 +353,8 @@ export default function Explore() {
         contact: post.contact || "Not specified",
         description: post.description || "No description provided.",
         ownerEmail: post.ownerEmail || post.contact || null,
-        createdAt: getDateValue(post.createdAt || post.id || Date.now()),
-        updatedAt: getDateValue(post.updatedAt || post.createdAt || Date.now()),
+        createdAt: getDateValue(post.createdAt || post.id || currentTime),
+        updatedAt: getDateValue(post.updatedAt || post.createdAt || currentTime),
         source: "community",
         postSource: post.postSource || post.sourceType || "direct",
         workCountry: getWorkCountry(post),
@@ -377,7 +379,7 @@ export default function Explore() {
     }));
 
     return [...normalizedPosts, ...normalizedSeed];
-  }, [firebasePosts]);
+  }, [firebasePosts, currentTime, getCompanyTrust]);
 
   const availableLocations = useMemo(() => {
     const locations = allOpportunities
@@ -497,7 +499,7 @@ export default function Explore() {
   const freshOpportunities = useMemo(() => {
     if (!canInteract) return [];
 
-    const oneWeekAgo = Date.now() - 1000 * 60 * 60 * 24 * 7;
+    const oneWeekAgo = currentTime - 1000 * 60 * 60 * 24 * 7;
 
     const excludedIds = new Set([
       ...recommendedOpportunities.map((item) => String(item.id)),
@@ -516,12 +518,28 @@ export default function Explore() {
     canInteract,
     recommendedOpportunities,
     featuredOpportunities,
+    currentTime,
   ]);
+
+  const trackRecentlyViewed = (item, updateState = true) => {
+    const stored = safeJson("forsaRecentlyViewed", []);
+    const updated = [
+      {
+        ...cleanPostForStorage(item),
+        viewedAt: new Date().toISOString(),
+      },
+      ...stored.filter((post) => String(post.id) !== String(item.id)),
+    ].slice(0, 12);
+
+    if (updateState) setRecentlyViewed(updated);
+    writeJson("forsaRecentlyViewed", updated);
+  };
 
 
   useEffect(() => {
   const postId = readSharedPostId(searchParams, location);
   if (!postId) return;
+  const shouldApply = searchParams.get("apply") === "1";
 
   const found = allOpportunities.find(
     (item) => String(item.id) === String(postId)
@@ -535,11 +553,22 @@ export default function Explore() {
     return;
   }
 
-  openDetails(found, { replaceUrl: true });
-
-  // Count this as a real post view.
+  const viewed = [
+    { ...cleanPostForStorage(found), viewedAt: new Date().toISOString() },
+    ...safeJson("forsaRecentlyViewed", []).filter(
+      (post) => String(post.id) !== String(found.id)
+    ),
+  ].slice(0, 12);
+  writeJson("forsaRecentlyViewed", viewed);
   updatePostAnalytics(found.id, "views");
-}, [searchParams, location.search, location.hash, allOpportunities]);
+
+  if (shouldApply && canInteract) {
+    setApplyOpportunity(found);
+    return;
+  }
+
+  navigate(`/jobs/${found.id}`, { replace: true });
+}, [searchParams, location, navigate, postsLoading, allOpportunities, canInteract]);
 
   const stats = useMemo(() => {
     return {
@@ -566,20 +595,6 @@ export default function Explore() {
     }
 
     return true;
-  };
-
-  const trackRecentlyViewed = (item) => {
-    const stored = safeJson("forsaRecentlyViewed", []);
-    const updated = [
-      {
-        ...cleanPostForStorage(item),
-        viewedAt: new Date().toISOString(),
-      },
-      ...stored.filter((post) => String(post.id) !== String(item.id)),
-    ].slice(0, 12);
-
-    setRecentlyViewed(updated);
-    writeJson("forsaRecentlyViewed", updated);
   };
 
   const toggleSave = async (item) => {
@@ -655,25 +670,6 @@ export default function Explore() {
 
   setApplyOpportunity(item);
 };
-
-  function openDetails(item, options = {}) {
-    const enhancedItem = {
-      ...item,
-      matchScore: item.matchScore ?? calculateMatchScore(item, savedProfile, account),
-      ...getMatchMeta(item, savedProfile),
-    };
-
-    updatePostAnalytics(item.id, "views");
-    trackRecentlyViewed(enhancedItem);
-    setSelectedOpportunity(enhancedItem);
-    setSearch("");
-    setActiveType("All");
-
-    const nextPath = `/explore?post=${encodeURIComponent(item.id)}`;
-    if (location.pathname + location.search !== nextPath) {
-      navigate(nextPath, { replace: Boolean(options.replaceUrl) });
-    }
-  }
 
   const shareOpportunity = async (item) => {
     const url = buildPostUrl(item.id);
@@ -827,17 +823,18 @@ try {
 
   // STEP 2 — Create notification
   try {
-    await createNotification({
-      type: "new_application",
-      title: "New application received",
-      text: `${account.name} applied to ${item.title}`,
-      targetEmail: item.ownerEmail || item.contact || null,
-    });
-
-  } catch (error) {
-    console.error("NOTIFICATION CREATION FAILED:", error);
-    throw error;
-  }
+  await createNotification({
+    type: "new_application",
+    title: "New application received",
+    text: `${account.name} applied to ${item.title}`,
+    targetEmail: item.ownerEmail || item.contact || null,
+    targetUid: createdThread.ownerUid || item.ownerUid || null,
+    applicationId: createdThread.id,
+  });
+} catch (error) {
+  console.error("NOTIFICATION CREATION FAILED:", error);
+  throw error;
+}
 
   // STEP 3 — Update analytics
   if (!existing) {
@@ -888,14 +885,13 @@ try {
         <StatusCard
           isLoggedIn={isLoggedIn}
           isHiring={isHiring}
-          savedProfile={savedProfile}
           navigate={navigate}
         />
 
         {recentlyViewed.length > 0 && (
           <RecentlyViewedSection
             items={recentlyViewed}
-            onOpen={(item) => openDetails(item)}
+            onOpen={(item) => navigate(`/jobs/${item.id}`)}
           />
         )}
         {recommendedOpportunities.length > 0 && (
@@ -905,7 +901,7 @@ try {
             appliedIds={appliedIds}
             canInteract={canInteract}
             onSave={toggleSave}
-            onDetails={openDetails}
+            onDetails={(item) => navigate(`/jobs/${item.id}`)}
             onApply={openApply}
             onShare={shareOpportunity}
             navigate={navigate}
@@ -919,7 +915,7 @@ try {
             appliedIds={appliedIds}
             canInteract={canInteract}
             onSave={toggleSave}
-            onDetails={openDetails}
+            onDetails={(item) => navigate(`/jobs/${item.id}`)}
             onApply={openApply}
             onShare={(item) => setShareItem(item)}
             navigate={navigate}
@@ -933,7 +929,7 @@ try {
             appliedIds={appliedIds}
             canInteract={canInteract}
             onSave={toggleSave}
-            onDetails={openDetails}
+            onDetails={(item) => navigate(`/jobs/${item.id}`)}
             onApply={openApply}
             onShare={shareOpportunity}
             navigate={navigate}
@@ -964,6 +960,8 @@ try {
 
         {postsLoading ? (
   <ExploreSkeleton />
+) : postsError ? (
+          <LoadErrorState message={postsError} onRetry={() => window.location.reload()} />
 ) : rankedOpportunities.length === 0 ? (
           <EmptyState search={search} />
         ) : (
@@ -1108,7 +1106,7 @@ function HeroBar({ isHiring, isLoggedIn, navigate, stats }) {
           )}
         </div>
 
-        <div className="mt-5 grid grid-cols-5 gap-2">
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
           <MiniStat label="Jobs" value={stats.total} />
           <MiniStat label="Urgent" value={stats.urgent} />
           <MiniStat label="Abroad" value={stats.abroad} />
@@ -1127,20 +1125,9 @@ function MiniStat({ label, value }) {
         {value}
       </p>
 
-      <p className="mt-1 text-[9px] font-semibold uppercase tracking-normal text-neutral-400 sm:text-xs">
+      <p className="mt-1 text-[10px] font-semibold uppercase tracking-normal text-neutral-500 sm:text-xs">
         {label}
       </p>
-    </div>
-  );
-}
-
-function HeroChip({ label, value, icon }) {
-  return (
-    <div className="rounded-[24px] border border-[#ebe5ff] bg-white px-4 py-3 shadow-sm">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
-        {icon}
-        {value}
-      </div>
     </div>
   );
 }
@@ -1160,11 +1147,9 @@ function SearchPanel({
   hasActiveFilters,
   clearFilters,
 }) {
-  const quickTypes = ["All", "Internship", "Part-time", "Remote", "Agency", "Abroad"];
-
   return (
     <>
-      <div className="sticky top-[72px] z-30 -mx-3 mt-3 border-y border-[var(--forsa-border)] bg-white/92 px-3 py-3 backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[28px]  sm:p-3">
+      <div className="sticky top-[64px] z-30 -mx-3 mt-3 border-y border-[var(--forsa-border)] bg-white/95 px-3 py-3 backdrop-blur-2xl sm:mx-0 sm:mt-5 sm:rounded-[28px] sm:p-3">
         <div className="flex items-center gap-2">
           <div className="forsa-focus flex min-w-0 flex-1 items-center gap-3 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-3 shadow-sm transition focus-within:border-[var(--forsa-primary)]">
             <FaSearch className="shrink-0 text-sm text-[var(--forsa-primary)]" />
@@ -1343,7 +1328,6 @@ function FeaturedSection({
   appliedIds,
   canInteract,
   onSave,
-  onDetails,
   onApply,
   onShare,
   navigate,
@@ -1392,7 +1376,7 @@ function FeaturedSection({
   );
 }
 
-function FreshSection({ items, savedJobs, appliedIds, canInteract, onSave, onDetails, onApply, onShare, navigate }) {
+function FreshSection({ items, savedJobs, appliedIds, canInteract, onSave, onApply, onShare, navigate }) {
   return (
     <section className="mt-6 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_20px_80px_rgba(109,40,217,0.08)] sm:p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -1426,7 +1410,7 @@ function FreshSection({ items, savedJobs, appliedIds, canInteract, onSave, onDet
   );
 }
 
-function RecommendedSection({ items, savedJobs, appliedIds, canInteract, onSave, onDetails, onApply, onShare, navigate }) {
+function RecommendedSection({ items, savedJobs, appliedIds, canInteract, onSave, onApply, onShare, navigate }) {
   const isSaved = (id) => savedJobs.some((job) => String(job.id) === String(id));
 
   return (
@@ -1559,7 +1543,7 @@ function OpportunityCard({
           <div className="min-w-0 flex-1">
 
             {/* Badges */}
-            <div className="mb-1.5 flex h-[18px] items-center gap-1.5 overflow-hidden">
+            <div className="mb-2 flex min-h-[22px] items-center gap-1.5 overflow-hidden">
 
               {item.verified && (
                 <Badge>
@@ -1591,7 +1575,7 @@ function OpportunityCard({
             </div>
 
             {/* Job title */}
-            <h3 className="line-clamp-2 text-[15px] font-semibold leading-[1.3] tracking-[-0.025em] text-neutral-950">
+            <h3 className="line-clamp-2 text-[16px] font-semibold leading-[1.28] tracking-[-0.025em] text-neutral-950">
               {item.title}
             </h3>
 
@@ -1632,13 +1616,13 @@ function OpportunityCard({
         </div>
 
         {/* ───────────────── QUICK FACTS ───────────────── */}
-        <div className="mt-4 flex items-center divide-x divide-[var(--forsa-border)] rounded-[14px] border border-[var(--forsa-border)] bg-[#fcfbfe] px-1 py-2">
+        <div className="mt-4 flex items-center divide-x divide-[var(--forsa-border)] rounded-[14px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] px-1 py-2.5">
 
           <div className="min-w-0 flex-1 px-2.5">
             <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
               Type
             </p>
-            <p className="mt-0.5 truncate text-[11px] font-semibold text-neutral-700">
+            <p className="mt-0.5 truncate text-xs font-semibold text-neutral-800">
               {isAgencyPost(item) ? "Agency" : item.type || "—"}
             </p>
           </div>
@@ -1647,7 +1631,7 @@ function OpportunityCard({
             <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
               Pay
             </p>
-            <p className="mt-0.5 truncate text-[11px] font-semibold text-neutral-700">
+            <p className="mt-0.5 truncate text-xs font-semibold text-neutral-800">
               {item.pay || "Not specified"}
             </p>
           </div>
@@ -1656,7 +1640,7 @@ function OpportunityCard({
             <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
               {isAbroadPost(item) ? "Country" : "Applicants"}
             </p>
-            <p className="mt-0.5 truncate text-[11px] font-semibold text-neutral-700">
+            <p className="mt-0.5 truncate text-xs font-semibold text-neutral-800">
               {isAbroadPost(item)
                 ? getWorkCountry(item)
                 : applicantCount}
@@ -1734,13 +1718,13 @@ function OpportunityCard({
       {/* ───────────────── ACTIONS ───────────────── */}
       <div className="border-t border-[var(--forsa-border)] bg-[#fcfbfe] p-3">
 
-        <div className="grid grid-cols-[1fr_40px_1fr] gap-2">
+        <div className="grid grid-cols-[1fr_44px_1fr] gap-2">
 
           {/* Details */}
           <button
             type="button"
             onClick={onDetails}
-            className="rounded-full border border-[var(--forsa-border)] bg-white px-3 py-2 text-[12px] font-semibold text-neutral-700 transition-all duration-200 hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg)] hover:text-[var(--forsa-primary)]"
+            className="min-h-10 rounded-full border border-[var(--forsa-border)] bg-white px-3 py-2 text-[11px] font-semibold text-neutral-700 transition-all duration-200 hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg)] hover:text-[var(--forsa-primary)] sm:text-[12px]"
           >
             View details
           </button>
@@ -1749,7 +1733,7 @@ function OpportunityCard({
           <button
             type="button"
             onClick={onShare}
-            className="inline-flex items-center justify-center rounded-full border border-[var(--forsa-border)] bg-white text-neutral-500 transition-all duration-200 hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg)] hover:text-[var(--forsa-primary)]"
+            className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--forsa-border)] bg-white text-neutral-500 transition-all duration-200 hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg)] hover:text-[var(--forsa-primary)]"
             aria-label="Share opportunity"
           >
             <FaShareAlt className="text-[11px]" />
@@ -1759,7 +1743,7 @@ function OpportunityCard({
           <button
             type="button"
             onClick={onApply}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[9px] font-semibold transition-all duration-200 ${
+            className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[10px] font-semibold transition-all duration-200 sm:text-[11px] ${
               canInteract
                 ? "bg-[linear-gradient(135deg,var(--forsa-primary),var(--forsa-glow))] text-white shadow-[0_8px_18px_rgba(109,40,217,0.16)] hover:-translate-y-0.5"
                 : "bg-neutral-200 text-neutral-500"
@@ -1810,22 +1794,6 @@ function AbroadBadge({ country = "Abroad", compact = false }) {
       <FaGlobe className="text-[9px]" />
       {country || "Abroad"}
     </span>
-  );
-}
-
-function AgencyMiniNotice({ item }) {
-  return (
-    <div className="mt-4 rounded-[20px] border border-amber-100 bg-amber-50 p-3">
-      <div className="flex items-start gap-2">
-        <FaBuilding className="mt-0.5 shrink-0 text-xs text-amber-700" />
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-amber-800">Posted by agency</p>
-          <p className="mt-1 line-clamp-2 text-xs leading-5 text-amber-800">
-            Hiring for {getHiringFor(item)} · {getWorkCountry(item)}. Confirm details before applying.
-          </p>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -1891,18 +1859,7 @@ function Badge({ children, tone = "purple" }) {
   );
 }
 
-function MetaChip({ label, value }) {
-  return (
-    <div className="min-w-0 rounded-2xl bg-[#f8f6fb] px-3 py-2">
-      <p className="text-[10px] font-medium text-neutral-400">{label}</p>
-      <p className="mt-0.5 truncate text-xs font-semibold text-neutral-700">
-        {value || "—"}
-      </p>
-    </div>
-  );
-}
-
-function StatusCard({ isLoggedIn, isHiring, savedProfile, navigate }) {
+function StatusCard({ isLoggedIn, isHiring, navigate }) {
   if (!isLoggedIn) {
     return (
       <div className="mt-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
@@ -1942,48 +1899,6 @@ function StatusCard({ isLoggedIn, isHiring, savedProfile, navigate }) {
   
 }
 
-function SkillBox({ title, skills }) {
-  const safeSkills = Array.isArray(skills) ? skills : [];
-
-  return (
-    <div>
-      <div>{title}</div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        {safeSkills.length > 0 ? (
-          safeSkills.slice(0, 8).map((skill) => (
-            <span
-              key={skill}
-              className="rounded-full bg-white px-3 py-1.5 text-xs"
-            >
-              {skill}
-            </span>
-          ))
-        ) : (
-          <p className="text-sm text-neutral-500">
-            Nothing selected yet.
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-function LoadingState() {
-  return (
-    <div className="mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white p-8 text-center shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-10">
-      <div className="mx-auto h-10 w-10 animate-pulse rounded-full bg-[var(--forsa-bg)]" />
-
-      <h3 className="mt-5 text-xl font-semibold tracking-[-0.02em]">
-        Loading opportunities
-      </h3>
-
-      <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-neutral-600 sm:text-base">
-        Fetching the latest posts from Forsa.
-      </p>
-    </div>
-  );
-}
-
 function EmptyState({ search }) {
   return (
     <div className="mt-5 rounded-[26px] border border-[var(--forsa-border)] bg-white p-8 text-center shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-10">
@@ -2002,23 +1917,18 @@ function EmptyState({ search }) {
   );
 }
 
-function Pill({ children, icon, tone = "light" }) {
-  const styles = {
-    dark: "bg-[var(--forsa-primary)] text-white",
-    gold: "bg-[var(--forsa-gold)] text-black",
-    red: "bg-[var(--forsa-red)] text-white",
-    light: "bg-[#f7f5fb] text-neutral-600",
-  };
-
+function LoadErrorState({ message, onRetry }) {
   return (
-    <span
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${
-        styles[tone] || styles.light
-      }`}
-    >
-      {icon}
-      {children}
-    </span>
+    <div className="mt-5 rounded-[26px] border border-red-100 bg-white p-8 text-center shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:p-10">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+        <FaExclamationTriangle />
+      </div>
+      <h3 className="mt-5 text-xl font-semibold tracking-[-0.02em]">We could not load opportunities</h3>
+      <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-neutral-600">{message} Please try again.</p>
+      <button type="button" onClick={onRetry} className="mt-6 rounded-full forsa-button px-5 py-3 text-sm font-semibold text-white">
+        Try again
+      </button>
+    </div>
   );
 }
 

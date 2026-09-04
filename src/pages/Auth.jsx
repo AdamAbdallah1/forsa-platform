@@ -522,33 +522,52 @@ export default function Auth() {
   ========================================================== */
 
   return (
-    <main className="min-h-[100dvh] overflow-x-hidden bg-[#f7f7f5] text-neutral-950">
+    <main className="min-h-[100dvh] overflow-x-hidden bg-[var(--forsa-bg)] text-neutral-950">
       <SEO title="Join Forsa" />
 
-      <section className="relative mx-auto flex min-h-[100dvh] w-full max-w-7xl items-start px-4 py-6 sm:items-center sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+      <section className="relative mx-auto flex min-h-[100dvh] w-full max-w-7xl items-start px-4 py-5 sm:items-center sm:px-6 sm:py-8 lg:px-10 lg:py-10">
         {/* Background decoration */}
 
         <div className="pointer-events-none absolute left-[-140px] top-[-140px] h-80 w-80 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
 
-        <div className="pointer-events-none absolute bottom-[-180px] right-[-140px] h-96 w-96 rounded-full bg-neutral-300/40 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-[-180px] right-[-140px] h-96 w-96 rounded-full bg-[var(--forsa-gold-soft)]/45 blur-3xl" />
 
         <div className="relative grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,470px)] lg:items-center lg:gap-16 xl:gap-24">
 
           <div className="relative pt-2 lg:pt-0">
             <div className="max-w-2xl">
+  <div className="mx-auto max-w-xl text-center lg:mx-0 lg:block lg:text-left">
 
-              <div className="mt-8 hidden max-w-lg gap-3 lg:grid">
-                <TrustItem
-                  title="For people looking for opportunities"
-                  text="Build your profile, discover relevant opportunities, and apply in one place."
-                />
+    <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white/85 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--forsa-primary)] shadow-sm">
+      <span className="h-1.5 w-1.5 rounded-full bg-[var(--forsa-primary)]" />
+      Lebanon&apos;s opportunity network
+    </div>
 
-                <TrustItem
-                  title="For companies and teams"
-                  text="Create opportunities, discover talent, and manage applicants without the chaos."
-                />
-              </div>
-            </div>
+    <h1 className="max-w-xl text-4xl font-semibold leading-[1.06] tracking-[-0.05em] text-neutral-950 sm:text-5xl xl:text-6xl">
+      Your next opportunity
+      <span className="block text-[var(--forsa-primary)]">
+        starts here.
+      </span>
+    </h1>
+
+    <p className="mx-auto mt-5 max-w-lg text-sm leading-7 text-neutral-500 sm:text-base lg:mx-0">
+      Discover opportunities, build meaningful connections, and
+      make your next move with Forsa.
+    </p>
+  </div>
+
+  <div className="mt-8 hidden max-w-lg gap-3 lg:grid">
+    <TrustItem
+      title="For people looking for opportunities"
+      text="Build your profile, discover relevant opportunities, and apply in one place."
+    />
+
+    <TrustItem
+      title="For companies and teams"
+      text="Create opportunities, discover talent, and manage applicants without the chaos."
+    />
+  </div>
+</div>
           </div>
 
           {/* ==================================================
@@ -558,7 +577,7 @@ export default function Auth() {
           <div className="relative mx-auto flex w-full max-w-[470px] flex-col">
             {/* AUTH CARD */}
 
-            <div className="w-full rounded-[28px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_20px_60px_rgba(0,0,0,0.06)] sm:p-7">
+            <div className="w-full rounded-[24px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_24px_70px_rgba(40,20,80,0.08)] sm:rounded-[28px] sm:p-7">
               {/* Error */}
 
               {error && (
@@ -639,9 +658,6 @@ export default function Auth() {
                         setShowConfirmPassword
                       }
                       loading={loading}
-                      passwordIssue={
-                        passwordIssue
-                      }
                       passwordRequirements={
                         passwordRequirements
                       }
@@ -699,7 +715,7 @@ function WelcomeStep({
           Get started
         </p>
 
-        <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-neutral-950">
+        <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-neutral-950 sm:text-[28px]">
           Welcome to Forsa
         </h2>
 
@@ -716,7 +732,7 @@ function WelcomeStep({
             onChooseMode("signup")
           }
           disabled={loading}
-          className="forsa-click flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--forsa-primary-light)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
+          className="forsa-click flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(109,40,217,0.18)] transition-all duration-200 hover:bg-[var(--forsa-primary-dark)] hover:shadow-[0_14px_30px_rgba(109,40,217,0.24)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
         >
           Create an account
           <FaArrowRight className="text-xs" />
@@ -728,7 +744,7 @@ function WelcomeStep({
             onChooseMode("login")
           }
           disabled={loading}
-          className="forsa-click flex min-h-12 w-full items-center justify-center rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
+          className="forsa-click flex min-h-12 w-full items-center justify-center rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg-soft)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
         >
           Log in
         </button>
@@ -747,7 +763,7 @@ function WelcomeStep({
           type="button"
           onClick={onGoogleLogin}
           disabled={loading}
-          className="forsa-click flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
+          className="forsa-click flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg-soft)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
         >
           <FaGoogle className="text-sm" />
 
@@ -831,7 +847,7 @@ function ChoiceStep({
       <button
         type="button"
         onClick={onContinue}
-        className="forsa-click mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--forsa-primary-light)] active:scale-[0.99]"
+        className="forsa-click mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--forsa-primary-light)] hover:shadow-md active:translate-y-0 active:scale-[0.99]"
       >
         Continue
         <FaArrowRight className="text-xs" />
@@ -857,7 +873,6 @@ function FormStep({
   showConfirmPassword,
   setShowConfirmPassword,
   loading,
-  passwordIssue,
   passwordRequirements,
   passwordsMatch,
   onModeSwitch,
@@ -1375,7 +1390,7 @@ function Field({
         {label}
       </label>
 
-      <div className="forsa-focus mt-1.5 flex min-h-12 items-center gap-3 rounded-xl border border-[var(--forsa-border)] bg-white px-3.5 py-2.5 transition focus-within:border-[var(--forsa-primary)] focus-within:ring-4 focus-within:ring-[var(--forsa-primary)]/10">
+      <div className="forsa-focus mt-1.5 flex min-h-12 items-center gap-3 rounded-xl border border-[var(--forsa-border)] bg-white px-3.5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all duration-200 focus-within:border-[var(--forsa-primary)] focus-within:ring-4 focus-within:ring-[var(--forsa-primary)]/10">
         {icon && (
           <span
             aria-hidden="true"
@@ -1422,7 +1437,7 @@ function PasswordField({
         {label}
       </label>
 
-      <div className="forsa-focus mt-1.5 flex min-h-12 items-center gap-3 rounded-xl border border-[var(--forsa-border)] bg-white px-3.5 py-2.5 transition focus-within:border-[var(--forsa-primary)] focus-within:ring-4 focus-within:ring-[var(--forsa-primary)]/10">
+      <div className="forsa-focus mt-1.5 flex min-h-12 items-center gap-3 rounded-xl border border-[var(--forsa-border)] bg-white px-3.5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all duration-200 focus-within:border-[var(--forsa-primary)] focus-within:ring-4 focus-within:ring-[var(--forsa-primary)]/10">
         <FaLock
           aria-hidden="true"
           className="shrink-0 text-sm text-neutral-400"

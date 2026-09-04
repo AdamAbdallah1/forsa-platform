@@ -267,6 +267,7 @@ const [interviewForm, setInterviewForm] = useState({
     title: `Application ${getStatusLabel(status).toLowerCase()}`,
     text: `${thread.company || account.companyName || account.name} marked your application for ${thread.title} as ${getStatusLabel(status)}.`,
     targetEmail: thread.seeker.email,
+    targetUid: thread.seeker.uid,
     actionUrl: "/applications",
     applicationId: thread.id,
   });
@@ -364,6 +365,7 @@ if (interviewForm.type === "in_person" && !interviewForm.locationName.trim()) {
     ? `${interviewTarget.company || account.companyName || account.name} invited you to an online interview for ${interviewTarget.title} on ${interview.date} at ${interview.time}.`
     : `${interviewTarget.company || account.companyName || account.name} invited you to an in-person interview for ${interviewTarget.title} on ${interview.date} at ${interview.time}.`,
     targetEmail: interviewTarget.seeker.email,
+    targetUid: interviewTarget.seeker.uid,
     actionUrl: "/applications",
     applicationId: interviewTarget.id,
   });
@@ -450,6 +452,7 @@ const cancelInterview = async () => {
         title: "Interview cancelled",
         text: `${interviewTarget.company || account.companyName || account.name} cancelled the interview for ${interviewTarget.title}.`,
         targetEmail: interviewTarget.seeker.email,
+        targetUid: interviewTarget.seeker.uid,
         actionUrl: "/applications",
         applicationId: interviewTarget.id,
       });

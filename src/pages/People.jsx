@@ -13,7 +13,7 @@ import { showToast } from "../lib/Toast";
 import {
   followUser,
   unfollowUser,
-  isFollowing,
+  getConnectionStatus,
 } from "../lib/connectionService";
 import {
   FaBriefcase,
@@ -23,7 +23,6 @@ import {
   FaUser,
   FaUserCheck,
   FaUserPlus,
-  FaUsers,
 } from "react-icons/fa";
 
 function safeJson(key, fallback) {
@@ -47,14 +46,16 @@ export default function People() {
   const account = safeJson("forsaAccount", null);
 
   const [people, setPeople] = useState([]);
-  const [connectedIds, setConnectedIds] = useState([]);
+  const [connectionStates, setConnectionStates] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [busyUid, setBusyUid] = useState(null);
   const [search, setSearch] = useState("");
   const [skillFilter, setSkillFilter] = useState("all");
 
   useEffect(() => {
     async function loadPeople() {
+      setLoadError("");
       try {
         const q = query(
           collection(db, "users"),
@@ -76,16 +77,20 @@ export default function People() {
           const checks = await Promise.all(
             users.map(async (user) => ({
               uid: user.uid,
-              connected: await isFollowing(account.uid, user.uid),
+              status: await getConnectionStatus(account.uid, user.uid),
             }))
           );
 
-          setConnectedIds(
-            checks.filter((item) => item.connected).map((item) => item.uid)
+          setConnectionStates(
+            checks.reduce((result, item) => {
+              result[item.uid] = item.status;
+              return result;
+            }, {})
           );
         }
       } catch (error) {
         console.error("People load error:", error);
+        setLoadError("We could not load people right now.");
         showToast("Could not load people.", "error");
       } finally {
         setLoading(false);
@@ -147,7 +152,8 @@ export default function People() {
     setBusyUid(person.uid);
 
     try {
-      const connected = connectedIds.includes(person.uid);
+      const status = connectionStates[person.uid] || "none";
+      const connected = status === "accepted";
 
       if (connected) {
         await unfollowUser({
@@ -155,7 +161,7 @@ export default function People() {
           toUid: person.uid,
         });
 
-        setConnectedIds((prev) => prev.filter((uid) => uid !== person.uid));
+        setConnectionStates((prev) => ({ ...prev, [person.uid]: "none" }));
         showToast("Connection removed");
       } else {
         await followUser({
@@ -163,8 +169,8 @@ export default function People() {
           toUser: person,
         });
 
-        setConnectedIds((prev) => [...prev, person.uid]);
-        showToast("Connected");
+        setConnectionStates((prev) => ({ ...prev, [person.uid]: "pending" }));
+        showToast("Connection request sent");
       }
     } catch (error) {
       console.error("Connect error:", error);
@@ -206,7 +212,7 @@ export default function People() {
 
           <div className="relative mt-7 grid gap-3 sm:grid-cols-3">
             <Stat label="People" value={people.length} />
-            <Stat label="Connected" value={connectedIds.length} />
+            <Stat label="Connected" value={Object.values(connectionStates).filter((status) => status === "accepted").length} />
             <Stat label="Skills indexed" value={Math.max(0, skillOptions.length - 1)} />
           </div>
         </div>
@@ -252,6 +258,8 @@ export default function People() {
             <div className="mx-auto h-12 w-12 animate-pulse rounded-full bg-[var(--forsa-bg-soft)]" />
             <p className="mt-5 font-semibold">Loading people...</p>
           </div>
+        ) : loadError ? (
+          <PeopleLoadError onRetry={() => window.location.reload()} />
         ) : filteredPeople.length === 0 ? (
           <div className="mt-6 rounded-[30px] border border-[var(--forsa-border)] bg-white p-10 text-center shadow-sm">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]">
@@ -270,7 +278,7 @@ export default function People() {
               <PersonCard
                 key={person.uid}
                 person={person}
-                connected={connectedIds.includes(person.uid)}
+                connectionStatus={connectionStates[person.uid] || "none"}
                 busy={busyUid === person.uid}
                 onConnect={() => handleConnect(person)}
               />
@@ -279,6 +287,17 @@ export default function People() {
         )}
       </div>
     </section>
+  );
+}
+
+function PeopleLoadError({ onRetry }) {
+  return (
+    <div className="mt-6 rounded-[30px] border border-red-100 bg-white p-10 text-center shadow-sm">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600"><FaUser /></div>
+      <h2 className="mt-5 text-xl font-semibold">People are temporarily unavailable</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-600">Try again to reconnect to the Forsa network.</p>
+      <button type="button" onClick={onRetry} className="mt-5 rounded-full forsa-button px-5 py-3 text-sm font-semibold text-white">Try again</button>
+    </div>
   );
 }
 
@@ -300,10 +319,13 @@ function getProfileStrength(person) {
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
 }
 
-function PersonCard({ person, connected, busy, onConnect }) {
+function PersonCard({ person, connectionStatus, busy, onConnect }) {
   const skills = cleanList(person.skills || person.publicSkills);
   const lookingFor = cleanList(person.lookingFor || person.publicLookingFor);
   const strength = getProfileStrength(person);
+
+  const connected = connectionStatus === "accepted";
+  const pending = connectionStatus === "pending";
 
   return (
     <article className="forsa-card rounded-[30px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-[var(--forsa-primary)] hover:shadow-[0_18px_55px_rgba(109,40,217,0.10)]">
@@ -384,11 +406,13 @@ function PersonCard({ person, connected, busy, onConnect }) {
           className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
             connected
               ? "border border-[var(--forsa-border)] bg-white text-[var(--forsa-primary)]"
+              : pending
+              ? "border border-amber-200 bg-amber-50 text-amber-700"
               : "forsa-button text-white"
           }`}
         >
           {connected ? <FaUserCheck className="text-xs" /> : <FaUserPlus className="text-xs" />}
-          {busy ? "..." : connected ? "Connected" : "Connect"}
+          {busy ? "..." : connected ? "Connected" : pending ? "Pending" : "Connect"}
         </button>
       </div>
     </article>

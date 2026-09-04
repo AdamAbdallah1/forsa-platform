@@ -3,7 +3,6 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import AppHeader from "../components/AppHeader";
 import Button from "../components/ui/Button";
-import Card from "../components/ui/Card";
 import {
   FaPlus,
   FaBriefcase,
@@ -52,23 +51,23 @@ function MiniAnalytics({ label, value }) {
   );
 }
 
-function AnalyticsTab({ analytics, onNewPost }) {
+function AnalyticsTab({ analytics, onNewPost, onOpenApplicants }) {
   const rows = analytics.rows || [];
   const totals = analytics.totals || {};
   const bestPost = analytics.bestPost;
   const activePostCount = rows.filter((item) => item.post?.status !== "closed").length;
 
   return (
-    <div className="mt-8 space-y-8">
+    <div className="mt-8 space-y-6 sm:space-y-8">
       {/* Overview Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4">
         <AnalyticsMetric icon={<FaBriefcase />} label="Open Opportunities" value={formatNumber(activePostCount)} />
         <AnalyticsMetric icon={<FaEye />} label="Total Views" value={formatNumber(totals.views)} />
         <AnalyticsMetric icon={<FaPaperPlane />} label="Applications" value={formatNumber(totals.applications)} />
         <AnalyticsMetric icon={<FaPercent />} label="Conversion Rate" value={`${totals.conversionRate || 0}%`} />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
         <AnalyticsMetric icon={<FaBookmark />} label="Saves" value={formatNumber(totals.saves)} />
         <AnalyticsMetric icon={<FaShareAlt />} label="Shares" value={formatNumber(totals.shares)} />
         <AnalyticsMetric icon={<FaBullseye />} label="Avg Applicant Fit" value={`${totals.avgFit || 0}%`} />
@@ -80,8 +79,13 @@ function AnalyticsTab({ analytics, onNewPost }) {
 
       {/* Best Performing Post Highlight */}
       {bestPost && (
-        <div className="rounded-2xl border border-[var(--forsa-border)] bg-gradient-to-r from-white to-[var(--forsa-bg-soft)] p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--forsa-primary)]">Best Performing Post</p>
+        <div className="rounded-2xl border border-[var(--forsa-border)] bg-gradient-to-r from-white to-[var(--forsa-bg-soft)] p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--forsa-primary)]">Best performing opportunity</p>
+            <button type="button" onClick={onOpenApplicants} className="w-fit text-xs font-semibold text-[var(--forsa-primary)] hover:underline">
+              Review applicants
+            </button>
+          </div>
           <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-xl font-bold text-neutral-900 tracking-tight">{bestPost.post.title}</h3>
@@ -115,13 +119,13 @@ function AnalyticsTab({ analytics, onNewPost }) {
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-[var(--forsa-border)] bg-white shadow-sm">
-          <div className="border-b border-[var(--forsa-border)] px-6 py-5">
-            <h3 className="font-bold text-neutral-900 text-lg">Post Performance</h3>
-            <p className="text-sm text-neutral-500 mt-0.5">Detailed breakdown of active and historic listings.</p>
+          <div className="border-b border-[var(--forsa-border)] px-4 py-4 sm:px-6 sm:py-5">
+            <h3 className="text-lg font-bold text-neutral-900">Opportunity performance</h3>
+            <p className="mt-1 text-sm text-neutral-500">See which listings attract attention and applicants.</p>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="min-w-[760px] w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-[var(--forsa-border)] bg-[var(--forsa-bg)] text-xs font-semibold uppercase tracking-wider text-neutral-500">
                   <th className="px-6 py-4">Opportunity</th>
@@ -182,6 +186,7 @@ export default function Dashboard() {
     totals: { views: 0, applications: 0, saves: 0, shares: 0, conversionRate: 0 },
     bestPost: null,
   });
+  const [analyticsError, setAnalyticsError] = useState("");
 
   useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -198,6 +203,7 @@ export default function Dashboard() {
     }
 
     setAccount(acc);
+    setAnalyticsError("");
 
     try {
       const data = await getCompanyAnalytics({
@@ -209,6 +215,7 @@ export default function Dashboard() {
       setAnalytics(data);
     } catch (error) {
       console.error("Dashboard analytics load failed:", error);
+      setAnalyticsError("We could not refresh your analytics right now.");
     }
   });
 
@@ -244,14 +251,32 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <Button onClick={() => navigate("/post")} className="inline-flex items-center gap-2 self-start md:self-auto shadow-sm">
+            <div className="grid w-full gap-2 sm:flex sm:w-auto sm:items-center">
+            <Button onClick={() => navigate("/applicants")} variant="secondary" className="inline-flex items-center gap-2 self-start shadow-sm">
+              <FaPaperPlane className="text-xs" />
+              <span>Review applicants</span>
+            </Button>
+            <Button onClick={() => navigate("/post")} className="inline-flex items-center gap-2 self-start shadow-sm md:self-auto">
               <FaPlus className="text-xs" />
               <span>Create Listing</span>
             </Button>
+            </div>
           </div>
         </div>
 
-        <AnalyticsTab analytics={analytics} onNewPost={() => navigate("/post")} />
+        {analyticsError ? (
+          <div className="mt-8 rounded-2xl border border-red-100 bg-white p-8 text-center shadow-sm">
+            <p className="text-sm font-semibold text-red-700">Analytics are temporarily unavailable</p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-600">Your opportunities are still safe. Try refreshing to load the latest performance data.</p>
+            <button type="button" onClick={() => window.location.reload()} className="mt-5 rounded-full forsa-button px-5 py-3 text-sm font-semibold text-white">Try again</button>
+          </div>
+        ) : (
+          <AnalyticsTab
+            analytics={analytics}
+            onNewPost={() => navigate("/post")}
+            onOpenApplicants={() => navigate("/applicants")}
+          />
+        )}
       </div>
     </section>
   );

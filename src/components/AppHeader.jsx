@@ -68,7 +68,7 @@ export default function AppHeader() {
   const unreadNot = unreadNotifications.length;
 
   const unreadMessages = unreadNotifications.filter(
-    (item) => item.type === "message"
+    (item) => item.type === "message" || item.type === "new_message"
   ).length;
 
   const linkClass = ({ isActive }) =>
@@ -80,10 +80,12 @@ export default function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-[var(--forsa-border)]/80 bg-[var(--forsa-bg)]/85 backdrop-blur-2xl">
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-5 py-5 sm:px-6">
+      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-4 py-3.5 sm:px-6 sm:py-4">
         <button
+          type="button"
           onClick={() => navigate("/")}
-          className="group flex shrink-0 items-center gap-2"
+          aria-label="Go to Forsa home"
+          className="group flex shrink-0 items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forsa-primary)] focus-visible:ring-offset-2"
         >
           <BrandLogo />
         </button>
@@ -152,6 +154,8 @@ export default function AppHeader() {
             <>
               <NavLink
                 to="/messages"
+                aria-label="Messages"
+                title="Messages"
                 className={({ isActive }) =>
                   `relative hidden h-9 w-9 lg:flex items-center justify-center rounded-full border text-sm transition-all duration-200 ${
                     isActive
@@ -171,6 +175,8 @@ export default function AppHeader() {
 
               <NavLink
                 to="/notifications"
+                aria-label="Notifications"
+                title="Notifications"
                 className={({ isActive }) =>
                   `relative hidden h-9 w-9 lg:flex items-center justify-center rounded-full border text-sm transition-all duration-200 ${
                     isActive
@@ -189,23 +195,26 @@ export default function AppHeader() {
               </NavLink>
 
               <button
+                type="button"
                 onClick={() => navigate("/profile")}
-                className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-[var(--forsa-primary-light)] sm:block"
+                className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[var(--forsa-primary-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forsa-primary)] focus-visible:ring-offset-2 sm:block"
               >
                 Profile
               </button>
             </>
           ) : !isAuthPage ? (
             <button
+              type="button"
               onClick={() => navigate("/auth")}
-              className="rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.01] hover:bg-[var(--forsa-primary-light)]"
+              className="rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[var(--forsa-primary-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forsa-primary)] focus-visible:ring-offset-2"
             >
               Join
             </button>
           ) : (
             <button
+              type="button"
               onClick={() => navigate("/explore")}
-              className="rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-[13px] font-medium text-[var(--forsa-primary)] transition hover:border-[var(--forsa-primary)]"
+              className="rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-[13px] font-semibold text-[var(--forsa-primary)] transition hover:border-[var(--forsa-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forsa-primary)] focus-visible:ring-offset-2"
             >
               Explore
             </button>

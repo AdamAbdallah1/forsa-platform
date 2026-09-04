@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SEO from "../components/SEO";
 import { Link } from "react-router-dom";
+import Modal from "../components/ui/Modal";
 import { createNotification } from "../lib/notificationService";
 import Footer from "../components/Footer";
 import { showToast } from "../lib/Toast";
@@ -21,7 +22,6 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaClock,
-  FaCircle,
   FaSearch,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
@@ -97,6 +97,9 @@ export default function Messages() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [mobileThreadOpen, setMobileThreadOpen] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(true);
+  const [messagesError, setMessagesError] = useState("");
+  const [sending, setSending] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     if (!account?.email) return;
@@ -117,6 +120,7 @@ export default function Messages() {
     }
 
     setLoadingMessages(true);
+    setMessagesError("");
 
     const unsubscribe = listenUserThreads(
       account,
@@ -125,11 +129,13 @@ export default function Messages() {
         writeJson("forsaMessagesCache", threads);
         writeJson("forsaMessages", threads);
         setLoadingMessages(false);
+        setMessagesError("");
       },
       (error) => {
         console.error("Messages listener error:", error);
         setMessages(safeJson("forsaMessagesCache", []));
         setLoadingMessages(false);
+        setMessagesError("We could not refresh your conversations.");
         showToast("Could not refresh messages. Showing saved data.", "info");
       }
     );
@@ -216,6 +222,8 @@ export default function Messages() {
         title: "Application status updated",
         text: `Your application for ${thread.title} was marked as ${getStatusLabel(status).toLowerCase()}.`,
         targetEmail: thread.seeker.email,
+        targetUid: thread.seeker.uid,
+        applicationId: thread.id,
       });
     } catch (error) {
       console.error("Create notification error:", error);
@@ -269,12 +277,13 @@ export default function Messages() {
       showToast(`Application marked as ${getStatusLabel(status).toLowerCase()}`);
     } catch (error) {
       console.error("Update status error:", error);
+      persistMessages(messages);
       showToast("Could not update status. Try again.", "error");
     }
   };
 
   const sendReply = async () => {
-    if (!reply.trim() || !activeThread) return;
+    if (!reply.trim() || !activeThread || sending) return;
 
     const now = new Date().toISOString();
 
@@ -309,7 +318,7 @@ export default function Messages() {
       });
     }
 
-    setReply("");
+    setSending(true);
     persistMessages(updated);
 
     try {
@@ -318,17 +327,18 @@ export default function Messages() {
         lastMessage: textToSend,
       });
 
+      setReply("");
       showToast("Message sent");
     } catch (error) {
       console.error("Send message error:", error);
+      persistMessages(messages);
       showToast("Could not send message. Try again.", "error");
+    } finally {
+      setSending(false);
     }
   };
 
   const deleteThread = async (id) => {
-    const confirmed = window.confirm("Delete this message thread?");
-    if (!confirmed) return;
-
     try {
       await deleteThreadFromFirestore(id);
 
@@ -337,6 +347,7 @@ export default function Messages() {
       showToast("Thread deleted");
       setActiveId(updated[0]?.id || null);
       setMobileThreadOpen(false);
+      setDeleteTarget(null);
     } catch (error) {
       console.error("Delete thread error:", error);
       showToast("Could not delete thread. Try again.", "error");
@@ -425,6 +436,8 @@ export default function Messages() {
 
         {loadingMessages ? (
           <LoadingMessages />
+        ) : messagesError ? (
+          <MessagesError onRetry={() => window.location.reload()} />
         ) : sortedMessages.length === 0 ? (
           <EmptyMessages />
         ) : (
@@ -444,7 +457,8 @@ export default function Messages() {
               reply={reply}
               setReply={setReply}
               sendReply={sendReply}
-              deleteThread={deleteThread}
+              sending={sending}
+              onRequestDelete={() => setDeleteTarget(activeThread?.id)}
               mobileThreadOpen={mobileThreadOpen}
               closeMobileThread={() => setMobileThreadOpen(false)}
               isHiringThread={isHiringThread}
@@ -454,6 +468,23 @@ export default function Messages() {
           </div>
         )}
       </div>
+      <Modal
+        open={Boolean(deleteTarget)}
+        title="Delete conversation?"
+        onClose={() => setDeleteTarget(null)}
+      >
+        <p className="text-sm leading-6 text-neutral-600">
+          This removes the conversation from your application inbox. This action cannot be undone.
+        </p>
+        <div className="mt-6 grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setDeleteTarget(null)} className="rounded-full border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm font-semibold text-neutral-700">
+            Keep it
+          </button>
+          <button type="button" onClick={() => deleteThread(deleteTarget)} className="rounded-full bg-red-600 px-4 py-3 text-sm font-semibold text-white">
+            Delete
+          </button>
+        </div>
+      </Modal>
       <Footer />
     </section>
   );
@@ -551,6 +582,19 @@ function EmptyMessages() {
   );
 }
 
+function MessagesError({ onRetry }) {
+  return (
+    <div className="mt-8 rounded-[28px] border border-red-100 bg-white p-8 text-center shadow-sm sm:rounded-[32px] sm:p-10">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+        <FaTimesCircle />
+      </div>
+      <h2 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">Messages are temporarily unavailable</h2>
+      <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-neutral-600">Your conversations are still safe. Try refreshing to reconnect.</p>
+      <button type="button" onClick={onRetry} className="mt-6 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white">Try again</button>
+    </div>
+  );
+}
+
 function InboxPanel({ messages, activeId, openThread, account, presence }) {
   return (
     <div className="rounded-[28px] border border-[var(--forsa-border)] bg-white/90 p-3 shadow-sm backdrop-blur-xl sm:rounded-[32px]">
@@ -640,7 +684,8 @@ function ThreadPanel({
   reply,
   setReply,
   sendReply,
-  deleteThread,
+  sending,
+  onRequestDelete,
   mobileThreadOpen,
   closeMobileThread,
   isHiringThread,
@@ -660,7 +705,7 @@ function ThreadPanel({
               thread={activeThread}
               account={account}
               presence={presence}
-              onDelete={() => deleteThread(activeThread.id)}
+              onDelete={onRequestDelete}
               onBack={closeMobileThread}
             />
 
@@ -684,7 +729,7 @@ function ThreadPanel({
               <ConversationList account={account} thread={activeThread} />
             </div>
 
-            <ReplyBox reply={reply} setReply={setReply} sendReply={sendReply} />
+              <ReplyBox reply={reply} setReply={setReply} sendReply={sendReply} sending={sending} />
           </>
         ) : (
           <div className="hidden h-full items-center justify-center rounded-[28px] bg-[var(--forsa-bg)] p-8 text-center lg:flex">
@@ -969,7 +1014,7 @@ function ApplicationAnswers({ answers, dark = false }) {
   );
 }
 
-function ReplyBox({ reply, setReply, sendReply }) {
+function ReplyBox({ reply, setReply, sendReply, sending }) {
   return (
     <div className="sticky bottom-0 border-t border-neutral-100 bg-white p-4 lg:static lg:mt-4 lg:rounded-[28px] lg:border lg:border-[var(--forsa-border)]">
       <label className="text-sm font-medium">Add a message</label>
@@ -983,7 +1028,7 @@ function ReplyBox({ reply, setReply, sendReply }) {
 
       <button
         onClick={sendReply}
-        disabled={!reply.trim()}
+        disabled={!reply.trim() || sending}
         className={`forsa-click mt-3 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium sm:w-fit ${
           reply.trim()
             ? "forsa-button text-white"
@@ -991,7 +1036,7 @@ function ReplyBox({ reply, setReply, sendReply }) {
         }`}
       >
         <FaPaperPlane className="text-xs" />
-        Send message
+        {sending ? "Sending..." : "Send message"}
       </button>
     </div>
   );
