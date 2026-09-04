@@ -59,7 +59,7 @@ export default function HomeNavbar() {
 
           <button
             type="button"
-            onClick={() => goTo("/auth")}
+            onClick={() => goTo("/auth?mode=login")}
             className="rounded-full px-4 py-2.5 text-[13px] font-semibold text-neutral-600 transition-all duration-200 hover:bg-purple-50 hover:text-[var(--forsa-primary)]"
           >
             Log in
@@ -67,7 +67,7 @@ export default function HomeNavbar() {
 
           <button
             type="button"
-            onClick={() => goTo("/auth")}
+            onClick={() => goTo("/auth?mode=signup")}
             className="group inline-flex items-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_6px_18px_rgba(82,39,255,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--forsa-primary-dark)] hover:shadow-[0_8px_22px_rgba(82,39,255,0.22)]"
           >
             Get started
@@ -134,7 +134,7 @@ export default function HomeNavbar() {
 
               <button
                 type="button"
-                onClick={() => goTo("/auth")}
+                onClick={() => goTo("/auth?mode=login")}
                 className="rounded-full border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-700 transition-all duration-200 hover:border-purple-200 hover:bg-purple-50 hover:text-[var(--forsa-primary)]"
               >
                 Log in
@@ -142,7 +142,7 @@ export default function HomeNavbar() {
 
               <button
                 type="button"
-                onClick={() => goTo("/auth")}
+                onClick={() => goTo("/auth?mode=signup")}
                 className="rounded-full bg-[var(--forsa-primary)] px-4 py-3 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(82,39,255,0.15)] transition-all duration-200 hover:bg-[var(--forsa-primary-dark)]"
               >
                 Get started

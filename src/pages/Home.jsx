@@ -44,8 +44,15 @@ export default function Home() {
   const [livePosts, setLivePosts] = useState([]);
   const [livePostsLoading, setLivePostsLoading] = useState(true);
 
-  const goToLogin = () => navigate("/auth?mode=login");
-  const goToSignup = () => navigate("/auth?mode=signup");
+  const goToLogin = () => {
+  console.log("🔥 LOGIN HANDLER FIRED");
+  window.location.href = "/auth?mode=login";
+};
+
+const goToSignup = () => {
+  console.log("🔥 SIGNUP HANDLER FIRED");
+  window.location.href = "/auth?mode=signup";
+};
 
   useEffect(() => {
     let active = true;

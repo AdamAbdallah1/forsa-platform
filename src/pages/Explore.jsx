@@ -1636,16 +1636,7 @@ function OpportunityCard({
             </p>
           </div>
 
-          <div className="min-w-0 flex-1 px-2.5">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-              {isAbroadPost(item) ? "Country" : "Applicants"}
-            </p>
-            <p className="mt-0.5 truncate text-xs font-semibold text-neutral-800">
-              {isAbroadPost(item)
-                ? getWorkCountry(item)
-                : applicantCount}
-            </p>
-          </div>
+         
         </div>
 
         {/* ───────────────── FORSA FIT ───────────────── */}
