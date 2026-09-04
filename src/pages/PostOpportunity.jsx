@@ -204,6 +204,8 @@ const emptyForm = (account) => ({
   description: "",
   requirements: "",
   contact: account?.email || "",
+  applicationMethod: "forsa",
+  applicationUrl: "",
 
   tags: [],
   questions: [""],
@@ -401,7 +403,10 @@ export default function PostOpportunity() {
   const stepThreeValid =
     form.description.trim().length >= 20 &&
     form.contact.trim() &&
-    form.tags.length > 0;
+    form.tags.length > 0 &&
+    (form.applicationMethod === "forsa" ||
+      (form.applicationMethod === "external" &&
+        /^https?:\/\/\S+$/i.test(form.applicationUrl.trim())));
 
   const canPost =
     stepOneValid &&
@@ -506,6 +511,18 @@ export default function PostOpportunity() {
 
   const handleSubmit = async () => {
   if (!canPost || posting) return;
+    if (form.applicationMethod === "external") {
+    try {
+      const url = new URL(form.applicationUrl.trim());
+
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        throw new Error("Unsupported URL protocol");
+      }
+    } catch {
+      showToast("Please enter a valid application URL.", "error");
+      return;
+    }
+  }
 
   setPosting(true);
 
@@ -593,6 +610,12 @@ postingMode: "company",
 
       contact:
         form.contact.trim(),
+
+      applicationMethod:
+        form.applicationMethod,
+
+      applicationUrl:
+        form.applicationUrl.trim(),
 
       tags:
         form.tags || [],
@@ -984,6 +1007,50 @@ verified: Boolean(account?.verified),
                     updateForm("contact", value)
                   }
                 />
+                <div>
+  <FieldLabel
+    label="Application destination"
+    required
+  />
+
+  <div className="grid gap-3 sm:grid-cols-2">
+    <ChoiceButton
+      selected={form.applicationMethod === "forsa"}
+      onClick={() =>
+        updateForm("applicationMethod", "forsa")
+      }
+    >
+      Apply on Forsa
+    </ChoiceButton>
+
+    <ChoiceButton
+      selected={form.applicationMethod === "external"}
+      onClick={() =>
+        updateForm("applicationMethod", "external")
+      }
+    >
+      Apply externally
+    </ChoiceButton>
+  </div>
+
+  {form.applicationMethod === "external" && (
+    <div className="mt-4">
+      <Field
+        label="Application URL"
+        required
+        placeholder="https://company.com/careers/job..."
+        value={form.applicationUrl}
+        onChange={(value) =>
+          updateForm("applicationUrl", value)
+        }
+      />
+
+      <p className="mt-2 text-xs text-neutral-500">
+        Applicants will be redirected to this URL when they click Apply.
+      </p>
+    </div>
+  )}
+</div>
 
                 <ApplicationQuestions
                   form={form}

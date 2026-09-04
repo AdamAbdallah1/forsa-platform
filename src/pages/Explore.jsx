@@ -599,18 +599,38 @@ export default function Explore() {
   };
 
   const openApply = (item) => {
-    if (!requireSeekerAccount("contact")) return;
+  if (item.applicationMethod === "external") {
+  const rawUrl = String(item.applicationUrl || "").trim();
 
-    const hasProfile = savedProfile.skills.length > 0 && savedProfile.lookingFor.length > 0;
+  try {
+    const url = new URL(rawUrl);
 
-    if (!hasProfile) {
-      showToast("Complete your profile first", "info");
-      navigate("/onboarding");
-      return;
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error("Unsupported URL protocol");
     }
 
-    setApplyOpportunity(item);
-  };
+    window.open(url.href, "_blank", "noopener,noreferrer");
+  } catch {
+    showToast("This application link is unavailable.", "error");
+  }
+
+  return;
+}
+
+  if (!requireSeekerAccount("contact")) return;
+
+  const hasProfile =
+    savedProfile.skills.length > 0 &&
+    savedProfile.lookingFor.length > 0;
+
+  if (!hasProfile) {
+    showToast("Complete your profile first", "info");
+    navigate("/onboarding");
+    return;
+  }
+
+  setApplyOpportunity(item);
+};
 
   function openDetails(item, options = {}) {
     const enhancedItem = {
@@ -1466,7 +1486,11 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
           <FaShareAlt className="text-xs" />
         </Button>
         <Button onClick={onApply} disabled={!canInteract} className="w-full">
-          {applied ? "Open" : "Apply"}
+          {applied
+  ? "Open"
+  : item.applicationMethod === "external"
+    ? "Apply externally"
+    : "Apply"}
         </Button>
       </div>
     </article>
@@ -1723,7 +1747,11 @@ function OpportunityCard({
               <FaPaperPlane className="text-[10px]" />
             )}
 
-            {applied ? "Open" : "Apply"}
+            {applied
+  ? "Open"
+  : item.applicationMethod === "external"
+    ? "Apply externally"
+    : "Apply"}
           </button>
 
         </div>
@@ -2020,7 +2048,16 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
         <div className="mt-4 rounded-2xl bg-[var(--forsa-bg-soft)] px-4 py-3 text-sm leading-6 text-[var(--forsa-primary)]">
           <span className="font-semibold">Smart tip:</span> Use the match assistant before applying to improve your profile and increase your chances.
         </div>
-
+{item.applicationMethod === "external" && (
+  <div className="mt-4 rounded-2xl border border-[var(--forsa-primary)]/15 bg-[var(--forsa-bg-soft)] px-4 py-3 text-sm leading-6 text-neutral-700">
+    <span className="font-semibold text-[var(--forsa-primary)]">
+      External application
+    </span>
+    <p className="mt-1">
+      You’ll be redirected to the company’s application page to complete your application.
+    </p>
+  </div>
+)}
         <div className="mt-5 grid grid-cols-3 gap-2">
           <button onClick={onShare} className="inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-4 py-3 text-sm font-medium transition hover:border-neutral-500">
             <FaShareAlt className="text-xs" />
@@ -2051,7 +2088,11 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
 
           <button onClick={onApply} className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium ${canInteract ? "bg-[var(--forsa-primary)] text-white" : "bg-neutral-200 text-neutral-500"}`}>
             {!canInteract ? <FaLock className="text-xs" /> : <FaPaperPlane className="text-xs" />}
-            {applied ? "Open" : "Apply"}
+            {applied
+  ? "Open"
+  : item.applicationMethod === "external"
+    ? "Apply externally"
+    : "Apply"}
           </button>
         </div>
       </div>

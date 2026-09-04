@@ -533,31 +533,9 @@ export default function Auth() {
         <div className="pointer-events-none absolute bottom-[-180px] right-[-140px] h-96 w-96 rounded-full bg-neutral-300/40 blur-3xl" />
 
         <div className="relative grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,470px)] lg:items-center lg:gap-16 xl:gap-24">
-          {/* ==================================================
-              BRAND PANEL
-          ================================================== */}
 
           <div className="relative pt-2 lg:pt-0">
             <div className="max-w-2xl">
-              <h1 className="max-w-xl text-[42px] font-semibold leading-[0.94] tracking-[-0.065em] text-neutral-950 sm:text-5xl xl:text-6xl">
-                Find work.
-                <br />
-                Hire people.
-                <br />
-                <span className="text-[var(--forsa-primary)]">
-                  Skip the chaos.
-                </span>
-              </h1>
-
-              <p className="mt-5 max-w-lg text-sm leading-6 text-neutral-600 sm:mt-6 sm:text-base sm:leading-8">
-                A local opportunity platform for
-                students, freelancers, creators,
-                and businesses across Lebanon.
-              </p>
-
-              {/* Secondary information is intentionally
-                  hidden on smaller screens to preserve
-                  vertical space for authentication. */}
 
               <div className="mt-8 hidden max-w-lg gap-3 lg:grid">
                 <TrustItem
