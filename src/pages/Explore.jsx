@@ -472,28 +472,52 @@ export default function Explore() {
     return scored.sort((a, b) => b.rankScore - a.rankScore);
   }, [allOpportunities, search, activeType, locationFilter, sortBy, savedProfile, account]);
 
-  const recommendedOpportunities = useMemo(() => {
+    const recommendedOpportunities = useMemo(() => {
     if (!canInteract) return [];
+
     return rankedOpportunities
       .filter((item) => item.matchScore >= 58)
       .slice(0, 6);
   }, [rankedOpportunities, canInteract]);
 
   const featuredOpportunities = useMemo(() => {
+    const recommendedIds = new Set(
+      recommendedOpportunities.map((item) => String(item.id))
+    );
+
     return rankedOpportunities
-      .filter((item) => item.featured || item.verified || item.trusted)
+      .filter(
+        (item) =>
+          !recommendedIds.has(String(item.id)) &&
+          (item.featured || item.verified || item.trusted)
+      )
       .slice(0, 6);
-  }, [rankedOpportunities]);
+  }, [rankedOpportunities, recommendedOpportunities]);
 
   const freshOpportunities = useMemo(() => {
     if (!canInteract) return [];
 
     const oneWeekAgo = Date.now() - 1000 * 60 * 60 * 24 * 7;
 
+    const excludedIds = new Set([
+      ...recommendedOpportunities.map((item) => String(item.id)),
+      ...featuredOpportunities.map((item) => String(item.id)),
+    ]);
+
     return rankedOpportunities
-      .filter((item) => new Date(item.createdAt || 0).getTime() >= oneWeekAgo)
+      .filter(
+        (item) =>
+          !excludedIds.has(String(item.id)) &&
+          new Date(item.createdAt || 0).getTime() >= oneWeekAgo
+      )
       .slice(0, 4);
-  }, [rankedOpportunities, canInteract]);
+  }, [
+    rankedOpportunities,
+    canInteract,
+    recommendedOpportunities,
+    featuredOpportunities,
+  ]);
+
 
   useEffect(() => {
   const postId = readSharedPostId(searchParams, location);
