@@ -12,6 +12,7 @@ import Profile from "./pages/Profile";
 import MyApplications from "./pages/MyApplications";
 import Auth from "./pages/Auth";
 import VerifyEmail from "./pages/VerifyEmail";
+import JobDetails from "./pages/JobDetails";
 import People from "./pages/People";
 import NotFound from "./pages/NotFound";
 import Companies from "./pages/Companies";
@@ -98,6 +99,7 @@ export default function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/onboarding" element={<SeekerRoute><Onboarding /></SeekerRoute>} />
           <Route path="/explore" element={<Explore />} />
+          <Route path="/jobs/:jobId" element={<JobDetails />} />
           <Route path="/dashboard" element={<HiringRoute><Dashboard /></HiringRoute>}/>
           <Route path="/admin-review" element={<AdminReview />} />
           <Route path="/saved" element={<ProtectedRoute><SavedJobs /></ProtectedRoute>} />

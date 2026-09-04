@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   increment,
   orderBy,
@@ -100,6 +101,25 @@ export async function getActivePosts() {
         (post.reviewStatus || "approved") !== "rejected" &&
         (post.moderationStatus || "approved") !== "rejected"
     );
+}
+
+export async function getPostById(postId) {
+  if (!postId) return null;
+
+  const snapshot = await getDoc(doc(db, "posts", postId));
+
+  if (!snapshot.exists()) return null;
+
+  const post = normalizePost(snapshot);
+
+  const isVisible =
+    post.status !== "closed" &&
+    (post.reviewStatus || "approved") !== "pending" &&
+    (post.moderationStatus || "approved") !== "pending" &&
+    (post.reviewStatus || "approved") !== "rejected" &&
+    (post.moderationStatus || "approved") !== "rejected";
+
+  return isVisible ? post : null;
 }
 
 export async function getAdminPosts() {

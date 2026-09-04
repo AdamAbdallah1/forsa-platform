@@ -158,7 +158,7 @@ const updatePostAnalytics = async (postId, field) => {
 
 const buildPostUrl = (postId) => {
   const base = window.location.origin;
-  return `${base}/explore?post=${encodeURIComponent(postId)}`;
+  return `${base}/jobs/${encodeURIComponent(postId)}`;
 };
 
 const readSharedPostId = (searchParams, location) => {
@@ -978,7 +978,7 @@ try {
                 applied={appliedIds.has(item.id)}
                 canInteract={canInteract}
                 onSave={() => toggleSave(item)}
-                onDetails={() => openDetails(item)}
+                onDetails={() => navigate(`/jobs/${item.id}`)}
                 onApply={() =>
                   appliedIds.has(item.id) ? navigate("/messages") : openApply(item)
                 }
@@ -1382,7 +1382,7 @@ function FeaturedSection({
             applied={appliedIds.has(item.id)}
             canInteract={canInteract}
             onSave={() => onSave(item)}
-            onDetails={() => onDetails(item)}
+            onDetails={() => navigate(`/jobs/${item.id}`)}
             onApply={() => (appliedIds.has(item.id) ? navigate("/messages") : onApply(item))}
             onShare={() => onShare(item)}
           />
@@ -1416,7 +1416,7 @@ function FreshSection({ items, savedJobs, appliedIds, canInteract, onSave, onDet
             applied={appliedIds.has(item.id)}
             canInteract={canInteract}
             onSave={() => onSave(item)}
-            onDetails={() => onDetails(item)}
+            onDetails={() => navigate(`/jobs/${item.id}`)}
             onApply={() => (appliedIds.has(item.id) ? navigate("/messages") : onApply(item))}
             onShare={() => onShare(item)}
           />
@@ -1450,7 +1450,7 @@ function RecommendedSection({ items, savedJobs, appliedIds, canInteract, onSave,
             applied={appliedIds.has(item.id)}
             canInteract={canInteract}
             onSave={() => onSave(item)}
-            onDetails={() => onDetails(item)}
+            onDetails={() => navigate(`/jobs/${item.id}`)}
             onApply={() => (appliedIds.has(item.id) ? navigate("/messages") : onApply(item))}
             onShare={() => onShare(item)}
           />
