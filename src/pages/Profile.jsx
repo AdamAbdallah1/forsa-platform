@@ -776,8 +776,7 @@ const saveChanges = async () => {
     setEditingPostId(post.id);
     setEditingPost({ ...post });
   };
-
-  const updateEditingPost = (field, value) => {
+    const updateEditingPost = (field, value) => {
     setEditingPost((prev) => ({ ...prev, [field]: value }));
   };
 
