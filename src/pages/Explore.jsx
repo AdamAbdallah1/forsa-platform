@@ -562,7 +562,16 @@ export default function Explore() {
   writeJson("forsaRecentlyViewed", viewed);
   updatePostAnalytics(found.id, "views");
 
-  if (shouldApply && canInteract) {
+    if (shouldApply && canInteract) {
+    if (found.deadline) {
+      const deadline = new Date(`${found.deadline}T23:59:59`);
+
+      if (new Date() > deadline) {
+        showToast("Applications for this job are closed.", "error");
+        return;
+      }
+    }
+
     setApplyOpportunity(found);
     return;
   }
@@ -655,7 +664,14 @@ export default function Explore() {
 
   return;
 }
+    if (item.deadline) {
+    const deadline = new Date(`${item.deadline}T23:59:59`);
 
+    if (new Date() > deadline) {
+      showToast("Applications for this job are closed.", "error");
+      return;
+    }
+  }
   if (!requireSeekerAccount("contact")) return;
 
   const hasProfile =
@@ -739,6 +755,14 @@ export default function Explore() {
   };
 
   const submitApplication = async ({ item, message, attachCv, answers }) => {
+        if (item.deadline) {
+      const deadline = new Date(`${item.deadline}T23:59:59`);
+
+      if (new Date() > deadline) {
+        showToast("Applications for this job are closed.", "error");
+        return;
+      }
+    }
     const messages = safeJson("forsaMessages", []);
     const existing = messages.find(
       (thread) =>
