@@ -60,7 +60,7 @@ export default function Footer() {
               <div>
                 <p className="text-xs text-neutral-500">Email</p>
                 <p className="text-sm font-medium">
-                  support@forsa.digital
+                  support.forsa@gmail.com
                 </p>
               </div>
             </div>
