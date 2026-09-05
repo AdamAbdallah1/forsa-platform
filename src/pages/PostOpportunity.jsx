@@ -201,8 +201,9 @@ const emptyForm = (account) => ({
   description: "",
   requirements: "",
   contact: account?.email || "",
-  applicationMethod: "forsa",
+    applicationMethod: "forsa",
   applicationUrl: "",
+  deadline: "",
 
   tags: [],
   questions: [""],
@@ -613,8 +614,11 @@ postingMode: "company",
       applicationMethod:
         form.applicationMethod,
 
-      applicationUrl:
+            applicationUrl:
         form.applicationUrl.trim(),
+
+      deadline:
+        form.deadline || "",
 
       tags:
         form.tags || [],
@@ -1050,6 +1054,21 @@ verified: Boolean(account?.verified),
       </p>
     </div>
   )}
+  <div className="mt-4">
+  <label className="text-sm font-medium">Application deadline</label>
+
+  <input
+    type="date"
+    value={form.deadline}
+    min={new Date().toISOString().split("T")[0]}
+    onChange={(e) => updateForm("deadline", e.target.value)}
+    className="mt-2 w-full rounded-xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--forsa-primary)]"
+  />
+
+  <p className="mt-2 text-xs text-neutral-500">
+    Optional. Applications will close after this date.
+  </p>
+</div>
 </div>
 
                 <ApplicationQuestions

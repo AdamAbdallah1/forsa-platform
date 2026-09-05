@@ -519,6 +519,12 @@ export default function JobDetails() {
                     label="Posted"
                     value={formatDate(job.createdAt)}
                   />
+                                    {job.deadline && (
+                    <InfoRow
+                      label="Application deadline"
+                      value={formatDate(job.deadline)}
+                    />
+                  )}
                   {agency && (
                     <InfoRow label="Hiring for" value={getHiringFor(job)} />
                   )}

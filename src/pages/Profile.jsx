@@ -808,6 +808,7 @@ const saveChanges = async () => {
         contact: editingPost.contact || "",
         applicationMethod: editingPost.applicationMethod || "forsa",
         applicationUrl: editingPost.applicationUrl || "",
+        deadline: editingPost.deadline || "",
         description: editingPost.description || "",
         type: editingPost.type || "Project",
         category: editingPost.category || "",
@@ -1996,7 +1997,21 @@ function EditPostCard({
         <Field label="Location" value={editingPost.location} onChange={(value) => updateEditingPost("location", value)} />
         <Field label="Pay" value={editingPost.pay} onChange={(value) => updateEditingPost("pay", value)} />
         <Field label="Contact" value={editingPost.contact} onChange={(value) => updateEditingPost("contact", value)} />
+        <div>
+  <label className="text-sm font-medium">Application deadline</label>
 
+  <input
+    type="date"
+    value={editingPost.deadline || ""}
+    min={new Date().toISOString().split("T")[0]}
+    onChange={(e) => updateEditingPost("deadline", e.target.value)}
+    className="mt-2 w-full rounded-xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--forsa-primary)]"
+  />
+
+  <p className="mt-2 text-xs text-neutral-500">
+    Optional. Applications will close after this date.
+  </p>
+</div>
 <div>
   <label className="text-sm font-medium">Application destination</label>
 
