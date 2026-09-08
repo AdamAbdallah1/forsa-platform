@@ -24,6 +24,7 @@ import { loadDemoActivity, clearDemoActivity } from "../lib/demoData";
 import { createVerificationRequest } from "../lib/verificationService";
 import { calculateApplicantScore } from "../lib/applicantScore";
 import { requestProfileCompleteEmail } from "../lib/profileCompleteEmail";
+import { requestProfileImprovementEmail } from "../lib/profileImprovementEmail";
 import {
   FaBriefcase,
   FaBookmark,
@@ -620,6 +621,7 @@ const handleDeleteAccount = async () => {
       );
 
       void requestProfileCompleteEmail();
+      void requestProfileImprovementEmail();
     }
   };
 
@@ -734,6 +736,7 @@ const saveChanges = async () => {
       );
 
       void requestProfileCompleteEmail();
+      void requestProfileImprovementEmail();
     }
 
     setProfile(cleanProfile);

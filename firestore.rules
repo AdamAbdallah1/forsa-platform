@@ -75,7 +75,8 @@ service cloud.firestore {
         "isNewRegistration",
         "welcomeEmailSentAt",
         "onboardingCompletedAt",
-        "profileCompleteEmailSentAt"
+        "profileCompleteEmailSentAt",
+        "profileImprovementEmailSentAt"
       ]);
 
   // User is allowed to synchronize email verification
