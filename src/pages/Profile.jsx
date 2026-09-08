@@ -23,6 +23,7 @@ import { loadDemoActivity, clearDemoActivity } from "../lib/demoData";
 
 import { createVerificationRequest } from "../lib/verificationService";
 import { calculateApplicantScore } from "../lib/applicantScore";
+import { requestProfileCompleteEmail } from "../lib/profileCompleteEmail";
 import {
   FaBriefcase,
   FaBookmark,
@@ -617,6 +618,8 @@ const handleDeleteAccount = async () => {
         },
         { merge: true }
       );
+
+      void requestProfileCompleteEmail();
     }
   };
 
@@ -700,6 +703,7 @@ const saveChanges = async () => {
 
   const publicProfileData = {
     name: nextAccount.name || "",
+    city: nextAccount.city || "",
     bio: nextAccount.bio || "",
     experience: nextAccount.experience || "",
     education: nextAccount.education || "",
@@ -728,6 +732,8 @@ const saveChanges = async () => {
         publicProfileData,
         { merge: true }
       );
+
+      void requestProfileCompleteEmail();
     }
 
     setProfile(cleanProfile);

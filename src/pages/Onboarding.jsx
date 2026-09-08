@@ -18,6 +18,7 @@ import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
 import { db } from "../lib/firebase";
 import { requestWelcomeEmail } from "../lib/welcomeEmail";
+import { requestProfileCompleteEmail } from "../lib/profileCompleteEmail";
 import {
   requestCvUpload,
   uploadCvToR2,
@@ -258,7 +259,7 @@ export default function Onboarding() {
     setStep((prev) => Math.min(steps.length - 1, prev + 1));
   };
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     if (!canFinish) {
       showToast("Complete the required profile basics", "info");
       return;
@@ -281,6 +282,33 @@ export default function Onboarding() {
     );
 
     /*
+     * Persist the completed profile to Firestore so the server can
+     * judge profile completeness independently from users/{uid}.
+     * Onboarding previously only wrote to localStorage (except the CV),
+     * which would have made the server-side profile-complete check
+     * impossible for onboarding-completed profiles.
+     */
+    if (savedAccount?.uid) {
+      try {
+        await setDoc(
+          doc(db, "users", savedAccount.uid),
+          {
+            name: savedAccount.name || "",
+            city: cityPreference.trim(),
+            skills: selectedSkills,
+            lookingFor: selectedLooking,
+            cv: cv || null,
+            portfolioLinks: portfolio.trim() || "",
+            updatedAt: new Date(),
+          },
+          { merge: true }
+        );
+      } catch (error) {
+        console.error("Onboarding Firestore sync failed:", error);
+      }
+    }
+
+    /*
      * Trigger the one-time welcome email ONLY after the profile has
      * been successfully saved.
      *
@@ -293,6 +321,15 @@ export default function Onboarding() {
      * - it is non-blocking: the email can never fail profile creation.
      */
     void requestWelcomeEmail();
+
+    /*
+     * Trigger the one-time profile-complete email. It runs after the
+     * Firestore sync above so the server reads the persisted profile.
+     * Independent of the welcome email: same claim pattern, separate
+     * marker (profileCompleteEmailSentAt), seeker-only, and no-op for
+     * an incomplete profile.
+     */
+    void requestProfileCompleteEmail();
 
     showToast("Profile completed successfully");
     navigate("/explore");
