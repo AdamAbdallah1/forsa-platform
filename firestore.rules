@@ -19,6 +19,32 @@ service cloud.firestore {
         ).data.role == "admin";
     }
 
+    // External applications must carry a valid destination type and a
+    // corresponding non-empty destination. Legacy documents without an
+    // application method (or without externalApplicationType) are allowed,
+    // so the guard only binds new writes of the destination fields.
+    function hasValidExternalApplication(data) {
+      if (!data.keys().hasAny(["applicationMethod"])) {
+        return true;
+      }
+
+      if (data.applicationMethod != "external") {
+        return true;
+      }
+
+      if (!(data.externalApplicationType in ["url", "email"])) {
+        return false;
+      }
+
+      if (data.externalApplicationType == "url") {
+        return data.applicationUrl is string &&
+          data.applicationUrl.size() > 0;
+      }
+
+      return data.applicationEmail is string &&
+        data.applicationEmail.size() > 0;
+    }
+
     match /users/{userId} {
   allow read: if signedIn();
 
@@ -245,12 +271,30 @@ service cloud.firestore {
       allow read: if true;
 
       allow create: if signedIn() &&
-        request.resource.data.ownerUid == request.auth.uid;
+        request.resource.data.ownerUid == request.auth.uid &&
+        hasValidExternalApplication(request.resource.data);
 
       allow update: if signedIn() &&
         (
-          resource.data.ownerUid == request.auth.uid ||
-          isAdmin() ||
+          (
+            (
+              resource.data.ownerUid == request.auth.uid ||
+              isAdmin()
+            ) &&
+            (
+              !request.resource.data.diff(resource.data)
+                .affectedKeys()
+                .hasAny([
+                  "applicationMethod",
+                  "externalApplicationType",
+                  "applicationUrl",
+                  "applicationEmail"
+                ]) ||
+              hasValidExternalApplication(
+                request.resource.data
+              )
+            )
+          ) ||
 
           request.resource.data.diff(resource.data)
             .affectedKeys()

@@ -70,6 +70,17 @@ const isAbroadPost = (post) => {
 const getHiringFor = (post) =>
   post?.hiringFor || post?.clientCompany || post?.employer || post?.company || "Employer";
 
+const getExternalApplicationType = (item) => {
+  if (item?.applicationMethod !== "external") return "";
+  return item?.externalApplicationType || "url";
+};
+
+const buildExternalMailto = (item) => {
+  const email = String(item?.applicationEmail || "").trim();
+  const subject = `Application — ${item?.title || "Job"} — via Forsa`;
+  return `mailto:${email}?subject=${encodeURIComponent(subject)}`;
+};
+
 const getProfileStrength = (account, profile) => {
   const checks = [
     Boolean(account?.name),
@@ -648,6 +659,25 @@ export default function Explore() {
 
   const openApply = (item) => {
   if (item.applicationMethod === "external") {
+  const externalType = getExternalApplicationType(item);
+
+  if (externalType === "email") {
+    const email = String(item.applicationEmail || "").trim();
+
+    if (!email) {
+      showToast("This application email is unavailable.", "error");
+      return;
+    }
+
+    window.open(
+      buildExternalMailto(item),
+      "_blank",
+      "noopener,noreferrer"
+    );
+    showToast(`Email ${email} with your CV and application details`);
+    return;
+  }
+
   const rawUrl = String(item.applicationUrl || "").trim();
 
   try {
@@ -1521,7 +1551,9 @@ function CompactRecommendationCard({ item, saved, applied, canInteract, onSave, 
           {applied
   ? "Open"
   : item.applicationMethod === "external"
-    ? "Apply externally"
+    ? getExternalApplicationType(item) === "email"
+      ? "Apply via email"
+      : "Apply externally"
     : "Apply"}
         </Button>
       </div>
@@ -1773,7 +1805,9 @@ function OpportunityCard({
             {applied
   ? "Open"
   : item.applicationMethod === "external"
-    ? "Apply externally"
+    ? getExternalApplicationType(item) === "email"
+      ? "Apply via email"
+      : "Apply externally"
     : "Apply"}
           </button>
 
@@ -2003,7 +2037,9 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
       External application
     </span>
     <p className="mt-1">
-      You’ll be redirected to the company’s application page to complete your application.
+      {getExternalApplicationType(item) === "email"
+        ? "Your email app will open so you can send your CV to the company."
+        : "You’ll be redirected to the company’s application page to complete your application."}
     </p>
   </div>
 )}
@@ -2040,7 +2076,9 @@ function OpportunityModal({ item, saved, canInteract, applied, onSave, onApply, 
             {applied
   ? "Open"
   : item.applicationMethod === "external"
-    ? "Apply externally"
+    ? getExternalApplicationType(item) === "email"
+      ? "Apply via email"
+      : "Apply externally"
     : "Apply"}
           </button>
         </div>

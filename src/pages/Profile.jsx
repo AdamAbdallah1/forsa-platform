@@ -783,20 +783,34 @@ const saveChanges = async () => {
     const savePostEdit = async () => {
       if (!editingPostId || !editingPost) return;
             if (editingPost.applicationMethod === "external") {
-        try {
-          const url = new URL(
-            String(editingPost.applicationUrl || "").trim()
-          );
+        const isEmailType =
+          editingPost.externalApplicationType === "email";
 
-          if (
-            url.protocol !== "http:" &&
-            url.protocol !== "https:"
-          ) {
-            throw new Error("Unsupported URL protocol");
+        if (isEmailType) {
+          const email = String(
+            editingPost.applicationEmail || ""
+          ).trim();
+
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showToast("Please enter a valid application email.", "error");
+            return;
           }
-        } catch {
-          showToast("Please enter a valid application URL.", "error");
-          return;
+        } else {
+          try {
+            const url = new URL(
+              String(editingPost.applicationUrl || "").trim()
+            );
+
+            if (
+              url.protocol !== "http:" &&
+              url.protocol !== "https:"
+            ) {
+              throw new Error("Unsupported URL protocol");
+            }
+          } catch {
+            showToast("Please enter a valid application URL.", "error");
+            return;
+          }
         }
       }
 
@@ -806,7 +820,20 @@ const saveChanges = async () => {
         pay: editingPost.pay || "",
         contact: editingPost.contact || "",
         applicationMethod: editingPost.applicationMethod || "forsa",
-        applicationUrl: editingPost.applicationUrl || "",
+        externalApplicationType:
+          (editingPost.applicationMethod || "forsa") === "external"
+            ? editingPost.externalApplicationType || "url"
+            : "",
+        applicationUrl:
+          (editingPost.applicationMethod || "forsa") === "external" &&
+          (editingPost.externalApplicationType || "url") === "url"
+            ? editingPost.applicationUrl || ""
+            : "",
+        applicationEmail:
+          (editingPost.applicationMethod || "forsa") === "external" &&
+          editingPost.externalApplicationType === "email"
+            ? editingPost.applicationEmail || ""
+            : "",
         deadline: editingPost.deadline || "",
         description: editingPost.description || "",
         type: editingPost.type || "Project",
@@ -2042,16 +2069,67 @@ function EditPostCard({
 
   {editingPost.applicationMethod === "external" && (
     <div className="mt-3">
-      <Field
-        label="Application URL"
-        value={editingPost.applicationUrl || ""}
-        onChange={(value) => updateEditingPost("applicationUrl", value)}
-        placeholder="https://company.com/careers/job..."
-      />
+      <label className="text-sm font-medium">Destination type</label>
 
-      <p className="mt-2 text-xs text-neutral-500">
-        Applicants will leave Forsa and continue on the company’s application page.
-      </p>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() =>
+            updateEditingPost("externalApplicationType", "url")
+          }
+          className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
+            (editingPost.externalApplicationType || "url") === "url"
+              ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
+              : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+          }`}
+        >
+          Website / application link
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            updateEditingPost("externalApplicationType", "email")
+          }
+          className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
+            editingPost.externalApplicationType === "email"
+              ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
+              : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+          }`}
+        >
+          Email
+        </button>
+      </div>
+
+      {(editingPost.externalApplicationType || "url") === "url" ? (
+        <div className="mt-3">
+          <Field
+            label="Application URL"
+            value={editingPost.applicationUrl || ""}
+            onChange={(value) => updateEditingPost("applicationUrl", value)}
+            placeholder="https://company.com/careers/job..."
+          />
+
+          <p className="mt-2 text-xs text-neutral-500">
+            Applicants will leave Forsa and continue on the company’s application page.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-3">
+          <Field
+            label="Application email"
+            value={editingPost.applicationEmail || ""}
+            onChange={(value) =>
+              updateEditingPost("applicationEmail", value)
+            }
+            placeholder="jobs@company.com"
+          />
+
+          <p className="mt-2 text-xs text-neutral-500">
+            Applicants will email their CV to this address when they click Apply.
+          </p>
+        </div>
+      )}
     </div>
   )}
 </div>

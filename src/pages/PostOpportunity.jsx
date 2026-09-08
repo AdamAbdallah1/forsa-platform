@@ -202,7 +202,9 @@ const emptyForm = (account) => ({
   requirements: "",
   contact: account?.email || "",
     applicationMethod: "forsa",
-  applicationUrl: "",
+    externalApplicationType: "url",
+    applicationUrl: "",
+    applicationEmail: "",
   deadline: "",
 
   tags: [],
@@ -220,6 +222,9 @@ const emptyForm = (account) => ({
   urgent: false,
   featured: false,
 });
+
+const isValidEmail = (value) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 
 function safeJson(key, fallback) {
   try {
@@ -405,7 +410,13 @@ export default function PostOpportunity() {
     form.tags.length > 0 &&
     (form.applicationMethod === "forsa" ||
       (form.applicationMethod === "external" &&
-        /^https?:\/\/\S+$/i.test(form.applicationUrl.trim())));
+        form.externalApplicationType === "url" &&
+        /^https?:\/\/\S+$/i.test(
+          form.applicationUrl.trim()
+        )) ||
+      (form.applicationMethod === "external" &&
+        form.externalApplicationType === "email" &&
+        isValidEmail(form.applicationEmail)));
 
   const canPost =
     stepOneValid &&
@@ -512,15 +523,22 @@ export default function PostOpportunity() {
   if (!canPost || posting) return;
     setSubmitError("");
     if (form.applicationMethod === "external") {
-    try {
-      const url = new URL(form.applicationUrl.trim());
-
-      if (url.protocol !== "http:" && url.protocol !== "https:") {
-        throw new Error("Unsupported URL protocol");
+    if (form.externalApplicationType === "email") {
+      if (!isValidEmail(form.applicationEmail)) {
+        showToast("Please enter a valid application email.", "error");
+        return;
       }
-    } catch {
-      showToast("Please enter a valid application URL.", "error");
-      return;
+    } else {
+      try {
+        const url = new URL(form.applicationUrl.trim());
+
+        if (url.protocol !== "http:" && url.protocol !== "https:") {
+          throw new Error("Unsupported URL protocol");
+        }
+      } catch {
+        showToast("Please enter a valid application URL.", "error");
+        return;
+      }
     }
   }
 
@@ -614,8 +632,22 @@ postingMode: "company",
       applicationMethod:
         form.applicationMethod,
 
-            applicationUrl:
-        form.applicationUrl.trim(),
+      externalApplicationType:
+        form.applicationMethod === "external"
+          ? form.externalApplicationType
+          : "",
+
+      applicationUrl:
+        form.applicationMethod === "external" &&
+        form.externalApplicationType === "url"
+          ? form.applicationUrl.trim()
+          : "",
+
+      applicationEmail:
+        form.applicationMethod === "external" &&
+        form.externalApplicationType === "email"
+          ? form.applicationEmail.trim()
+          : "",
 
       deadline:
         form.deadline || "",
@@ -1039,19 +1071,65 @@ verified: Boolean(account?.verified),
 
   {form.applicationMethod === "external" && (
     <div className="mt-4">
-      <Field
-        label="Application URL"
-        required
-        placeholder="https://company.com/careers/job..."
-        value={form.applicationUrl}
-        onChange={(value) =>
-          updateForm("applicationUrl", value)
-        }
-      />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <ChoiceButton
+          selected={form.externalApplicationType === "url"}
+          onClick={() =>
+            updateForm(
+              "externalApplicationType",
+              "url"
+            )
+          }
+        >
+          Website / application link
+        </ChoiceButton>
 
-      <p className="mt-2 text-xs text-neutral-500">
-        Applicants will be redirected to this URL when they click Apply.
-      </p>
+        <ChoiceButton
+          selected={form.externalApplicationType === "email"}
+          onClick={() =>
+            updateForm(
+              "externalApplicationType",
+              "email"
+            )
+          }
+        >
+          Email
+        </ChoiceButton>
+      </div>
+
+      {form.externalApplicationType === "url" ? (
+        <div className="mt-4">
+          <Field
+            label="Application URL"
+            required
+            placeholder="https://company.com/careers/job..."
+            value={form.applicationUrl}
+            onChange={(value) =>
+              updateForm("applicationUrl", value)
+            }
+          />
+
+          <p className="mt-2 text-xs text-neutral-500">
+            Applicants will be redirected to this URL when they click Apply.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4">
+          <Field
+            label="Application email"
+            required
+            placeholder="jobs@company.com"
+            value={form.applicationEmail}
+            onChange={(value) =>
+              updateForm("applicationEmail", value)
+            }
+          />
+
+          <p className="mt-2 text-xs text-neutral-500">
+            Applicants will email their CV to this address when they click Apply.
+          </p>
+        </div>
+      )}
     </div>
   )}
   <div className="mt-4">

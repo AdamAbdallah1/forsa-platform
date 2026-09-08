@@ -24,6 +24,17 @@ import { showToast } from "../lib/Toast";
 
 const getWorkCountry = (item) => item?.workCountry || "Lebanon";
 
+const getExternalApplicationType = (item) => {
+  if (item?.applicationMethod !== "external") return "";
+  return item?.externalApplicationType || "url";
+};
+
+const buildMailtoLink = (item) => {
+  const email = String(item?.applicationEmail || "").trim();
+  const subject = `Application — ${item?.title || "Job"} — via Forsa`;
+  return `mailto:${email}?subject=${encodeURIComponent(subject)}`;
+};
+
 const isAbroadPost = (item) => {
   return String(getWorkCountry(item)).toLowerCase() !== "lebanon";
 };
@@ -198,6 +209,25 @@ export default function JobDetails() {
     if (!job) return;
 
     if (job.applicationMethod === "external") {
+      const externalType = getExternalApplicationType(job);
+
+      if (externalType === "email") {
+        const email = String(job.applicationEmail || "").trim();
+
+        if (!email) {
+          showToast("This application email is unavailable.", "error");
+          return;
+        }
+
+        window.open(
+          buildMailtoLink(job),
+          "_blank",
+          "noopener,noreferrer"
+        );
+        showToast(`Email ${email} with your CV and application details`);
+        return;
+      }
+
       try {
         const url = new URL(job.applicationUrl);
 
@@ -350,6 +380,8 @@ export default function JobDetails() {
 
   const abroad = isAbroadPost(job);
   const agency = isAgencyPost(job);
+  const externalIsEmail =
+    getExternalApplicationType(job) === "email";
   const companyLabel = job.verified
     ? `${job.company} · Verified`
     : job.trusted
@@ -537,8 +569,9 @@ export default function JobDetails() {
                     External application
                   </p>
                   <p className="mt-1 text-xs leading-5 text-neutral-600">
-                    You will be redirected to the company&apos;s application
-                    page.
+                    {externalIsEmail
+                      ? "Your email app will open so you can send your CV to the company."
+                      : "You will be redirected to the company&apos;s application page."}
                   </p>
                 </div>
               )}
@@ -551,7 +584,9 @@ export default function JobDetails() {
                 >
                   <FaPaperPlane className="text-xs" />
                   {job.applicationMethod === "external"
-                    ? "Apply externally"
+                    ? externalIsEmail
+                      ? "Apply via email"
+                      : "Apply externally"
                     : "Apply"}
                 </button>
 
@@ -608,7 +643,11 @@ export default function JobDetails() {
               onClick={handleApply}
               className="min-h-11 rounded-full bg-[var(--forsa-primary)] px-4 text-sm font-semibold text-white shadow-sm"
             >
-              {job.applicationMethod === "external" ? "Apply externally" : "Apply now"}
+              {job.applicationMethod === "external"
+                ? externalIsEmail
+                  ? "Apply via email"
+                  : "Apply externally"
+                : "Apply now"}
             </button>
             <button
               type="button"
