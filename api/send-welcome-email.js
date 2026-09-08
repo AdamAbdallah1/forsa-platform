@@ -86,6 +86,16 @@ function getDisplayName(account) {
   );
 }
 
+function getFirstName(account) {
+  const name = getDisplayName(account);
+
+  if (name === "there") {
+    return "there";
+  }
+
+  return name.split(/\s+/)[0];
+}
+
 /* -------------------------------------------------------------------------- */
 /* Shared email styles                                                        */
 /* -------------------------------------------------------------------------- */
@@ -109,7 +119,7 @@ function seekerEmail({ name }) {
   const safeName = escapeHtml(name);
 
   return {
-    subject: "Welcome to Forsa — your next opportunity starts here",
+    subject: "Welcome to Forsa — your profile is ready",
     html: `
 <!doctype html>
 <html lang="en">
@@ -189,7 +199,7 @@ function seekerEmail({ name }) {
                         font-weight:600;
                       "
                     >
-                      ACCOUNT VERIFIED
+                      PROFILE READY
                     </div>
                   </td>
                 </tr>
@@ -268,8 +278,10 @@ function seekerEmail({ name }) {
                         color:${emailStyles.muted};
                       "
                     >
-                      Your account is verified and you're ready to discover
-                      opportunities that match your skills, interests, and goals.
+                      Your profile is ready. Forsa helps talented people like
+                      you connect with career opportunities — internships,
+                      freelance work, and jobs — that match what you're good at
+                      and where you want to go.
                     </p>
 
                     <!-- Feature block -->
@@ -335,8 +347,9 @@ function seekerEmail({ name }) {
                                     color:${emailStyles.muted};
                                   "
                                 >
-                                  Complete your profile so companies can
-                                  understand who you are and what you can offer.
+                                  Companies look at profiles before reaching
+                                  out, so keep yours current as your skills and
+                                  experience grow.
                                 </div>
                               </td>
                             </tr>
@@ -363,7 +376,7 @@ function seekerEmail({ name }) {
                           "
                         >
                           <a
-                            href="https://forsa.digital/profile"
+                            href="https://forsa.digital/explore"
                             style="
                               display:inline-block;
                               padding:15px 24px;
@@ -375,7 +388,7 @@ function seekerEmail({ name }) {
                               text-decoration:none;
                             "
                           >
-                            Complete your profile
+                            Explore opportunities
                             <span style="padding-left:6px;">→</span>
                           </a>
                         </td>
@@ -391,8 +404,8 @@ function seekerEmail({ name }) {
                         color:${emailStyles.subtle};
                       "
                     >
-                      You can always come back to your profile and update
-                      your information later.
+                      Come back any time to explore new opportunities or update
+                      your profile.
                     </p>
 
                   </td>
@@ -415,7 +428,7 @@ function seekerEmail({ name }) {
                   text-align:center;
                 "
               >
-                You're receiving this email because you created a verified
+                You're receiving this email because you created a
                 Forsa account.
               </p>
 
@@ -827,48 +840,138 @@ export default async function handler(req, res) {
     }
 
     const userRef = db.collection("users").doc(uid);
-    const snap = await userRef.get();
 
-    if (!snap.exists) {
+    /*
+     * Eligibility + exactly-once claim happen INSIDE a single
+     * Firestore transaction.
+     *
+     * The idempotency markers are written BEFORE the email provider
+     * is called. With transactional serialized isolation, only one of
+     * several concurrent requests can commit the claim; the others
+     * retry, observe the marker, and skip sending. This prevents
+     * duplicate emails from double clicks, repeated requests,
+     * refreshes, or network retries.
+     *
+     * If sending later fails, the marker stays set and the email is
+     * never automatically retried (fail-closed). No array recipients,
+     * no batch operations, no collection scans.
+     */
+    let decision = { status: "notFound" };
+
+    try {
+      await db.runTransaction(async (transaction) => {
+        const snap = await transaction.get(userRef);
+
+        if (!snap.exists) {
+          return;
+        }
+
+        const account = snap.data();
+
+        if (account.welcomeEmailSentAt) {
+          decision = { status: "alreadySent" };
+          return;
+        }
+
+        /*
+         * Only accounts created by the current registration flow
+         * (registerUser / loginWithGoogle new-account branch) carry
+         * isNewRegistration. Pre-feature accounts never have it, so
+         * existing users can never become eligible — not by logging
+         * in, editing their profile, or re-running onboarding.
+         */
+        if (account.isNewRegistration !== true) {
+          decision = { status: "notEligible" };
+          return;
+        }
+
+        if (account.emailVerified !== true) {
+          decision = { status: "emailNotVerified" };
+          return;
+        }
+
+        const accountType = String(
+          account.accountType || "finder"
+        )
+          .trim()
+          .toLowerCase();
+
+        if (accountType === "hiring") {
+          decision = { status: "notEligible" };
+          return;
+        }
+
+        const email = String(account.email || "").trim();
+
+        if (!email) {
+          decision = { status: "noEmail" };
+          return;
+        }
+
+        const now = new Date();
+
+        transaction.update(userRef, {
+          welcomeEmailSentAt: now,
+          onboardingCompletedAt: now,
+          updatedAt: now,
+        });
+
+        decision = {
+          status: "claim",
+          account,
+          email,
+          accountType,
+        };
+      });
+    } catch (transactionError) {
+      console.error(
+        "Welcome email claim failed:",
+        transactionError
+      );
+
+      return res.status(500).json({
+        error: "Internal server error.",
+      });
+    }
+
+    if (decision.status === "notFound") {
       return res.status(404).json({
         error: "User profile not found.",
       });
     }
 
-    const account = snap.data();
-
-    if (account.emailVerified !== true) {
-      return res.status(400).json({
-        error: "Email is not verified.",
-      });
-    }
-
-    if (account.welcomeEmailSentAt) {
+    if (decision.status === "alreadySent") {
       return res.status(200).json({
         success: true,
         alreadySent: true,
       });
     }
 
-    const email = String(account.email || "").trim();
+    if (decision.status === "emailNotVerified") {
+      return res.status(400).json({
+        error: "Email is not verified.",
+      });
+    }
 
-    if (!email) {
+    if (decision.status === "noEmail") {
       return res.status(400).json({
         error: "Account has no email address.",
       });
     }
 
-    const accountType = String(
-      account.accountType || "finder"
-    )
-      .trim()
-      .toLowerCase();
+    if (decision.status === "notEligible") {
+      return res.status(200).json({
+        success: false,
+        alreadySent: true,
+        reason: "notEligible",
+      });
+    }
 
-    const name = getDisplayName(account);
+    const name = getFirstName(decision.account);
 
     let emailContent;
 
-    if (accountType === "hiring") {
+    if (decision.accountType === "hiring") {
       emailContent = companyEmail({ name });
     } else {
       emailContent = seekerEmail({ name });
@@ -876,7 +979,7 @@ export default async function handler(req, res) {
 
     const { data, error } = await resend.emails.send({
       from: process.env.FROM_EMAIL,
-      to: [email],
+      to: [decision.email],
       subject: emailContent.subject,
       html: emailContent.html,
     });
@@ -889,14 +992,10 @@ export default async function handler(req, res) {
       });
     }
 
-    await userRef.update({
-      welcomeEmailSentAt: new Date(),
-    });
-
     return res.status(200).json({
       success: true,
       alreadySent: false,
-      accountType,
+      accountType: decision.accountType,
       emailId: data?.id || null,
     });
   } catch (error) {

@@ -118,13 +118,16 @@ export async function registerUser(accountData) {
   /*
    * Never store the password in Firestore.
    */
-  const { password: _, ...safeAccountData } = accountData;
+  const safeAccountData = { ...accountData };
+
+  delete safeAccountData.password;
 
   const cleanAccount = {
     ...safeAccountData,
     uid,
     email,
     emailVerified: false,
+    isNewRegistration: true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -274,39 +277,6 @@ export async function syncEmailVerification() {
     updatedAt: serverTimestamp(),
   });
 
-  /*
-   * Send the personalized welcome email.
-   *
-   * The API verifies the Firebase ID token server-side
-   * and prevents duplicate welcome emails.
-   */
-  try {
-    const idToken = await user.getIdToken();
-
-    const response = await fetch("/api/send-welcome-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-
-      console.error(
-        "Welcome email request failed:",
-        errorBody || response.status
-      );
-    }
-  } catch (error) {
-    /*
-     * Welcome email failure should not prevent the user
-     * from completing verification and entering Forsa.
-     */
-    console.error("Welcome email request failed:", error);
-  }
-
   return true;
 }
 
@@ -357,8 +327,7 @@ COMPLETE EMAIL VERIFICATION
  * 3. Refresh Auth token.
  * 4. Read Firestore profile.
  * 5. Update Firestore emailVerified.
- * 6. Send personalized welcome email.
- * 7. Create the local application session.
+ * 6. Create the local application session.
  */
 export async function completeEmailVerification() {
   const user = await reloadCurrentUser();
@@ -396,42 +365,6 @@ export async function completeEmailVerification() {
     emailVerified: true,
     updatedAt: serverTimestamp(),
   });
-
-  /*
-   * Send the personalized welcome email.
-   *
-   * The API verifies the Firebase ID token server-side
-   * and prevents duplicate welcome emails.
-   *
-   * Failure to send the welcome email must NOT prevent
-   * the user from completing verification.
-   */
-  try {
-    const idToken = await user.getIdToken();
-
-    const response = await fetch("/api/send-welcome-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-
-      console.error(
-        "Welcome email request failed:",
-        errorBody || response.status
-      );
-    }
-  } catch (error) {
-    /*
-     * Welcome email failure should not prevent the user
-     * from completing verification and entering Forsa.
-     */
-    console.error("Welcome email request failed:", error);
-  }
 
   /*
    * Build the application session from the latest Firestore data.
@@ -512,6 +445,10 @@ export async function loginWithGoogle() {
 
   /*
    * New Google account.
+   *
+   * isNewRegistration marks accounts created by the current
+   * registration flow. It is written ONLY here (and in registerUser)
+   * so pre-feature accounts can never be treated as new registrations.
    */
   const newAccount = {
     uid: user.uid,
@@ -522,6 +459,7 @@ export async function loginWithGoogle() {
     photoURL: user.photoURL || "",
     provider: "google",
     emailVerified: true,
+    isNewRegistration: true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };

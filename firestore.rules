@@ -71,7 +71,8 @@ service cloud.firestore {
         "trusted",
         "verified",
         "emailVerified",
-        "createdAt"
+        "createdAt",
+        "isNewRegistration"
       ]);
 
   // User is allowed to synchronize email verification

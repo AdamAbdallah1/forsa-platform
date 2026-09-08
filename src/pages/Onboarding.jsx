@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { doc, setDoc } from "firebase/firestore";
 import Footer from "../components/Footer";
 import {
   FaArrowRight,
@@ -15,6 +16,13 @@ import {
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
+import { db } from "../lib/firebase";
+import { requestWelcomeEmail } from "../lib/welcomeEmail";
+import {
+  requestCvUpload,
+  uploadCvToR2,
+  CV_MAX_BYTES,
+} from "../lib/cvUpload";
 
 const skillOptions = [
   "React",
@@ -84,6 +92,10 @@ export default function Onboarding() {
   );
   const [availability, setAvailability] = useState(() => savedProfile.availability || "");
   const [portfolio, setPortfolio] = useState(() => savedProfile.portfolio || "");
+  const [cv, setCv] = useState(() => savedProfile.cv || null);
+  const [cvUploading, setCvUploading] = useState(false);
+  const [cvUploadError, setCvUploadError] = useState("");
+  const cvFileInputRef = useRef(null);
   const [customSkill, setCustomSkill] = useState("");
 
   const steps = [
@@ -117,9 +129,9 @@ export default function Onboarding() {
     if (selectedSkills.length >= 2) score += 30;
     else if (selectedSkills.length > 0) score += 15;
     if (selectedLooking.length > 0) score += 25;
-    if (portfolio.trim() || savedProfile.cv) score += 10;
+    if (portfolio.trim() || cv) score += 10;
     return Math.min(100, score);
-  }, [cityPreference, availability, selectedSkills, selectedLooking, portfolio, savedProfile.cv]);
+  }, [cityPreference, availability, selectedSkills, selectedLooking, portfolio, cv]);
 
   const canMoveStep = () => {
     if (step === 0) return cityPreference.trim() && availability;
@@ -157,6 +169,87 @@ export default function Onboarding() {
     setCustomSkill("");
   };
 
+  const persistCv = async (nextCv) => {
+    setCv(nextCv);
+
+    localStorage.setItem(
+      "forsaProfile",
+      JSON.stringify({
+        ...savedProfile,
+        skills: selectedSkills,
+        lookingFor: selectedLooking,
+        cityPreference: cityPreference.trim(),
+        availability,
+        portfolio: portfolio.trim(),
+        cv: nextCv,
+      })
+    );
+
+    if (savedAccount?.uid) {
+      await setDoc(
+        doc(db, "users", savedAccount.uid),
+        {
+          cv: nextCv,
+          publicCv: nextCv,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+    }
+  };
+
+  const handleCvFileSelect = async (event) => {
+    const file = event.target.files?.[0];
+
+    event.target.value = "";
+
+    if (!file || cvUploading) {
+      return;
+    }
+
+    const isPdf =
+      file.type === "application/pdf" ||
+      /\.pdf$/i.test(file.name);
+
+    if (!isPdf) {
+      setCvUploadError("Only PDF files are supported.");
+      return;
+    }
+
+    if (file.size > CV_MAX_BYTES) {
+      setCvUploadError("Your CV must be 5 MB or smaller.");
+      return;
+    }
+
+    setCvUploading(true);
+    setCvUploadError("");
+
+    try {
+      const { uploadUrl, objectKey } = await requestCvUpload(
+        file.name,
+        file.size
+      );
+
+      await uploadCvToR2(uploadUrl, file);
+
+      await persistCv({
+        name: file.name,
+        type: "pdf",
+        storage: "r2",
+        objectKey,
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("CV upload failed:", error);
+      setCvUploadError(
+        error.message || "Could not upload your CV. Please try again."
+      );
+    } finally {
+      setCvUploading(false);
+    }
+  };
+
   const nextStep = () => {
     if (!canMoveStep()) {
       showToast("Complete this step first", "info");
@@ -171,19 +264,35 @@ export default function Onboarding() {
       return;
     }
 
+    const nextProfile = {
+      ...savedProfile,
+      skills: selectedSkills,
+      lookingFor: selectedLooking,
+      cityPreference: cityPreference.trim(),
+      availability,
+      portfolio: portfolio.trim(),
+      cv: cv || null,
+      completedAt: new Date().toISOString(),
+    };
+
     localStorage.setItem(
       "forsaProfile",
-      JSON.stringify({
-        ...savedProfile,
-        skills: selectedSkills,
-        lookingFor: selectedLooking,
-        cityPreference: cityPreference.trim(),
-        availability,
-        portfolio: portfolio.trim(),
-        cv: savedProfile.cv || null,
-        completedAt: new Date().toISOString(),
-      })
+      JSON.stringify(nextProfile)
     );
+
+    /*
+     * Trigger the one-time welcome email ONLY after the profile has
+     * been successfully saved.
+     *
+     * This is the exact and only registration-completion moment:
+     * - a new user's after-registration flow ends here,
+     * - it never runs on login, on page render, or on profile editing,
+     * - the server independently authenticates the user and enforces
+     *   exactly-once delivery via an atomic Firestore claim, so
+     *   double clicks / repeated requests cannot send duplicates,
+     * - it is non-blocking: the email can never fail profile creation.
+     */
+    void requestWelcomeEmail();
 
     showToast("Profile completed successfully");
     navigate("/explore");
@@ -240,7 +349,7 @@ export default function Onboarding() {
                 <StepDone done={Boolean(cityPreference.trim()) && Boolean(availability)} text="Location and availability" />
                 <StepDone done={selectedSkills.length > 0} text="Skills added" />
                 <StepDone done={selectedLooking.length > 0} text="Work preferences" />
-                <StepDone done={Boolean(portfolio.trim() || savedProfile.cv)} text="Portfolio or CV" />
+                <StepDone done={Boolean(portfolio.trim() || cv)} text="Portfolio or CV" />
               </div>
             </div>
           </aside>
@@ -348,14 +457,54 @@ export default function Onboarding() {
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-50 border border-neutral-200/50 text-neutral-400">
                         <FaFileAlt className="text-sm" />
                       </div>
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold tracking-tight text-neutral-950 uppercase mt-0.5">CV or resume</p>
                         <p className="mt-1 text-sm leading-relaxed text-neutral-500 font-medium">
-                          {savedProfile.cv
-                            ? `${savedProfile.cv.name} is attached to your profile.`
-                            : "You can add a CV later from your profile settings."}
+                          Upload your CV as a PDF. PDFs only, up to 5 MB. This step is optional.
                         </p>
                       </div>
+                    </div>
+
+                    <div className="mt-4">
+                      {cv ? (
+                        <div className="flex flex-col gap-3 rounded-2xl bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-neutral-900">{cv.name}</p>
+                            <p className="mt-0.5 text-xs text-neutral-500">is attached to your profile.</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => cvFileInputRef.current?.click()}
+                            disabled={cvUploading}
+                            className="shrink-0 rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold text-neutral-700 transition hover:border-neutral-500 disabled:cursor-wait disabled:opacity-60"
+                          >
+                            {cvUploading ? "Uploading…" : "Replace CV"}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => cvFileInputRef.current?.click()}
+                          disabled={cvUploading}
+                          className="w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:border-neutral-500 disabled:cursor-wait disabled:opacity-60"
+                        >
+                          {cvUploading ? "Uploading…" : "Upload CV (PDF)"}
+                        </button>
+                      )}
+
+                      <input
+                        ref={cvFileInputRef}
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        className="hidden"
+                        onChange={handleCvFileSelect}
+                      />
+
+                      {cvUploadError && (
+                        <p className="mt-2 text-xs font-medium text-red-600" role="alert">
+                          {cvUploadError}
+                        </p>
+                      )}
                     </div>
                   </div>
 
