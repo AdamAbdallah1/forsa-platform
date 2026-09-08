@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { auth } from "../lib/firebase";
+import { getAccount } from "../lib/auth";
 import {
   FaArrowLeft,
   FaBriefcase,
@@ -17,6 +18,7 @@ import {
 import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
+import SignInRequiredModal from "../components/SignInRequiredModal";
 import { getPostById } from "../lib/postService";
 import { createReport } from "../lib/reportService";
 import { getUserSavedJobs, saveJob, unsaveJob } from "../lib/savedJobsService";
@@ -116,6 +118,7 @@ export default function JobDetails() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -208,6 +211,11 @@ export default function JobDetails() {
   const handleApply = () => {
     if (!job) return;
 
+    if (!getAccount()) {
+      setShowSignInPrompt(true);
+      return;
+    }
+
     if (job.applicationMethod === "external") {
       const externalType = getExternalApplicationType(job);
 
@@ -244,12 +252,7 @@ export default function JobDetails() {
       return;
     }
 
-    if (auth.currentUser) {
-      navigate(`/explore?post=${encodeURIComponent(job.id)}&apply=1`);
-      return;
-    }
-
-    navigate(`/auth?mode=login&returnTo=${encodeURIComponent(`/jobs/${job.id}`)}`);
+    navigate(`/explore?post=${encodeURIComponent(job.id)}&apply=1`);
   };
 
   const handleSave = async () => {
@@ -667,6 +670,13 @@ export default function JobDetails() {
       </main>
 
       <Footer />
+
+      <SignInRequiredModal
+        open={showSignInPrompt}
+        onSignIn={() => navigate("/auth?mode=login")}
+        onCreateAccount={() => navigate("/auth")}
+        onClose={() => setShowSignInPrompt(false)}
+      />
     </section>
   );
 }

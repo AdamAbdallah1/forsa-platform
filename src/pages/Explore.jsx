@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { showToast } from "../lib/Toast";
+import { getAccount } from "../lib/auth";
 import ExploreSkeleton from "../components/ExploreSkeleton";
 import { FaWhatsapp, FaCopy } from "react-icons/fa";
 import SEO from "../components/SEO"
@@ -37,6 +38,7 @@ import {
   FaBuilding
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
+import SignInRequiredModal from "../components/SignInRequiredModal";
 import { opportunities } from "../data/opportunities";
 
 const safeJson = (key, fallback) => {
@@ -224,6 +226,7 @@ export default function Explore() {
   const [selectedOpportunity, setSelectedOpportunity] = useState(null);
   const [applyOpportunity, setApplyOpportunity] = useState(null);
   const [authModal, setAuthModal] = useState(null);
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
   const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [activeType, setActiveType] = useState("All");
   const [sortBy, setSortBy] = useState("Best match");
@@ -267,6 +270,7 @@ export default function Explore() {
       Boolean(selectedOpportunity) ||
       Boolean(applyOpportunity) ||
       Boolean(authModal) ||
+      Boolean(showSignInPrompt) ||
       Boolean(shareItem) ||
       Boolean(showFilters);
 
@@ -277,7 +281,7 @@ export default function Explore() {
       document.body.classList.remove("forsa-modal-open");
       document.documentElement.classList.remove("forsa-modal-open");
     };
-  }, [selectedOpportunity, applyOpportunity, authModal, shareItem, showFilters]);
+  }, [selectedOpportunity, applyOpportunity, authModal, showSignInPrompt, shareItem, showFilters]);
 
   useEffect(() => {
     let active = true;
@@ -658,6 +662,11 @@ export default function Explore() {
   };
 
   const openApply = (item) => {
+  if (!getAccount()) {
+    setShowSignInPrompt(true);
+    return;
+  }
+
   if (item.applicationMethod === "external") {
   const externalType = getExternalApplicationType(item);
 
@@ -1079,6 +1088,13 @@ try {
           onCreateAccount={() => navigate("/auth")}
         />
       )}
+
+      <SignInRequiredModal
+        open={showSignInPrompt}
+        onSignIn={() => navigate("/auth?mode=login")}
+        onCreateAccount={() => navigate("/auth")}
+        onClose={() => setShowSignInPrompt(false)}
+      />
       <Footer />
       <Modal
   open={Boolean(shareItem)}
