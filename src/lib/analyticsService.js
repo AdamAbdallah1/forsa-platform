@@ -117,6 +117,8 @@ export async function getCompanyAnalytics({ uid, email }) {
 
     const views = Number(post.views || 0);
 
+    const applyClicks = Number(post.applyClicks || 0);
+
     const applicationsCount =
       applicationCounts[postId] ||
       Number(post.applications || 0);
@@ -125,9 +127,17 @@ export async function getCompanyAnalytics({ uid, email }) {
     const shares = Number(post.shares || 0);
     const reports = Number(post.reports || 0);
 
-    const conversionRate = views
+    const applyRate = views
+      ? Math.round((applyClicks / views) * 100)
+      : 0;
+
+    const applicationRate = views
       ? Math.round((applicationsCount / views) * 100)
       : 0;
+
+    const completionRate = applyClicks
+      ? Math.round((applicationsCount / applyClicks) * 100)
+      : null;
 
     return {
       post,
@@ -139,13 +149,16 @@ export async function getCompanyAnalytics({ uid, email }) {
         "Unknown",
 
       views,
+      applyClicks,
       applications: applicationsCount,
       saves,
       shares,
       reports,
 
       avgFit: 0,
-      conversionRate,
+      applyRate,
+      applicationRate,
+      completionRate,
     };
   });
 
@@ -158,6 +171,7 @@ export async function getCompanyAnalytics({ uid, email }) {
   const totals = rows.reduce(
     (acc, row) => ({
       views: acc.views + row.views,
+      applyClicks: acc.applyClicks + row.applyClicks,
       applications: acc.applications + row.applications,
       saves: acc.saves + row.saves,
       shares: acc.shares + row.shares,
@@ -165,6 +179,7 @@ export async function getCompanyAnalytics({ uid, email }) {
     }),
     {
       views: 0,
+      applyClicks: 0,
       applications: 0,
       saves: 0,
       shares: 0,
@@ -172,11 +187,17 @@ export async function getCompanyAnalytics({ uid, email }) {
     }
   );
 
-  const conversionRate = totals.views
-    ? Math.round(
-        (totals.applications / totals.views) * 100
-      )
+  const applyRate = totals.views
+    ? Math.round((totals.applyClicks / totals.views) * 100)
     : 0;
+
+  const applicationRate = totals.views
+    ? Math.round((totals.applications / totals.views) * 100)
+    : 0;
+
+  const completionRate = totals.applyClicks
+    ? Math.round((totals.applications / totals.applyClicks) * 100)
+    : null;
 
   // ============================================================
   // 6. FIND BEST-PERFORMING POST
@@ -188,8 +209,8 @@ export async function getCompanyAnalytics({ uid, email }) {
       .sort(
         (a, b) =>
           b.applications - a.applications ||
-          b.views - a.views ||
-          b.conversionRate - a.conversionRate
+          b.applyRate - a.applyRate ||
+          b.views - a.views
       )[0] || null;
 
   // ============================================================
@@ -201,7 +222,9 @@ export async function getCompanyAnalytics({ uid, email }) {
 
     totals: {
       ...totals,
-      conversionRate,
+      applyRate,
+      applicationRate,
+      completionRate,
       avgFit: 0,
     },
 

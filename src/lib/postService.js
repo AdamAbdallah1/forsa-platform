@@ -8,6 +8,7 @@ import {
   increment,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   updateDoc,
   where,
@@ -85,6 +86,41 @@ export async function incrementPostMetric(postId, field, delta = 1) {
     [field]: increment(delta),
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function recordApplyClick({ postId, uid, method = "forsa" }) {
+  if (!postId || !uid) return false;
+
+  const normalizedPostId = String(postId);
+  const clickDocId = `${uid}_${normalizedPostId}`;
+  const clickRef = doc(db, "applyClicks", clickDocId);
+
+  try {
+    await runTransaction(db, async (tx) => {
+      const existingClick = await tx.get(clickRef);
+
+      if (existingClick.exists()) {
+        return false;
+      }
+
+      tx.set(clickRef, {
+        userUid: uid,
+        postId: normalizedPostId,
+        method,
+        clickedAt: serverTimestamp(),
+      });
+
+      tx.update(doc(db, "posts", normalizedPostId), {
+        applyClicks: increment(1),
+        updatedAt: serverTimestamp(),
+      });
+    });
+  } catch (error) {
+    console.error("Could not record apply click:", error);
+    return false;
+  }
+
+  return true;
 }
 
 export async function getActivePosts() {

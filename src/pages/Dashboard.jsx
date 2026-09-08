@@ -11,7 +11,8 @@ import {
   FaBookmark,
   FaShareAlt,
   FaPercent,
-  FaBullseye,
+  FaMousePointer,
+  FaCheckCircle,
   FaFlag,
   FaTimes,
 } from "react-icons/fa";
@@ -541,46 +542,64 @@ function AnalyticsTab({ analytics, onNewPost, onOpenApplicants }) {
         />
 
         <AnalyticsMetric
+          icon={<FaMousePointer />}
+          label="Apply Clicks"
+          value={formatNumber(totals.applyClicks)}
+        />
+
+        <AnalyticsMetric
           icon={<FaPaperPlane />}
           label="Applications"
           value={formatNumber(totals.applications)}
         />
+      </div>
+
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <AnalyticsMetric
+          icon={<FaPercent />}
+          label="Apply Rate"
+          value={`${totals.applyRate || 0}%`}
+        />
 
         <AnalyticsMetric
           icon={<FaPercent />}
-          label="Conversion Rate"
-          value={`${totals.conversionRate || 0}%`}
+          label="Application Rate"
+          value={`${totals.applicationRate || 0}%`}
         />
-      </div>
 
-      <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
+        <AnalyticsMetric
+          icon={<FaCheckCircle />}
+          label="Completion Rate"
+          value={
+            totals.completionRate == null
+              ? "—"
+              : `${totals.completionRate}%`
+          }
+        />
+
         <AnalyticsMetric
           icon={<FaBookmark />}
           label="Saves"
           value={formatNumber(totals.saves)}
         />
+      </div>
 
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
         <AnalyticsMetric
           icon={<FaShareAlt />}
           label="Shares"
           value={formatNumber(totals.shares)}
         />
 
-        <AnalyticsMetric
-          icon={<FaBullseye />}
-          label="Avg Applicant Fit"
-          value={`${totals.avgFit || 0}%`}
-        />
+        {totals.reports > 0 && (
+          <AnalyticsMetric
+            icon={<FaFlag />}
+            label="Flagged Reports"
+            value={formatNumber(totals.reports)}
+            danger
+          />
+        )}
       </div>
-
-      {totals.reports > 0 && (
-        <AnalyticsMetric
-          icon={<FaFlag />}
-          label="Flagged Reports"
-          value={formatNumber(totals.reports)}
-          danger
-        />
-      )}
 
       {bestPost && (
         <div className="rounded-2xl border border-[var(--forsa-border)] bg-gradient-to-r from-white to-[var(--forsa-bg-soft)] p-5 shadow-sm sm:p-6">
@@ -619,13 +638,13 @@ function AnalyticsTab({ analytics, onNewPost, onOpenApplicants }) {
               />
 
               <MiniAnalytics
-                label="Apps"
-                value={formatNumber(bestPost.applications)}
+                label="Apply"
+                value={formatNumber(bestPost.applyClicks)}
               />
 
               <MiniAnalytics
-                label="Conv."
-                value={`${bestPost.conversionRate}%`}
+                label="Apps"
+                value={formatNumber(bestPost.applications)}
               />
             </div>
           </div>
@@ -667,16 +686,17 @@ function AnalyticsTab({ analytics, onNewPost, onOpenApplicants }) {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-[760px] w-full border-collapse text-left">
+            <table className="min-w-[880px] w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-[var(--forsa-border)] bg-[var(--forsa-bg)] text-xs font-semibold uppercase tracking-wider text-neutral-500">
                   <th className="px-6 py-4">Opportunity</th>
                   <th className="px-4 py-4 text-center">Views</th>
-                  <th className="px-4 py-4 text-center">Saves</th>
+                  <th className="px-4 py-4 text-center">Apply</th>
                   <th className="px-4 py-4 text-center">Apps</th>
+                  <th className="px-4 py-4 text-center">Saves</th>
                   <th className="px-4 py-4 text-center">Shares</th>
-                  <th className="px-4 py-4 text-center">Conv.</th>
-                  <th className="px-4 py-4 text-center">Fit</th>
+                  <th className="px-4 py-4 text-center">Apply Rate</th>
+                  <th className="px-4 py-4 text-center">App. Rate</th>
                 </tr>
               </thead>
 
@@ -716,7 +736,7 @@ function AnalyticsTab({ analytics, onNewPost, onOpenApplicants }) {
                           style={{
                             width: `${Math.min(
                               100,
-                              Math.max(4, row.conversionRate)
+                              Math.max(4, row.applyRate)
                             )}%`,
                           }}
                         />
@@ -728,7 +748,7 @@ function AnalyticsTab({ analytics, onNewPost, onOpenApplicants }) {
                     </td>
 
                     <td className="px-4 py-4 text-center text-sm font-medium text-neutral-600">
-                      {formatNumber(row.saves)}
+                      {formatNumber(row.applyClicks)}
                     </td>
 
                     <td className="px-4 py-4 text-center text-sm font-semibold text-neutral-900">
@@ -736,15 +756,19 @@ function AnalyticsTab({ analytics, onNewPost, onOpenApplicants }) {
                     </td>
 
                     <td className="px-4 py-4 text-center text-sm font-medium text-neutral-600">
+                      {formatNumber(row.saves)}
+                    </td>
+
+                    <td className="px-4 py-4 text-center text-sm font-medium text-neutral-600">
                       {formatNumber(row.shares)}
                     </td>
 
                     <td className="px-4 py-4 text-center text-sm font-bold text-neutral-900">
-                      {row.conversionRate}%
+                      {row.applyRate}%
                     </td>
 
                     <td className="px-4 py-4 text-center text-sm font-medium text-neutral-900">
-                      {row.avgFit || 0}%
+                      {row.applicationRate}%
                     </td>
                   </tr>
                 ))}
@@ -766,10 +790,13 @@ export default function Dashboard() {
     rows: [],
     totals: {
       views: 0,
+      applyClicks: 0,
       applications: 0,
       saves: 0,
       shares: 0,
-      conversionRate: 0,
+      applyRate: 0,
+      applicationRate: 0,
+      completionRate: null,
       avgFit: 0,
       reports: 0,
     },

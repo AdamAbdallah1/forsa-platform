@@ -19,7 +19,7 @@ import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
 import SignInRequiredModal from "../components/SignInRequiredModal";
-import { getPostById } from "../lib/postService";
+import { getPostById, recordApplyClick } from "../lib/postService";
 import { createReport } from "../lib/reportService";
 import { getUserSavedJobs, saveJob, unsaveJob } from "../lib/savedJobsService";
 import { showToast } from "../lib/Toast";
@@ -211,7 +211,10 @@ export default function JobDetails() {
   const handleApply = () => {
     if (!job) return;
 
-    if (!getAccount()) {
+    const session = getAccount();
+    const seekerUid = session?.accountType !== "hiring" ? session?.uid : null;
+
+    if (!session) {
       setShowSignInPrompt(true);
       return;
     }
@@ -233,6 +236,9 @@ export default function JobDetails() {
           "noopener,noreferrer"
         );
         showToast(`Email ${email} with your CV and application details`);
+        if (seekerUid) {
+          recordApplyClick({ postId: job.id, uid: seekerUid, method: "email" });
+        }
         return;
       }
 
@@ -245,11 +251,18 @@ export default function JobDetails() {
 
         window.open(url.href, "_blank", "noopener,noreferrer");
         showToast("Opening the external application page");
+        if (seekerUid) {
+          recordApplyClick({ postId: job.id, uid: seekerUid, method: "url" });
+        }
       } catch {
         showToast("This application link is unavailable.", "error");
       }
 
       return;
+    }
+
+    if (seekerUid) {
+      recordApplyClick({ postId: job.id, uid: seekerUid, method: "forsa" });
     }
 
     navigate(`/explore?post=${encodeURIComponent(job.id)}&apply=1`);

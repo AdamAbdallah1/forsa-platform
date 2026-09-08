@@ -253,6 +253,16 @@ service cloud.firestore {
         resource.data.userUid == request.auth.uid;
     }
 
+    // Recorded apply clicks. One document per seeker per post, used only
+    // to deduplicate clicks; dashboards read the aggregate on the post doc.
+    match /applyClicks/{clickId} {
+      allow create: if signedIn() &&
+        request.resource.data.userUid == request.auth.uid;
+
+      allow read, update, delete: if signedIn() &&
+        resource.data.userUid == request.auth.uid;
+    }
+
     match /verificationRequests/{requestId} {
   allow create: if signedIn()
     && request.resource.data.uid == request.auth.uid
@@ -319,7 +329,16 @@ service cloud.firestore {
 
           request.resource.data.diff(resource.data)
             .affectedKeys()
-            .hasOnly(["reports", "updatedAt"])
+            .hasOnly(["reports", "updatedAt"]) ||
+
+          // Apply click increments are limited to non-hiring (seeker)
+          // accounts so hiring accounts cannot inflate their own counters.
+          request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(["applyClicks", "updatedAt"]) &&
+          get(
+            /databases/$(database)/documents/users/$(request.auth.uid)
+          ).data.accountType != "hiring"
         );
 
       allow delete: if signedIn() &&

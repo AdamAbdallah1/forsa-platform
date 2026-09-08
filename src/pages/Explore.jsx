@@ -7,7 +7,7 @@ import { FaWhatsapp, FaCopy } from "react-icons/fa";
 import SEO from "../components/SEO"
 import Modal from "../components/ui/Modal";
 import Button from "../components/ui/Button";
-import { getActivePosts, incrementPostMetric } from "../lib/postService.js";
+import { getActivePosts, incrementPostMetric, recordApplyClick } from "../lib/postService.js";
 import Footer from "../components/Footer";
 import { createNotification } from "../lib/notificationService";
 import { createApplicationThread } from "../lib/applicationService";
@@ -684,6 +684,13 @@ export default function Explore() {
       "noopener,noreferrer"
     );
     showToast(`Email ${email} with your CV and application details`);
+    if (canInteract) {
+      recordApplyClick({
+        postId: item.id,
+        uid: account?.uid,
+        method: "email",
+      });
+    }
     return;
   }
 
@@ -697,6 +704,13 @@ export default function Explore() {
     }
 
     window.open(url.href, "_blank", "noopener,noreferrer");
+    if (canInteract) {
+      recordApplyClick({
+        postId: item.id,
+        uid: account?.uid,
+        method: "url",
+      });
+    }
   } catch {
     showToast("This application link is unavailable.", "error");
   }
@@ -722,6 +736,12 @@ export default function Explore() {
     navigate("/onboarding");
     return;
   }
+
+  recordApplyClick({
+    postId: item.id,
+    uid: account?.uid,
+    method: "forsa",
+  });
 
   setApplyOpportunity(item);
 };
