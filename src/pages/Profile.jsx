@@ -1,10 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom"; 
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
 import AppHeader from "../components/AppHeader";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
+import {
+  requestCvUpload,
+  uploadCvToR2,
+  requestCvView,
+  requestCvDelete,
+} from "../lib/cvUpload";
 import Modal from "../components/ui/Modal";
 import { deleteCurrentAccount } from "../lib/accountDeletionService";
 import { showToast } from "../lib/Toast";
@@ -334,7 +340,6 @@ if (!Array.isArray(savedProfile.skills)) {
   const [selectedApplicantsPost, setSelectedApplicantsPost] = useState(null);
   const [tab, setTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
-  const [cvLinkInput, setCvLinkInput] = useState("");
 
   const [editingPostId, setEditingPostId] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
@@ -592,42 +597,81 @@ const handleDeleteAccount = async () => {
   }
 };
 
-  const handleCvLinkSave = (url) => {
-    const cleanUrl = String(url || "").trim();
+  const persistCv = async (nextCv) => {
+    const nextProfile = { ...profile, cv: nextCv };
 
-    if (!cleanUrl) {
-      showToast("Paste your CV link first.");
-      return;
+    setProfile(nextProfile);
+
+    localStorage.setItem(
+      "forsaProfile",
+      JSON.stringify(nextProfile)
+    );
+
+    if (account?.uid) {
+      await setDoc(
+        doc(db, "users", account.uid),
+        {
+          cv: nextCv,
+          publicCv: nextCv,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+    }
+  };
+
+  const handleCvUploadPersist = async (cv) => {
+    try {
+      await persistCv(cv);
+      showToast("CV uploaded");
+    } catch (error) {
+      console.error("CV upload save error:", error);
+      showToast("Could not save your CV. Please try again.", "error");
+    }
+  };
+
+  const removeCv = async () => {
+    const current = profile?.cv;
+
+    if (current?.storage === "r2" && current.objectKey) {
+      try {
+        await requestCvDelete(current.objectKey);
+      } catch (error) {
+        console.error("CV delete failed:", error);
+      }
     }
 
     try {
-      const parsed = new URL(cleanUrl);
+      await persistCv(null);
+      showToast("CV removed");
+    } catch (error) {
+      console.error("CV remove error:", error);
+      showToast("Could not remove your CV. Please try again.", "error");
+    }
+  };
 
-      if (!["http:", "https:"].includes(parsed.protocol)) {
-        showToast("Please use a valid CV link.");
-        return;
-      }
-    } catch {
-      showToast("Please use a valid CV link.");
+  const handleCvView = () => {
+    const current = profile?.cv;
+
+    if (!current) {
       return;
     }
 
-    setProfile((prev) => ({
-      ...prev,
-      cv: {
-        name: "CV / Resume link",
-        url: cleanUrl,
-        type: "link",
-        uploadedAt: new Date().toISOString(),
-      },
-    }));
+    if (current.url) {
+      window.open(current.url, "_blank", "noopener,noreferrer");
+      return;
+    }
 
-    showToast("CV link added to profile");
-  };
-
-  const removeCv = () => {
-    setProfile((prev) => ({ ...prev, cv: null }));
-    showToast("CV removed");
+    if (current.storage === "r2" && current.objectKey) {
+      requestCvView(current.objectKey)
+        .then(({ viewUrl }) => {
+          window.open(viewUrl, "_blank", "noopener,noreferrer");
+        })
+        .catch((error) => {
+          console.error("CV view failed:", error);
+          showToast("Could not open your CV. Please try again.", "error");
+        });
+    }
   };
 
 const saveChanges = async () => {
@@ -712,7 +756,6 @@ const saveChanges = async () => {
   const cancelEdit = () => {
   setAccount(savedAccount);
   setProfile(savedProfile);
-  setCvLinkInput(savedProfile?.cv?.url || "");
   setIsEditing(false);
 };
 
@@ -1064,7 +1107,6 @@ const saveChanges = async () => {
             {!isEditing ? (
               <button
                 onClick={() => {
-  setCvLinkInput(profile?.cv?.url || "");
   setIsEditing(true);
 }}
                 className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-neutral-500 sm:w-fit"
@@ -1138,11 +1180,10 @@ const saveChanges = async () => {
   isHiring={isHiring}
   updateAccount={updateAccount}
   toggleProfileItem={toggleProfileItem}
-              handleCvLinkSave={handleCvLinkSave}
-              cvLinkInput={cvLinkInput}
+              handleCvUpload={handleCvUploadPersist}
+              handleCvView={handleCvView}
               experiences={experiences}
               setExperiences={setExperiences}
-              setCvLinkInput={setCvLinkInput}
               removeCv={removeCv}
             />
           ) : (
@@ -2630,13 +2671,68 @@ function ProfileEdit({
   isHiring,
   updateAccount,
   toggleProfileItem,
-  handleCvLinkSave,
+  handleCvUpload,
+  handleCvView,
   removeCv,
-  cvLinkInput,
-  setCvLinkInput,
   experiences,
   setExperiences,
 }) {
+  const [cvUploading, setCvUploading] = useState(false);
+  const [cvUploadError, setCvUploadError] = useState("");
+  const cvFileInputRef = useRef(null);
+
+  const handleCvFileSelect = async (event) => {
+    const file = event.target.files?.[0];
+
+    event.target.value = "";
+
+    if (!file || cvUploading) {
+      return;
+    }
+
+    const isPdf =
+      file.type === "application/pdf" ||
+      /\.pdf$/i.test(file.name);
+
+    if (!isPdf) {
+      setCvUploadError("Only PDF files are supported.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setCvUploadError("Your CV must be 5 MB or smaller.");
+      return;
+    }
+
+    setCvUploading(true);
+    setCvUploadError("");
+
+    try {
+      const { uploadUrl, objectKey } = await requestCvUpload(
+        file.name,
+        file.size
+      );
+
+      await uploadCvToR2(uploadUrl, file);
+
+      await handleCvUpload({
+        name: file.name,
+        type: "pdf",
+        storage: "r2",
+        objectKey,
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("CV upload failed:", error);
+      setCvUploadError(
+        error.message || "Could not upload your CV. Please try again."
+      );
+    } finally {
+      setCvUploading(false);
+    }
+  };
+
   return (
     <div className="mt-6 sm:mt-8">
       {isHiring ? (
@@ -3191,49 +3287,42 @@ function ProfileEdit({
     </h3>
 
     <p className="mt-1 text-xs leading-5 text-neutral-500">
-      Add a shareable link to your CV. Google Drive, Dropbox, or your
-      personal website can be used.
+      Upload your CV as a PDF. PDFs only, up to 5 MB.
     </p>
   </div>
 
   <div className="mt-4">
-    <Field
-      label="CV link"
-      value={cvLinkInput}
-      onChange={(value) => setCvLinkInput(value)}
-      placeholder="https://drive.google.com/..."
-    />
-
-    <button
-      type="button"
-      onClick={() => handleCvLinkSave(cvLinkInput)}
-      className="mt-3 rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium transition hover:border-neutral-500"
-    >
-      Add CV link
-    </button>
-  </div>
-
-  {profile?.cv?.url && (
-    <div className="mt-3 flex flex-col gap-3 rounded-2xl bg-[var(--forsa-bg)] p-4 sm:flex-row sm:items-center sm:justify-between">
+    {profile?.cv ? (
+    <div className="flex flex-col gap-3 rounded-2xl bg-[var(--forsa-bg)] p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-neutral-900">
-          CV added
+        <p className="truncate text-sm font-medium text-neutral-900">
+          {profile.cv.name || "CV / Resume link"}
         </p>
 
-        <p className="mt-1 truncate text-xs text-neutral-500">
-          {profile.cv.url}
+        <p className="mt-1 text-xs text-neutral-500">
+          {profile.cv.size
+            ? `${(profile.cv.size / 1024 / 1024).toFixed(2)} MB · PDF`
+            : "CV saved"}
         </p>
       </div>
 
       <div className="flex shrink-0 gap-2">
-        <a
-          href={profile.cv.url}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
+          onClick={handleCvView}
           className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-medium transition hover:border-neutral-500"
         >
           View
-        </a>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => cvFileInputRef.current?.click()}
+          disabled={cvUploading}
+          className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-medium transition hover:border-neutral-500 disabled:cursor-wait disabled:opacity-60"
+        >
+          {cvUploading ? "Uploading…" : "Replace"}
+        </button>
 
         <button
           type="button"
@@ -3244,7 +3333,31 @@ function ProfileEdit({
         </button>
       </div>
     </div>
-  )}
+    ) : (
+      <button
+        type="button"
+        onClick={() => cvFileInputRef.current?.click()}
+        disabled={cvUploading}
+        className="mt-3 w-full rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium transition hover:border-neutral-500 disabled:cursor-wait disabled:opacity-60"
+      >
+        {cvUploading ? "Uploading…" : "Upload CV (PDF)"}
+      </button>
+    )}
+
+    <input
+      ref={cvFileInputRef}
+      type="file"
+      accept="application/pdf,.pdf"
+      className="hidden"
+      onChange={handleCvFileSelect}
+    />
+
+    {cvUploadError && (
+      <p className="mt-2 text-xs font-medium text-red-600" role="alert">
+        {cvUploadError}
+      </p>
+    )}
+  </div>
 </div>
 
   <div className="mt-6 rounded-[24px] border border-neutral-100 bg-white p-4 sm:rounded-[26px] sm:p-5">
@@ -3904,6 +4017,24 @@ function SettingsTab({
 }
 
 function CvBox({ cv }) {
+  const openCv = () => {
+    if (cv?.url) {
+      window.open(cv.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (cv?.storage === "r2" && cv.objectKey) {
+      requestCvView(cv.objectKey)
+        .then(({ viewUrl }) => {
+          window.open(viewUrl, "_blank", "noopener,noreferrer");
+        })
+        .catch((error) => {
+          console.error("CV view failed:", error);
+          showToast("Could not open this CV.", "error");
+        });
+    }
+  };
+
   return (
     <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
       <p className="text-sm text-neutral-500">CV</p>
@@ -3912,24 +4043,23 @@ function CvBox({ cv }) {
         <div className="mt-4 rounded-2xl bg-white p-4">
           <p className="truncate font-medium">{cv.name || "CV / Resume link"}</p>
 
-          {cv.url ? (
-            <a
-              href={cv.url}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-2 rounded-full forsa-button px-4 py-2 text-xs font-medium text-white"
-            >
-              <FaExternalLinkAlt className="text-[10px]" />
-              Open CV
-            </a>
-          ) : (
+          {cv.size ? (
             <p className="mt-1 text-sm text-neutral-500">
-              {cv.size ? `${(cv.size / 1024 / 1024).toFixed(2)} MB · PDF metadata` : "CV saved"}
+              {(cv.size / 1024 / 1024).toFixed(2)} MB · PDF
             </p>
-          )}
+          ) : null}
+
+          <button
+            type="button"
+            onClick={openCv}
+            className="mt-3 inline-flex items-center gap-2 rounded-full forsa-button px-4 py-2 text-xs font-medium text-white"
+          >
+            <FaExternalLinkAlt className="text-[10px]" />
+            Open CV
+          </button>
         </div>
       ) : (
-        <p className="mt-4 text-sm text-neutral-500">No CV link added yet.</p>
+        <p className="mt-4 text-sm text-neutral-500">No CV added yet.</p>
       )}
     </div>
   );

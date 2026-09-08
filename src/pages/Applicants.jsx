@@ -23,6 +23,7 @@ import {
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
+import { requestCvView } from "../lib/cvUpload";
 import { calculateApplicantScore } from "../lib/applicantScore";
 import {
   listenUserThreads,
@@ -1046,7 +1047,7 @@ function ApplicantCard({ thread, rank, rankLabel, busy, onMessage, onStatus, onI
           </div>
 
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <CvBox cv={thread.cv} />
+            <CvBox cv={thread.cv} applicationId={thread.id} />
             <LastMessage text={thread.lastMessage} />
           </div>
 
@@ -1205,14 +1206,54 @@ function InfoBox({ title, items, empty }) {
   );
 }
 
-function CvBox({ cv }) {
+function CvBox({ cv, applicationId }) {
+  const [opening, setOpening] = useState(false);
+
+  const openCv = () => {
+    if (cv?.url) {
+      window.open(cv.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (cv?.storage === "r2" && cv.objectKey) {
+      setOpening(true);
+
+      requestCvView(cv.objectKey, applicationId)
+        .then(({ viewUrl }) => {
+          window.open(viewUrl, "_blank", "noopener,noreferrer");
+        })
+        .catch((error) => {
+          console.error("CV view failed:", error);
+          showToast("Could not open this CV.", "error");
+        })
+        .finally(() => {
+          setOpening(false);
+        });
+
+      return;
+    }
+
+    showToast("This CV is not available.", "error");
+  };
+
   return (
     <div className="rounded-[22px] border border-[var(--forsa-border)] bg-white p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400">CV metadata</p>
       {cv ? (
-        <div className="mt-3 flex min-w-0 items-center gap-2 text-sm text-neutral-700">
-          <FaFileAlt className="shrink-0 text-[var(--forsa-primary)]" />
-          <span className="truncate">{cv.name}</span>
+        <div className="mt-3">
+          <div className="flex min-w-0 items-center gap-2 text-sm text-neutral-700">
+            <FaFileAlt className="shrink-0 text-[var(--forsa-primary)]" />
+            <span className="truncate">{cv.name}</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={openCv}
+            disabled={opening}
+            className="mt-3 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-xs font-medium text-[var(--forsa-primary)] transition hover:border-[var(--forsa-primary)] disabled:cursor-wait disabled:opacity-60"
+          >
+            {opening ? "Loading…" : "View CV"}
+          </button>
         </div>
       ) : (
         <p className="mt-3 text-sm text-neutral-500">No CV attached.</p>
