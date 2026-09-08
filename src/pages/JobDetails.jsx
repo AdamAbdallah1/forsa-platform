@@ -19,7 +19,7 @@ import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
 import SignInRequiredModal from "../components/SignInRequiredModal";
-import { getPostById, recordApplyClick } from "../lib/postService";
+import { getPostById, incrementPostMetric, recordApplyClick } from "../lib/postService";
 import { createReport } from "../lib/reportService";
 import { getUserSavedJobs, saveJob, unsaveJob } from "../lib/savedJobsService";
 import { showToast } from "../lib/Toast";
@@ -139,6 +139,12 @@ export default function JobDetails() {
         }
 
         setJob(result);
+
+        try {
+          await incrementPostMetric(result.id, "views");
+        } catch (error) {
+          console.error("Failed to record view:", error);
+        }
       } catch (error) {
         console.error("Failed to load job:", error);
 

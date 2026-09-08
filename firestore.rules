@@ -24,25 +24,22 @@ service cloud.firestore {
     // application method (or without externalApplicationType) are allowed,
     // so the guard only binds new writes of the destination fields.
     function hasValidExternalApplication(data) {
-      if (!data.keys().hasAny(["applicationMethod"])) {
-        return true;
-      }
-
-      if (data.applicationMethod != "external") {
-        return true;
-      }
-
-      if (!(data.externalApplicationType in ["url", "email"])) {
-        return false;
-      }
-
-      if (data.externalApplicationType == "url") {
-        return data.applicationUrl is string &&
-          data.applicationUrl.size() > 0;
-      }
-
-      return data.applicationEmail is string &&
-        data.applicationEmail.size() > 0;
+      return (
+        !data.keys().hasAny(["applicationMethod"]) ||
+        data.applicationMethod != "external"
+      )
+        ? true
+        : (
+            !(data.externalApplicationType in ["url", "email"])
+              ? false
+              : (
+                  data.externalApplicationType == "url"
+                    ? (data.applicationUrl is string &&
+                       data.applicationUrl.size() > 0)
+                    : (data.applicationEmail is string &&
+                       data.applicationEmail.size() > 0)
+                )
+          );
     }
 
     match /users/{userId} {
@@ -259,7 +256,13 @@ service cloud.firestore {
       allow create: if signedIn() &&
         request.resource.data.userUid == request.auth.uid;
 
-      allow read, update, delete: if signedIn() &&
+      allow read: if signedIn() &&
+        (
+          resource == null ||
+          resource.data.userUid == request.auth.uid
+        );
+
+      allow update, delete: if signedIn() &&
         resource.data.userUid == request.auth.uid;
     }
 
@@ -290,6 +293,14 @@ service cloud.firestore {
         hasValidExternalApplication(request.resource.data);
 
       allow update: if signedIn() &&
+        (
+          !request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .intersects(["applyClicks"]) ||
+          get(
+            /databases/$(database)/documents/users/$(request.auth.uid)
+          ).data.accountType != "hiring"
+        ) &&
         (
           (
             (

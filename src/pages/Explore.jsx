@@ -575,7 +575,6 @@ export default function Explore() {
     ),
   ].slice(0, 12);
   writeJson("forsaRecentlyViewed", viewed);
-  updatePostAnalytics(found.id, "views");
 
     if (shouldApply && canInteract) {
     if (found.deadline) {

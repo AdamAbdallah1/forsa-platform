@@ -82,7 +82,12 @@ export async function incrementPostMetric(postId, field, delta = 1) {
   const valid = ["views", "shares", "applications", "saves", "reports"];
   if (!valid.includes(field)) return;
 
-  await updateDoc(doc(db, "posts", postId), {
+  const postRef = doc(db, "posts", postId);
+  const postDoc = await getDoc(postRef);
+
+  if (!postDoc.exists()) return;
+
+  await updateDoc(postRef, {
     [field]: increment(delta),
     updatedAt: serverTimestamp(),
   });
