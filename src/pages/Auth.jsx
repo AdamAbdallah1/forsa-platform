@@ -145,6 +145,10 @@ const getFriendlyAuthError = (error, isSignup) => {
     return "Username must be 3–20 characters (letters, numbers, underscores).";
   }
 
+  if (error?.message === "EMAIL_NOT_VERIFIED") {
+    return "Please verify your email address before logging in. Check your inbox for the verification link.";
+  }
+
   const messages = {
     "auth/email-already-in-use":
       "This email is already registered. Please log in instead.",
