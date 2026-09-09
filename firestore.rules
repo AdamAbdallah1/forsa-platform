@@ -111,7 +111,7 @@ service cloud.firestore {
     request.resource.data.username.size() <= 20 &&
     request.resource.data.username.matches('^[a-zA-Z0-9_]+$') &&
     request.resource.data.usernameLower ==
-      request.resource.data.username.toLower() &&
+      request.resource.data.username.lower() &&
     (
       // Arrange-only (display casing) change of an existing username.
       resource.data.usernameLower ==
