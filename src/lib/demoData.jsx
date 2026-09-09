@@ -114,6 +114,10 @@ export function loadDemoActivity(account, profile) {
     seeker: {
       name: seekerName,
       email: seekerEmail,
+      username: account?.username || "demo_seeker",
+      usernameLower: account?.username
+        ? String(account.username).toLowerCase()
+        : "demo_seeker",
       city: seekerCity,
       skills: profile?.skills?.length ? profile.skills : ["React", "Frontend", "UI/UX"],
       lookingFor: profile?.lookingFor?.length ? profile.lookingFor : ["Internship", "Remote"],

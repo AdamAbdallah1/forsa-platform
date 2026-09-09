@@ -91,6 +91,37 @@ service cloud.firestore {
         "updatedAt"
       ]);
 
+  // User is allowed to change their own public username.
+  //
+  // Uniqueness is guaranteed by the create-only `usernames` mapping that
+  // the client claims (committed) before this profile update. This rule
+  // binds that mapping to this user and enforces the same format and
+  // lowercasing rules as registration.
+  allow update: if signedIn() &&
+    request.auth.uid == userId &&
+    request.resource.data.diff(resource.data)
+      .affectedKeys()
+      .hasOnly([
+        "username",
+        "usernameLower",
+        "updatedAt"
+      ]) &&
+    request.resource.data.username is string &&
+    request.resource.data.username.size() >= 3 &&
+    request.resource.data.username.size() <= 20 &&
+    request.resource.data.username.matches('^[a-zA-Z0-9_]+$') &&
+    request.resource.data.usernameLower ==
+      request.resource.data.username.toLower() &&
+    (
+      // Arrange-only (display casing) change of an existing username.
+      resource.data.usernameLower ==
+        request.resource.data.usernameLower ||
+      // New mapping claimed in a prior committed write by this user.
+      get(
+        /databases/$(database)/documents/usernames/$(request.resource.data.usernameLower)
+      ).data.uid == request.auth.uid
+    );
+
   // Admin can update the user.
   allow update: if isAdmin();
 

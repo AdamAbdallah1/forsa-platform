@@ -1047,7 +1047,10 @@ function ApplicationCard({ account, profile, thread, isHiringThread }) {
   const cv = thread.cv || profile.cv;
   const displayName = isHiringThread ? seeker.name : account.name;
   const displayCity = isHiringThread ? seeker.city : account.city;
-  const displayEmail = isHiringThread ? seeker.email : account.email;
+  const displayEmail = isHiringThread ? "" : account.email;
+  const displayHandle = isHiringThread
+    ? seeker.username || seeker.name || ""
+    : "";
   const displaySkills = isHiringThread ? seeker.skills : profile.skills;
   const displayLookingFor = isHiringThread
     ? seeker.lookingFor
@@ -1073,7 +1076,9 @@ function ApplicationCard({ account, profile, thread, isHiringThread }) {
             {displayName || "Applicant"}
           </h3>
           <p className="mt-1 break-all text-sm text-neutral-300">
-            {displayCity || "Lebanon"} · {displayEmail || "No email"}
+            {displayCity || "Lebanon"} · {isHiringThread
+              ? (displayHandle ? `@${displayHandle}` : "Applicant")
+              : (displayEmail || "No email")}
           </p>
         </div>
       </div>

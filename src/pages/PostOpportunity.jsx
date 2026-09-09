@@ -200,7 +200,7 @@ const emptyForm = (account) => ({
 
   description: "",
   requirements: "",
-  contact: account?.email || "",
+  contact: account?.companyEmail || "",
     applicationMethod: "forsa",
     externalApplicationType: "url",
     applicationUrl: "",

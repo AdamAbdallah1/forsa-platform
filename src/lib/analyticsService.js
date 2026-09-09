@@ -1,5 +1,4 @@
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
 import { db } from "./firebase";
 import { getPostsByOwner } from "./postService";
 
@@ -21,13 +20,6 @@ const countByPostId = (documents) =>
   }, {});
 
 export async function getCompanyAnalytics({ uid, email }) {
-  const auth = getAuth();
-
-  console.log("LOCALSTORAGE UID:", uid);
-  console.log("FIREBASE AUTH USER:", auth.currentUser);
-  console.log("FIREBASE AUTH UID:", auth.currentUser?.uid);
-  console.log("FIREBASE AUTH EMAIL:", auth.currentUser?.email);
-
   // ============================================================
   // 1. GET THIS COMPANY'S POSTS
   // ============================================================

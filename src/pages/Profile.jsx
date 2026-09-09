@@ -13,6 +13,7 @@ import {
 } from "../lib/cvUpload";
 import Modal from "../components/ui/Modal";
 import { deleteCurrentAccount } from "../lib/accountDeletionService";
+import { changeUsername, checkUsernameAvailable } from "../lib/auth";
 import { showToast } from "../lib/Toast";
 import {
   deletePost as deletePostFromFirestore,
@@ -102,6 +103,16 @@ const safeJson = (key, fallback) => {
 
 const writeJson = (key, value) => {
   localStorage.setItem(key, JSON.stringify(value));
+};
+
+/*
+ * Public handle for a seeker: @username when available (new applications),
+ * falling back to their name for legacy threads that predate usernames.
+ */
+const seekerUsername = (seeker) => {
+  const raw = seeker?.username || seeker?.name;
+
+  return raw ? `@${raw}` : "Applicant";
 };
 
 const formatDate = (value) => {
@@ -2690,6 +2701,102 @@ function ProfileEdit({
   const [cvUploadError, setCvUploadError] = useState("");
   const cvFileInputRef = useRef(null);
 
+  const [usernameDraft, setUsernameDraft] = useState(
+    account?.username || ""
+  );
+  const [availability, setAvailability] = useState({
+    for: "",
+    available: false,
+  });
+  const [usernameSaving, setUsernameSaving] = useState(false);
+
+  const usernameDraftLower = usernameDraft.trim().toLowerCase();
+  const currentUsernameLower = String(
+    account?.usernameLower || ""
+  ).toLowerCase();
+  const userDraftValid = /^[a-zA-Z0-9_]{3,20}$/.test(
+    usernameDraftLower
+  );
+  const usernameUnchanged =
+    userDraftValid &&
+    usernameDraftLower === currentUsernameLower;
+
+  useEffect(() => {
+    if (!userDraftValid || usernameUnchanged) {
+      return undefined;
+    }
+
+    let stale = false;
+
+    const timer = setTimeout(async () => {
+      let available;
+
+      try {
+        available =
+          (await checkUsernameAvailable(
+            usernameDraftLower
+          )) === true;
+      } catch {
+        available = false;
+      }
+
+      if (!stale) {
+        setAvailability({
+          for: usernameDraftLower,
+          available,
+        });
+      }
+    }, 400);
+
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  }, [usernameDraftLower, userDraftValid, usernameUnchanged]);
+
+  const checkedFor = availability.for === usernameDraftLower;
+  const isCheckedAvailable = checkedFor && availability.available;
+  const isCheckedTaken = checkedFor && !availability.available;
+
+  const handleUsernameSave = async () => {
+    if (usernameUnchanged) {
+      showToast("Username is already set.");
+      return;
+    }
+
+    if (!userDraftValid || !isCheckedAvailable) {
+      showToast("Choose an available username.", "error");
+      return;
+    }
+
+    setUsernameSaving(true);
+
+    try {
+      const next = await changeUsername(usernameDraft.trim());
+
+      updateAccount("username", next.username);
+      updateAccount("usernameLower", next.usernameLower);
+
+      setUsernameDraft(next.username);
+      setAvailability({ for: "", available: false });
+
+      showToast("Username updated");
+    } catch (error) {
+      console.error("Username update error:", error);
+
+      if (error.message === "USERNAME_TAKEN") {
+        showToast("That username is already taken.", "error");
+      } else {
+        showToast(
+          error.message || "Could not update username.",
+          "error"
+        );
+      }
+    } finally {
+      setUsernameSaving(false);
+    }
+  };
+
   const handleCvFileSelect = async (event) => {
     const file = event.target.files?.[0];
 
@@ -2839,6 +2946,13 @@ function ProfileEdit({
     />
 
     <Field
+      label="Username"
+      value={usernameDraft}
+      onChange={(value) => setUsernameDraft(value)}
+      placeholder="yourusername"
+    />
+
+    <Field
       label="Email address"
       value={account.email}
       onChange={(value) => updateAccount("email", value)}
@@ -2856,6 +2970,40 @@ function ProfileEdit({
       onChange={(value) => updateAccount("headline", value)}
       placeholder="e.g. Frontend Developer · CS Student"
     />
+  </div>
+
+  <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+    <p
+      className={`text-xs ${
+        isCheckedTaken || !userDraftValid
+          ? "text-red-600"
+          : isCheckedAvailable
+            ? "text-emerald-600"
+            : "text-neutral-500"
+      }`}
+    >
+      {!userDraftValid
+        ? "3-20 characters: letters, numbers, and underscores."
+        : usernameUnchanged
+          ? "Your public @username. Shown to companies and other seekers."
+          : isCheckedAvailable
+            ? `@${usernameDraftLower} is available.`
+            : isCheckedTaken
+              ? "That username is already taken."
+              : "Checking availability..."}
+    </p>
+
+    <button
+      type="button"
+      onClick={handleUsernameSave}
+      disabled={
+        usernameSaving ||
+        !isCheckedAvailable
+      }
+      className="rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-xs font-semibold text-neutral-700 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {usernameSaving ? "Saving..." : "Save username"}
+    </button>
   </div>
 
   <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
@@ -4212,7 +4360,7 @@ function ApplicantCard({ applicant, onStatusChange, onOpenMessage }) {
             <div className="min-w-0">
               <h3 className="truncate font-semibold">{seeker.name || "Applicant"}</h3>
               <p className="break-all text-sm text-neutral-500">
-                {seeker.city || "Lebanon"} · {seeker.email || "No email"}
+                {seeker.city || "Lebanon"} · {seekerUsername(seeker)}
               </p>
             </div>
           </div>

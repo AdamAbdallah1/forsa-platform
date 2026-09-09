@@ -19,6 +19,7 @@ import {
   setDoc,
   updateDoc,
   writeBatch,
+  deleteDoc,
 } from "firebase/firestore";
 
 import { auth, db } from "./firebase";
@@ -61,6 +62,124 @@ function normalizeUsername(username) {
   return String(username || "")
     .trim()
     .toLowerCase();
+}
+
+/**
+ * Change the current user's public username.
+ *
+ * The claim is staged so Firestore security rules can validate it:
+ *
+ * 1. Claim the new `usernames/{usernameLower}` mapping with a single
+ *    create-only write. An existing document is an update write, which
+ *    the rules deny, so a collision fails this step (username taken).
+ * 2. Atomically update `users/{uid}` (username / usernameLower) and
+ *    release the previous mapping. The rules verify the newly claimed
+ *    mapping belongs to this user via get().
+ * 3. If step 2 fails, the fresh mapping is released again.
+ *
+ * After success the new username resolves on login and the old one no
+ * longer does.
+ */
+export async function changeUsername(newUsername) {
+  if (!auth.currentUser) {
+    throw new Error("No authenticated user.");
+  }
+
+  const username = String(newUsername || "").trim();
+  const usernameLower = username.toLowerCase();
+
+  if (!USERNAME_RE.test(usernameLower)) {
+    throw new Error("USERNAME_INVALID");
+  }
+
+  const uid = auth.currentUser.uid;
+  const userRef = doc(db, "users", uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    throw new Error("User profile not found.");
+  }
+
+  const currentUsernameLower =
+    typeof userSnap.data().usernameLower === "string"
+      ? userSnap.data().usernameLower
+      : null;
+
+  const refreshSession = (extra = {}) => {
+    const next = {
+      ...(getAccount() || {}),
+      ...userSnap.data(),
+      username,
+      usernameLower,
+      ...extra,
+    };
+
+    setSession(next);
+
+    return next;
+  };
+
+  /*
+   * Same lowercase key: just sync the display casing on the profile.
+   * No mapping change is needed.
+   */
+  if (currentUsernameLower === usernameLower) {
+    await updateDoc(userRef, {
+      username,
+      updatedAt: serverTimestamp(),
+    });
+
+    return refreshSession();
+  }
+
+  const available = await checkUsernameAvailable(usernameLower);
+
+  if (!available) {
+    throw new Error("USERNAME_TAKEN");
+  }
+
+  /*
+   * Phase 1: claim the new mapping. Create-only rules means an owned
+   * username is an update write and is rejected here.
+   */
+  try {
+    await setDoc(doc(db, "usernames", usernameLower), { uid });
+  } catch (claimError) {
+    throw new Error("USERNAME_TAKEN", {
+      cause: claimError,
+    });
+  }
+
+  try {
+    const batch = writeBatch(db);
+
+    batch.update(userRef, {
+      username,
+      usernameLower,
+      updatedAt: serverTimestamp(),
+    });
+
+    if (currentUsernameLower) {
+      batch.delete(doc(db, "usernames", currentUsernameLower));
+    }
+
+    await batch.commit();
+  } catch (batchError) {
+    /*
+     * Release the mapping claimed above. The delete is allowed because
+     * the mapping's uid is this user's own.
+     */
+    try {
+      await deleteDoc(doc(db, "usernames", usernameLower));
+    } catch {
+      // Best effort: a stale mapping is harmless because the username
+      // login endpoint cross-checks ownership before authenticating.
+    }
+
+    throw batchError;
+  }
+
+  return refreshSession();
 }
 
 async function postApi(path, body) {

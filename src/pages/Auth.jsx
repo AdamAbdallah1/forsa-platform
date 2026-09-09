@@ -7,7 +7,6 @@ import {
 } from "../lib/auth";
 import { showToast } from "../lib/Toast";
 import SEO from "../components/SEO";
-
 import {
   FaArrowLeft,
   FaArrowRight,
@@ -25,16 +24,9 @@ import {
   FaAt,
 } from "react-icons/fa";
 
-/* ============================================================
-   VALIDATION
-============================================================ */
-
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-
-const normalizeUsername = (username) =>
-  username.trim();
+const normalizeUsername = (username) => username.trim();
 
 const validateUsername = (username) => {
   const value = normalizeUsername(username);
@@ -52,15 +44,6 @@ const validateUsername = (username) => {
   }
 
   return "";
-};
-
-const isEmailOrUsername = (value) => {
-  const trimmed = value.trim();
-
-  return (
-    emailRegex.test(trimmed) ||
-    usernameRegex.test(trimmed)
-  );
 };
 
 const validatePassword = (password) => {
@@ -147,10 +130,6 @@ const validateCity = (city) => {
   return "";
 };
 
-/* ============================================================
-   AUTH ERRORS
-============================================================ */
-
 const getFriendlyAuthError = (error, isSignup) => {
   const code = error?.code || "";
 
@@ -169,37 +148,26 @@ const getFriendlyAuthError = (error, isSignup) => {
   const messages = {
     "auth/email-already-in-use":
       "This email is already registered. Please log in instead.",
-
     "auth/invalid-email":
       "Please enter a valid email address.",
-
     "auth/weak-password":
       "Password is too weak. Use 8+ characters with uppercase, lowercase, a number, and a symbol.",
-
     "auth/invalid-credential":
       "Email or password is incorrect.",
-
     "auth/user-not-found":
       "No account found with this email.",
-
     "auth/wrong-password":
       "Email or password is incorrect.",
-
     "auth/network-request-failed":
       "Network error. Check your connection and try again.",
-
     "auth/too-many-requests":
       "Too many attempts. Please wait a moment and try again.",
-
     "auth/popup-closed-by-user":
       "Google sign-in was cancelled. Please try again.",
-
     "auth/account-exists-with-different-credential":
       "An account already exists with this email. Try signing in with your original method.",
-
     "auth/user-disabled":
       "This account has been disabled. Please contact support.",
-
     "auth/operation-not-allowed":
       "This sign-in method is currently unavailable. Please try again later.",
   };
@@ -212,14 +180,9 @@ const getFriendlyAuthError = (error, isSignup) => {
   );
 };
 
-/* ============================================================
-   MAIN AUTH PAGE
-============================================================ */
-
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
   const requestedMode = searchParams.get("mode");
 
   const initialMode =
@@ -234,16 +197,11 @@ export default function Auth() {
   );
 
   const [mode, setMode] = useState(initialMode || "signup");
-
+  const [loginMethod, setLoginMethod] = useState("username");
   const [accountType, setAccountType] = useState("finder");
-
   const [showPassword, setShowPassword] = useState(false);
-
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
-
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
-
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
@@ -278,10 +236,7 @@ export default function Auth() {
     ? isHiring
       ? validateCompanyName(form.companyName) === "" &&
         emailRegex.test(form.companyEmail.trim()) &&
-        validateName(
-          form.contactPerson,
-          "Contact person"
-        ) === "" &&
+        validateName(form.contactPerson, "Contact person") === "" &&
         validateUsername(form.username) === "" &&
         validateCity(form.city) === "" &&
         passwordIssue === "" &&
@@ -294,7 +249,9 @@ export default function Auth() {
         passwordIssue === "" &&
         form.confirmPassword.trim() !== "" &&
         form.password === form.confirmPassword
-    : isEmailOrUsername(form.email) &&
+    : (loginMethod === "username"
+        ? validateUsername(form.email) === ""
+        : emailRegex.test(form.email.trim())) &&
       form.password.trim() !== "";
 
   const updateField = (field, value) => {
@@ -306,10 +263,6 @@ export default function Auth() {
     }));
   };
 
-  /* ==========================================================
-     NAVIGATION
-  ========================================================== */
-
   const handleInitialChoice = (chosenMode) => {
     if (loading) return;
 
@@ -320,11 +273,7 @@ export default function Auth() {
       replace: true,
     });
 
-    setStep(
-      chosenMode === "signup"
-        ? "choice"
-        : "form"
-    );
+    setStep(chosenMode === "signup" ? "choice" : "form");
   };
 
   const handleModeSwitch = (nextMode) => {
@@ -337,16 +286,8 @@ export default function Auth() {
       replace: true,
     });
 
-    setStep(
-      nextMode === "signup"
-        ? "choice"
-        : "form"
-    );
+    setStep(nextMode === "signup" ? "choice" : "form");
   };
-
-  /* ==========================================================
-     VALIDATION BEFORE SUBMIT
-  ========================================================== */
 
   const validateBeforeSubmit = () => {
     const emailToCheck =
@@ -355,8 +296,12 @@ export default function Auth() {
         : form.email;
 
     if (!isSignup) {
-      if (!isEmailOrUsername(emailToCheck)) {
-        return "Enter a valid email or username.";
+      if (loginMethod === "username") {
+        if (validateUsername(form.email) !== "") {
+          return "Enter a valid username.";
+        }
+      } else if (!emailRegex.test(form.email.trim())) {
+        return "Enter a valid email address.";
       }
 
       if (!form.password.trim()) {
@@ -393,10 +338,7 @@ export default function Auth() {
     if (isHiring) {
       return (
         validateCompanyName(form.companyName) ||
-        validateName(
-          form.contactPerson,
-          "Contact person"
-        ) ||
+        validateName(form.contactPerson, "Contact person") ||
         validateCity(form.city)
       );
     }
@@ -407,10 +349,6 @@ export default function Auth() {
     );
   };
 
-  /* ==========================================================
-     GOOGLE AUTH
-  ========================================================== */
-
   const handleGoogleLogin = async () => {
     if (loading) return;
 
@@ -418,8 +356,7 @@ export default function Auth() {
     setError("");
 
     try {
-      const { account, isNewUser } =
-        await loginWithGoogle();
+      const { account, isNewUser } = await loginWithGoogle();
 
       showToast(
         isNewUser
@@ -435,31 +372,20 @@ export default function Auth() {
           : "/explore"
       );
     } catch (err) {
-      console.error(
-        "Google auth error:",
-        err
-      );
+      console.error("Google auth error:", err);
 
       setError(
-        getFriendlyAuthError(
-          err,
-          false
-        )
+        getFriendlyAuthError(err, false)
       );
     } finally {
       setLoading(false);
     }
   };
 
-  /* ==========================================================
-     EMAIL AUTH
-  ========================================================== */
-
   const handleSubmit = async () => {
     if (loading) return;
 
-    const validationError =
-      validateBeforeSubmit();
+    const validationError = validateBeforeSubmit();
 
     if (validationError) {
       setError(validationError);
@@ -483,12 +409,7 @@ export default function Auth() {
           ? companyEmail
           : loginEmail;
 
-      const password =
-        form.password.trim();
-
-      /* ----------------------------
-         LOGIN
-      ---------------------------- */
+      const password = form.password.trim();
 
       if (!isSignup) {
         const user = await loginUser(
@@ -507,10 +428,6 @@ export default function Auth() {
         return;
       }
 
-      /* ----------------------------
-         SIGNUP
-      ---------------------------- */
-
       const newAccount = isHiring
         ? {
             accountType: "hiring",
@@ -519,11 +436,9 @@ export default function Auth() {
             usernameLower: form.username.trim().toLowerCase(),
             email: finalEmail,
             city: form.city.trim(),
-            companyName:
-              form.companyName.trim(),
+            companyName: form.companyName.trim(),
             companyEmail: finalEmail,
-            contactPerson:
-              form.contactPerson.trim(),
+            contactPerson: form.contactPerson.trim(),
             trusted: false,
             verified: false,
           }
@@ -547,25 +462,15 @@ export default function Auth() {
 
       navigate("/verify-email");
     } catch (err) {
-      console.error(
-        "Auth error:",
-        err
-      );
+      console.error("Auth error:", err);
 
       setError(
-        getFriendlyAuthError(
-          err,
-          isSignup
-        )
+        getFriendlyAuthError(err, isSignup)
       );
     } finally {
       setLoading(false);
     }
   };
-
-  /* ==========================================================
-     ENTER KEY
-  ========================================================== */
 
   const handleFormKeyDown = (event) => {
     if (
@@ -578,10 +483,6 @@ export default function Auth() {
       handleSubmit();
     }
   };
-
-  /* ==========================================================
-     RENDER
-  ========================================================== */
 
   const isWelcomeStep = step === "welcome";
 
@@ -598,14 +499,10 @@ export default function Auth() {
       />
 
       <section className="relative mx-auto flex min-h-[100dvh] w-full max-w-7xl items-start px-4 py-6 sm:items-center sm:px-6 sm:py-8 lg:px-10 lg:py-10">
-        {/* Background decoration */}
         <div className="pointer-events-none absolute left-[-140px] top-[-140px] h-80 w-80 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
         <div className="pointer-events-none absolute bottom-[-180px] right-[-140px] h-96 w-96 rounded-full bg-[var(--forsa-gold-soft)]/45 blur-3xl" />
 
         {isWelcomeStep ? (
-          /* ==================================================
-             WELCOME / ENTRY (split layout with marketing)
-          ================================================== */
           <div className="relative grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,470px)] lg:items-center lg:gap-16 xl:gap-24">
             <div className="relative pt-2 lg:pt-0">
               <div className="max-w-2xl">
@@ -633,6 +530,7 @@ export default function Auth() {
                     title="For people looking for opportunities"
                     text="Build your profile, discover relevant opportunities, and apply in one place."
                   />
+
                   <TrustItem
                     title="For companies and teams"
                     text="Create opportunities, discover talent, and manage applicants without the chaos."
@@ -654,9 +552,7 @@ export default function Auth() {
                 )}
 
                 <WelcomeStep
-                  onChooseMode={(m) =>
-                    handleInitialChoice(m)
-                  }
+                  onChooseMode={(m) => handleInitialChoice(m)}
                   onGoogleLogin={handleGoogleLogin}
                   loading={loading}
                 />
@@ -664,11 +560,17 @@ export default function Auth() {
 
               <p className="mt-5 px-4 text-center text-[11px] leading-5 text-neutral-400">
                 By continuing, you agree to Forsa&apos;s{" "}
-                <Link to="/terms" className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline">
+                <Link
+                  to="/terms"
+                  className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline"
+                >
                   Terms
                 </Link>{" "}
                 and{" "}
-                <Link to="/privacy" className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline">
+                <Link
+                  to="/privacy"
+                  className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline"
+                >
                   Privacy Policy
                 </Link>
                 .
@@ -676,10 +578,13 @@ export default function Auth() {
             </div>
           </div>
         ) : (
-          /* ==================================================
-             DEDICATED LOGIN / SIGNUP (auth only, centered)
-          ================================================== */
-          <div className={`relative mx-auto w-full ${isSignup && step === "form" ? "lg:max-w-[680px]" : "max-w-[500px]"}`}>
+          <div
+            className={`relative mx-auto w-full ${
+              isSignup && step === "form"
+                ? "lg:max-w-[680px]"
+                : "max-w-[500px]"
+            }`}
+          >
             <div
               onKeyDown={handleFormKeyDown}
               className="w-full rounded-[24px] border border-[var(--forsa-border)] bg-white p-6 shadow-[0_24px_70px_rgba(40,20,80,0.08)] sm:rounded-[28px] sm:p-8"
@@ -710,7 +615,9 @@ export default function Auth() {
                   canContinue={Boolean(canContinue)}
                   onSubmit={handleSubmit}
                   onBack={() =>
-                    isSignup ? setStep("choice") : setStep("welcome")
+                    isSignup
+                      ? setStep("choice")
+                      : setStep("welcome")
                   }
                   showPassword={showPassword}
                   setShowPassword={setShowPassword}
@@ -720,17 +627,25 @@ export default function Auth() {
                   passwordRequirements={passwordRequirements}
                   passwordsMatch={passwordsMatch}
                   onModeSwitch={handleModeSwitch}
+                  loginMethod={loginMethod}
+                  setLoginMethod={setLoginMethod}
                 />
               )}
             </div>
 
             <p className="mt-5 px-4 text-center text-[11px] leading-5 text-neutral-400">
               By continuing, you agree to Forsa&apos;s{" "}
-              <Link to="/terms" className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline">
+              <Link
+                to="/terms"
+                className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline"
+              >
                 Terms
               </Link>{" "}
               and{" "}
-              <Link to="/privacy" className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline">
+              <Link
+                to="/privacy"
+                className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline"
+              >
                 Privacy Policy
               </Link>
               .
@@ -741,10 +656,6 @@ export default function Auth() {
     </main>
   );
 }
-
-/* ============================================================
-   WELCOME STEP
-============================================================ */
 
 function WelcomeStep({
   onChooseMode,
@@ -771,9 +682,7 @@ function WelcomeStep({
       <div className="flex flex-col gap-3">
         <button
           type="button"
-          onClick={() =>
-            onChooseMode("signup")
-          }
+          onClick={() => onChooseMode("signup")}
           disabled={loading}
           className="forsa-click flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(109,40,217,0.18)] transition-all duration-200 hover:bg-[var(--forsa-primary-dark)] hover:shadow-[0_14px_30px_rgba(109,40,217,0.24)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
         >
@@ -783,9 +692,7 @@ function WelcomeStep({
 
         <button
           type="button"
-          onClick={() =>
-            onChooseMode("login")
-          }
+          onClick={() => onChooseMode("login")}
           disabled={loading}
           className="forsa-click flex min-h-12 w-full items-center justify-center rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg-soft)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
         >
@@ -794,11 +701,9 @@ function WelcomeStep({
 
         <div className="my-2 flex items-center gap-3">
           <div className="h-px flex-1 bg-[var(--forsa-border)]" />
-
           <span className="text-[11px] font-medium text-neutral-400">
             OR
           </span>
-
           <div className="h-px flex-1 bg-[var(--forsa-border)]" />
         </div>
 
@@ -809,7 +714,6 @@ function WelcomeStep({
           className="forsa-click flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-800 transition hover:border-[var(--forsa-primary)] hover:bg-[var(--forsa-bg-soft)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
         >
           <FaGoogle className="text-sm" />
-
           {loading
             ? "Connecting..."
             : "Continue with Google"}
@@ -818,10 +722,6 @@ function WelcomeStep({
     </div>
   );
 }
-
-/* ============================================================
-   ACCOUNT TYPE CHOICE
-============================================================ */
 
 function ChoiceStep({
   accountType,
@@ -857,27 +757,19 @@ function ChoiceStep({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <TypeCard
-          active={
-            accountType === "finder"
-          }
+          active={accountType === "finder"}
           icon={<FaUserPlus />}
           title="Find opportunities"
           text="For students, freelancers, creators, and people looking for work."
-          onClick={() =>
-            setAccountType("finder")
-          }
+          onClick={() => setAccountType("finder")}
         />
 
         <TypeCard
-          active={
-            accountType === "hiring"
-          }
+          active={accountType === "hiring"}
           icon={<FaBriefcase />}
           title="Company / hiring"
           text="For businesses, creators, and teams posting opportunities."
-          onClick={() =>
-            setAccountType("hiring")
-          }
+          onClick={() => setAccountType("hiring")}
         />
       </div>
 
@@ -892,10 +784,6 @@ function ChoiceStep({
     </div>
   );
 }
-
-/* ============================================================
-   FORM STEP
-============================================================ */
 
 function FormStep({
   isSignup,
@@ -913,9 +801,9 @@ function FormStep({
   passwordRequirements,
   passwordsMatch,
   onModeSwitch,
+  setLoginMethod,
 }) {
-  const isHiring =
-    accountType === "hiring";
+  const isHiring = accountType === "hiring";
 
   return (
     <form
@@ -927,8 +815,6 @@ function FormStep({
         }
       }}
     >
-      {/* Top navigation */}
-
       <div className="mb-6 flex items-center justify-between gap-4">
         <button
           type="button"
@@ -937,12 +823,9 @@ function FormStep({
           className="inline-flex min-h-8 items-center gap-2 text-xs font-medium text-neutral-500 transition hover:text-neutral-900 disabled:cursor-wait disabled:opacity-60"
         >
           <FaArrowLeft className="text-[10px]" />
-
           {isSignup ? "Change account type" : "Back"}
         </button>
       </div>
-
-      {/* Heading */}
 
       <div className="mb-6">
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--forsa-primary)]">
@@ -966,11 +849,7 @@ function FormStep({
         </p>
       </div>
 
-      {/* Form */}
-
       <div className={`grid gap-4 ${isSignup ? "lg:grid-cols-2" : ""}`}>
-        {/* Hiring fields */}
-
         {isSignup && isHiring && (
           <>
             <Field
@@ -979,10 +858,7 @@ function FormStep({
               placeholder="Pixel House"
               value={form.companyName}
               onChange={(value) =>
-                updateField(
-                  "companyName",
-                  value
-                )
+                updateField("companyName", value)
               }
               autoComplete="organization"
             />
@@ -994,10 +870,7 @@ function FormStep({
               placeholder="jobs@company.com"
               value={form.companyEmail}
               onChange={(value) =>
-                updateField(
-                  "companyEmail",
-                  value
-                )
+                updateField("companyEmail", value)
               }
               autoComplete="email"
               inputMode="email"
@@ -1009,10 +882,7 @@ function FormStep({
               placeholder="Enter your full name"
               value={form.contactPerson}
               onChange={(value) =>
-                updateField(
-                  "contactPerson",
-                  value
-                )
+                updateField("contactPerson", value)
               }
               autoComplete="name"
             />
@@ -1023,17 +893,12 @@ function FormStep({
               placeholder="johndoe_98"
               value={form.username}
               onChange={(value) =>
-                updateField(
-                  "username",
-                  value
-                )
+                updateField("username", value)
               }
               autoComplete="username"
             />
           </>
         )}
-
-        {/* Finder fields */}
 
         {isSignup && !isHiring && (
           <>
@@ -1043,10 +908,7 @@ function FormStep({
               placeholder="Enter your full name"
               value={form.name}
               onChange={(value) =>
-                updateField(
-                  "name",
-                  value
-                )
+                updateField("name", value)
               }
               autoComplete="name"
             />
@@ -1057,10 +919,7 @@ function FormStep({
               placeholder="johndoe_98"
               value={form.username}
               onChange={(value) =>
-                updateField(
-                  "username",
-                  value
-                )
+                updateField("username", value)
               }
               autoComplete="username"
             />
@@ -1072,10 +931,7 @@ function FormStep({
               placeholder="you@example.com"
               value={form.email}
               onChange={(value) =>
-                updateField(
-                  "email",
-                  value
-                )
+                updateField("email", value)
               }
               autoComplete="email"
               inputMode="email"
@@ -1083,8 +939,7 @@ function FormStep({
           </>
         )}
 
-        {/* Login email */}
-
+        {/* Login email or username */}
         {!isSignup && (
           <Field
             icon={<FaEnvelope />}
@@ -1092,38 +947,32 @@ function FormStep({
             type="text"
             placeholder="you@example.com or username"
             value={form.email}
-            onChange={(value) =>
-              updateField(
-                "email",
-                value
-              )
-            }
+            onChange={(value) => {
+              setLoginMethod(
+                emailRegex.test(value.trim())
+                  ? "email"
+                  : "username"
+              );
+              updateField("email", value);
+            }}
             autoComplete="username"
           />
         )}
 
-        {/* Password */}
-
         <PasswordField
           value={form.password}
           onChange={(value) =>
-            updateField(
-              "password",
-              value
-            )
+            updateField("password", value)
           }
-          showPassword={
-            showPassword
-          }
-          setShowPassword={
-            setShowPassword
-          }
+          showPassword={showPassword}
+          setShowPassword={setShowPassword}
           autoComplete={
             isSignup
               ? "new-password"
               : "current-password"
           }
         />
+
         {!isSignup && (
           <div className="flex justify-start">
             <Link
@@ -1135,73 +984,54 @@ function FormStep({
           </div>
         )}
 
-        {/* Password requirements */}
-
         {isSignup && (
-          <div className={`rounded-2xl border border-[var(--forsa-border)] bg-neutral-50/80 p-4 ${isHiring ? "lg:col-span-2" : ""}`}>
+          <div
+            className={`rounded-2xl border border-[var(--forsa-border)] bg-neutral-50/80 p-4 ${
+              isHiring ? "lg:col-span-2" : ""
+            }`}
+          >
             <p className="mb-3 text-[11px] font-semibold text-neutral-700">
               Password requirements
             </p>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <PasswordRequirement
-                valid={
-                  passwordRequirements.length
-                }
+                valid={passwordRequirements.length}
                 text="8+ characters"
               />
 
               <PasswordRequirement
-                valid={
-                  passwordRequirements.uppercase
-                }
+                valid={passwordRequirements.uppercase}
                 text="One uppercase letter"
               />
 
               <PasswordRequirement
-                valid={
-                  passwordRequirements.lowercase
-                }
+                valid={passwordRequirements.lowercase}
                 text="One lowercase letter"
               />
 
               <PasswordRequirement
-                valid={
-                  passwordRequirements.number
-                }
+                valid={passwordRequirements.number}
                 text="One number"
               />
 
               <PasswordRequirement
-                valid={
-                  passwordRequirements.symbol
-                }
+                valid={passwordRequirements.symbol}
                 text="One symbol"
               />
             </div>
           </div>
         )}
 
-        {/* Confirm password */}
-
         {isSignup && (
           <div>
             <PasswordField
-              value={
-                form.confirmPassword
-              }
+              value={form.confirmPassword}
               onChange={(value) =>
-                updateField(
-                  "confirmPassword",
-                  value
-                )
+                updateField("confirmPassword", value)
               }
-              showPassword={
-                showConfirmPassword
-              }
-              setShowPassword={
-                setShowConfirmPassword
-              }
+              showPassword={showConfirmPassword}
+              setShowPassword={setShowConfirmPassword}
               label="Confirm password"
               placeholder="Enter your password again"
               autoComplete="new-password"
@@ -1223,8 +1053,6 @@ function FormStep({
           </div>
         )}
 
-        {/* Signup location */}
-
         {isSignup && (
           <Field
             icon={<FaMapMarkerAlt />}
@@ -1236,24 +1064,16 @@ function FormStep({
             placeholder="Beirut, Tripoli, Saida..."
             value={form.city}
             onChange={(value) =>
-              updateField(
-                "city",
-                value
-              )
+              updateField("city", value)
             }
             autoComplete="address-level2"
           />
         )}
 
-        {/* Submit */}
-
         <button
           type="submit"
-          disabled={
-            !canContinue ||
-            loading
-          }
-          className={`forsa-click mt-1 flex min-h-12 lg:col-span-2 w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forsa-primary)] focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${
+          disabled={!canContinue || loading}
+          className={`forsa-click mt-1 flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forsa-primary)] focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${
             canContinue && !loading
               ? "bg-[var(--forsa-primary)] text-white shadow-[0_10px_24px_rgba(109,40,217,0.18)] hover:bg-[var(--forsa-primary-dark)]"
               : "bg-neutral-100 text-neutral-400"
@@ -1269,9 +1089,6 @@ function FormStep({
             <FaArrowRight className="text-xs" />
           )}
         </button>
-
-        {/* Mode switch */}
-        
 
         <div className="pt-1 text-center text-xs text-neutral-500 lg:col-span-2">
           {isSignup
@@ -1299,10 +1116,6 @@ function FormStep({
     </form>
   );
 }
-
-/* ============================================================
-   TYPE CARD
-============================================================ */
 
 function SpotlightCard({
   active,
@@ -1362,9 +1175,7 @@ function TypeCard({
               : "bg-[var(--forsa-bg)] text-neutral-500"
           }`}
         >
-          {active
-            ? "Selected"
-            : "Choose"}
+          {active ? "Selected" : "Choose"}
         </span>
       </div>
 
@@ -1401,10 +1212,6 @@ function TypeCard({
   );
 }
 
-/* ============================================================
-   INPUT FIELD
-============================================================ */
-
 function Field({
   label,
   placeholder,
@@ -1435,9 +1242,7 @@ function Field({
           type={type}
           value={value}
           onChange={(event) =>
-            onChange(
-              event.target.value
-            )
+            onChange(event.target.value)
           }
           placeholder={placeholder}
           autoComplete={autoComplete}
@@ -1448,10 +1253,6 @@ function Field({
     </div>
   );
 }
-
-/* ============================================================
-   PASSWORD FIELD
-============================================================ */
 
 function PasswordField({
   value,
@@ -1475,16 +1276,10 @@ function PasswordField({
         />
 
         <input
-          type={
-            showPassword
-              ? "text"
-              : "password"
-          }
+          type={showPassword ? "text" : "password"}
           value={value}
           onChange={(event) =>
-            onChange(
-              event.target.value
-            )
+            onChange(event.target.value)
           }
           placeholder={placeholder}
           autoComplete={autoComplete}
@@ -1499,9 +1294,7 @@ function PasswordField({
               : `Show ${label.toLowerCase()}`
           }
           onClick={() =>
-            setShowPassword(
-              !showPassword
-            )
+            setShowPassword(!showPassword)
           }
           className="shrink-0 p-1 text-neutral-400 transition hover:text-neutral-700 active:scale-95"
         >
@@ -1515,10 +1308,6 @@ function PasswordField({
     </div>
   );
 }
-
-/* ============================================================
-   PASSWORD REQUIREMENT
-============================================================ */
 
 function PasswordRequirement({
   valid,
@@ -1535,9 +1324,7 @@ function PasswordRequirement({
       <FaCheckCircle
         aria-hidden="true"
         className={`shrink-0 text-[10px] ${
-          valid
-            ? "opacity-100"
-            : "opacity-40"
+          valid ? "opacity-100" : "opacity-40"
         }`}
       />
 
@@ -1545,10 +1332,6 @@ function PasswordRequirement({
     </div>
   );
 }
-
-/* ============================================================
-   TRUST ITEMS
-============================================================ */
 
 function TrustItem({
   title,

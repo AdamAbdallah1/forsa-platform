@@ -44,6 +44,16 @@ const writeJson = (key, value) => {
   localStorage.setItem(key, JSON.stringify(value));
 };
 
+/*
+ * Public handle for a seeker: @username when available (new applications),
+ * falling back to their name for legacy threads that predate usernames.
+ */
+const seekerUsername = (seeker) => {
+  const raw = seeker?.username || seeker?.name;
+
+  return raw ? `@${raw}` : "Applicant";
+};
+
 const statusOptions = ["all", "pending", "shortlisted", "interview", "accepted", "rejected"];
 const statusMeta = {
   interview: {
@@ -572,7 +582,7 @@ const cancelInterview = async () => {
           {statusConfirm.thread.title}
         </p>
         <p className="mt-1 text-sm text-neutral-500">
-          {statusConfirm.thread.seeker?.email || "No email"}
+          {seekerUsername(statusConfirm.thread.seeker)}
         </p>
       </div>
 
@@ -1031,7 +1041,7 @@ function ApplicantCard({ thread, rank, rankLabel, busy, onMessage, onStatus, onI
                   {rank && <RankPill rank={rank} label={rankLabel} />}
                 </div>
 
-                <p className="mt-1 break-all text-sm text-neutral-500">{seeker.email || "No email"} · {seeker.city || "Lebanon"}</p>
+                <p className="mt-1 break-all text-sm text-neutral-500">{seekerUsername(seeker)} · {seeker.city || "Lebanon"}</p>
                 <p className="mt-2 text-sm text-neutral-500">Applied to <span className="font-semibold text-neutral-900">{thread.title}</span></p>
               </div>
             </div>

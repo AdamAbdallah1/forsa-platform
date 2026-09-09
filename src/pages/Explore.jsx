@@ -847,6 +847,8 @@ export default function Explore() {
     uid: account.uid || null,
     name: account.name,
     email: account.email,
+    username: account.username || "",
+    usernameLower: account.usernameLower || "",
     city: account.city,
     skills: savedProfile.skills,
     lookingFor: savedProfile.lookingFor,

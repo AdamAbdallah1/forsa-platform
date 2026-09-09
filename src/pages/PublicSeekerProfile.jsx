@@ -7,8 +7,8 @@ import SEO from "../components/SEO";
 
 import {
   FaArrowLeft,
+  FaAt,
   FaBriefcase,
-  FaEnvelope,
   FaExternalLinkAlt,
   FaFileAlt,
   FaGraduationCap,
@@ -317,7 +317,7 @@ export default function PublicSeekerProfile() {
 
   const name = cleanText(user.name, "Seeker");
   const city = cleanText(user.city, "Lebanon");
-  const email = cleanText(user.email, "");
+  const username = cleanText(user.username, "");
 
   const bio = cleanText(
     user.bio || user.about,
@@ -400,10 +400,10 @@ export default function PublicSeekerProfile() {
                       {city}
                     </span>
 
-                    {email && (
-                      <span className="inline-flex items-center gap-1.5 break-all">
-                        <FaEnvelope className="text-xs" />
-                        {email}
+                    {username && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <FaAt className="text-xs" />
+                        {username}
                       </span>
                     )}
                   </div>
@@ -579,19 +579,20 @@ export default function PublicSeekerProfile() {
 
             {/* Contact */}
 
-            {email && (
+            {username && (
               <Card>
                 <SectionTitle
-                  icon={<FaEnvelope />}
+                  icon={<FaAt />}
                   title="Contact"
                 />
 
-                <a
-                  href={`mailto:${email}`}
-                  className="mt-4 block break-all text-sm font-medium text-[var(--forsa-primary)] hover:underline"
-                >
-                  {email}
-                </a>
+                <p className="mt-4 block break-all text-sm font-medium text-[var(--forsa-primary)]">
+                  @{username}
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-neutral-500">
+                  Reach out through an application or connection on Forsa.
+                </p>
               </Card>
             )}
           </aside>
