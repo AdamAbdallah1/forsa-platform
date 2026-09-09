@@ -87,6 +87,25 @@ export async function deleteCurrentAccount(account) {
 
   await deleteDoc(doc(db, "users", uid));
 
+  // Release the username mapping so it can be claimed again.
+  if (account?.usernameLower) {
+    try {
+      await deleteDoc(
+        doc(db, "usernames", account.usernameLower)
+      );
+
+      console.log(
+        "[ACCOUNT DELETE] Deleted usernames/" +
+          account.usernameLower
+      );
+    } catch (error) {
+      console.error(
+        "[ACCOUNT DELETE] Could not delete username mapping:",
+        error
+      );
+    }
+  }
+
   console.log("[ACCOUNT DELETE] Firestore deletion complete.");
 
   // Finally delete Firebase Authentication account.

@@ -22,6 +22,7 @@ import {
   FaUser,
   FaCheckCircle,
   FaLock,
+  FaAt,
 } from "react-icons/fa";
 
 /* ============================================================
@@ -29,6 +30,38 @@ import {
 ============================================================ */
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+
+const normalizeUsername = (username) =>
+  username.trim();
+
+const validateUsername = (username) => {
+  const value = normalizeUsername(username);
+
+  if (value.length < 3) {
+    return "Username must be at least 3 characters.";
+  }
+
+  if (value.length > 20) {
+    return "Username must be 20 characters or less.";
+  }
+
+  if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+    return "Username can only include letters, numbers, and underscores.";
+  }
+
+  return "";
+};
+
+const isEmailOrUsername = (value) => {
+  const trimmed = value.trim();
+
+  return (
+    emailRegex.test(trimmed) ||
+    usernameRegex.test(trimmed)
+  );
+};
 
 const validatePassword = (password) => {
   const value = password.trim();
@@ -121,6 +154,18 @@ const validateCity = (city) => {
 const getFriendlyAuthError = (error, isSignup) => {
   const code = error?.code || "";
 
+  if (error?.message === "INVALID_USERNAME_PASSWORD") {
+    return "Incorrect username or password.";
+  }
+
+  if (error?.message === "USERNAME_TAKEN") {
+    return "This username is already taken. Please choose another.";
+  }
+
+  if (error?.message === "USERNAME_INVALID") {
+    return "Username must be 3–20 characters (letters, numbers, underscores).";
+  }
+
   const messages = {
     "auth/email-already-in-use":
       "This email is already registered. Please log in instead.",
@@ -203,6 +248,7 @@ export default function Auth() {
 
   const [form, setForm] = useState({
     name: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -236,17 +282,19 @@ export default function Auth() {
           form.contactPerson,
           "Contact person"
         ) === "" &&
+        validateUsername(form.username) === "" &&
         validateCity(form.city) === "" &&
         passwordIssue === "" &&
         form.confirmPassword.trim() !== "" &&
         form.password === form.confirmPassword
       : validateName(form.name, "Full name") === "" &&
+        validateUsername(form.username) === "" &&
         emailRegex.test(form.email.trim()) &&
         validateCity(form.city) === "" &&
         passwordIssue === "" &&
         form.confirmPassword.trim() !== "" &&
         form.password === form.confirmPassword
-    : emailRegex.test(form.email.trim()) &&
+    : isEmailOrUsername(form.email) &&
       form.password.trim() !== "";
 
   const updateField = (field, value) => {
@@ -306,16 +354,20 @@ export default function Auth() {
         ? form.companyEmail
         : form.email;
 
-    if (!emailRegex.test(emailToCheck.trim())) {
-      return "Please enter a valid email address.";
-    }
-
     if (!isSignup) {
+      if (!isEmailOrUsername(emailToCheck)) {
+        return "Enter a valid email or username.";
+      }
+
       if (!form.password.trim()) {
         return "Please enter your password.";
       }
 
       return "";
+    }
+
+    if (!emailRegex.test(emailToCheck.trim())) {
+      return "Please enter a valid email address.";
     }
 
     const passError = validatePassword(form.password);
@@ -330,6 +382,12 @@ export default function Auth() {
 
     if (form.password !== form.confirmPassword) {
       return "Passwords do not match.";
+    }
+
+    const usernameError = validateUsername(form.username);
+
+    if (usernameError) {
+      return usernameError;
     }
 
     if (isHiring) {
@@ -457,6 +515,8 @@ export default function Auth() {
         ? {
             accountType: "hiring",
             name: form.companyName.trim(),
+            username: form.username.trim(),
+            usernameLower: form.username.trim().toLowerCase(),
             email: finalEmail,
             city: form.city.trim(),
             companyName:
@@ -470,6 +530,8 @@ export default function Auth() {
         : {
             accountType: "finder",
             name: form.name.trim(),
+            username: form.username.trim(),
+            usernameLower: form.username.trim().toLowerCase(),
             email: finalEmail,
             city: form.city.trim(),
           };
@@ -521,65 +583,107 @@ export default function Auth() {
      RENDER
   ========================================================== */
 
+  const isWelcomeStep = step === "welcome";
+
   return (
     <main className="min-h-[100dvh] overflow-x-hidden bg-[var(--forsa-bg)] text-neutral-950">
-      <SEO title="Join Forsa" />
+      <SEO
+        title={
+          !isWelcomeStep
+            ? isSignup
+              ? "Create your account | Forsa"
+              : "Log in | Forsa"
+            : "Join Forsa"
+        }
+      />
 
-      <section className="relative mx-auto flex min-h-[100dvh] w-full max-w-7xl items-start px-4 py-5 sm:items-center sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+      <section className="relative mx-auto flex min-h-[100dvh] w-full max-w-7xl items-start px-4 py-6 sm:items-center sm:px-6 sm:py-8 lg:px-10 lg:py-10">
         {/* Background decoration */}
-
         <div className="pointer-events-none absolute left-[-140px] top-[-140px] h-80 w-80 rounded-full bg-[var(--forsa-primary)]/10 blur-3xl" />
-
         <div className="pointer-events-none absolute bottom-[-180px] right-[-140px] h-96 w-96 rounded-full bg-[var(--forsa-gold-soft)]/45 blur-3xl" />
 
-        <div className="relative grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,470px)] lg:items-center lg:gap-16 xl:gap-24">
+        {isWelcomeStep ? (
+          /* ==================================================
+             WELCOME / ENTRY (split layout with marketing)
+          ================================================== */
+          <div className="relative grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,470px)] lg:items-center lg:gap-16 xl:gap-24">
+            <div className="relative pt-2 lg:pt-0">
+              <div className="max-w-2xl">
+                <div className="mx-auto max-w-xl text-center lg:mx-0 lg:block lg:text-left">
+                  <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white/85 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--forsa-primary)] shadow-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--forsa-primary)]" />
+                    Lebanon&apos;s opportunity network
+                  </div>
 
-          <div className="relative pt-2 lg:pt-0">
-            <div className="max-w-2xl">
-  <div className="mx-auto max-w-xl text-center lg:mx-0 lg:block lg:text-left">
+                  <h1 className="max-w-xl text-4xl font-semibold leading-[1.06] tracking-[-0.05em] text-neutral-950 sm:text-5xl xl:text-6xl">
+                    Your next opportunity
+                    <span className="block text-[var(--forsa-primary)]">
+                      starts here.
+                    </span>
+                  </h1>
 
-    <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white/85 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--forsa-primary)] shadow-sm">
-      <span className="h-1.5 w-1.5 rounded-full bg-[var(--forsa-primary)]" />
-      Lebanon&apos;s opportunity network
-    </div>
+                  <p className="mx-auto mt-5 max-w-lg text-sm leading-7 text-neutral-500 sm:text-base lg:mx-0">
+                    Discover opportunities, build meaningful connections, and
+                    make your next move with Forsa.
+                  </p>
+                </div>
 
-    <h1 className="max-w-xl text-4xl font-semibold leading-[1.06] tracking-[-0.05em] text-neutral-950 sm:text-5xl xl:text-6xl">
-      Your next opportunity
-      <span className="block text-[var(--forsa-primary)]">
-        starts here.
-      </span>
-    </h1>
+                <div className="mt-8 hidden max-w-lg gap-3 lg:grid">
+                  <TrustItem
+                    title="For people looking for opportunities"
+                    text="Build your profile, discover relevant opportunities, and apply in one place."
+                  />
+                  <TrustItem
+                    title="For companies and teams"
+                    text="Create opportunities, discover talent, and manage applicants without the chaos."
+                  />
+                </div>
+              </div>
+            </div>
 
-    <p className="mx-auto mt-5 max-w-lg text-sm leading-7 text-neutral-500 sm:text-base lg:mx-0">
-      Discover opportunities, build meaningful connections, and
-      make your next move with Forsa.
-    </p>
-  </div>
+            <div className="relative mx-auto flex w-full max-w-[470px] flex-col">
+              <div className="w-full rounded-[24px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_24px_70px_rgba(40,20,80,0.08)] sm:rounded-[28px] sm:p-7">
+                {error && (
+                  <div
+                    role="alert"
+                    aria-live="polite"
+                    className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
+                  >
+                    {error}
+                  </div>
+                )}
 
-  <div className="mt-8 hidden max-w-lg gap-3 lg:grid">
-    <TrustItem
-      title="For people looking for opportunities"
-      text="Build your profile, discover relevant opportunities, and apply in one place."
-    />
+                <WelcomeStep
+                  onChooseMode={(m) =>
+                    handleInitialChoice(m)
+                  }
+                  onGoogleLogin={handleGoogleLogin}
+                  loading={loading}
+                />
+              </div>
 
-    <TrustItem
-      title="For companies and teams"
-      text="Create opportunities, discover talent, and manage applicants without the chaos."
-    />
-  </div>
-</div>
+              <p className="mt-5 px-4 text-center text-[11px] leading-5 text-neutral-400">
+                By continuing, you agree to Forsa&apos;s{" "}
+                <Link to="/terms" className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline">
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link to="/privacy" className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline">
+                  Privacy Policy
+                </Link>
+                .
+              </p>
+            </div>
           </div>
-
-          {/* ==================================================
-              AUTH COLUMN
-          ================================================== */}
-
-          <div className="relative mx-auto flex w-full max-w-[470px] flex-col">
-            {/* AUTH CARD */}
-
-            <div className="w-full rounded-[24px] border border-[var(--forsa-border)] bg-white p-5 shadow-[0_24px_70px_rgba(40,20,80,0.08)] sm:rounded-[28px] sm:p-7">
-              {/* Error */}
-
+        ) : (
+          /* ==================================================
+             DEDICATED LOGIN / SIGNUP (auth only, centered)
+          ================================================== */
+          <div className={`relative mx-auto w-full ${isSignup && step === "form" ? "lg:max-w-[680px]" : "max-w-[500px]"}`}>
+            <div
+              onKeyDown={handleFormKeyDown}
+              className="w-full rounded-[24px] border border-[var(--forsa-border)] bg-white p-6 shadow-[0_24px_70px_rgba(40,20,80,0.08)] sm:rounded-[28px] sm:p-8"
+            >
               {error && (
                 <div
                   role="alert"
@@ -590,110 +694,49 @@ export default function Auth() {
                 </div>
               )}
 
-              {/* Welcome */}
-
-              {step === "welcome" ? (
-                <WelcomeStep
-                  onChooseMode={
-                    handleInitialChoice
-                  }
-                  onGoogleLogin={
-                    handleGoogleLogin
-                  }
-                  loading={loading}
+              {isSignup && step === "choice" ? (
+                <ChoiceStep
+                  accountType={accountType}
+                  setAccountType={setAccountType}
+                  onContinue={() => setStep("form")}
+                  onBack={() => setStep("welcome")}
                 />
               ) : (
-                <div
-                  onKeyDown={
-                    handleFormKeyDown
+                <FormStep
+                  isSignup={isSignup}
+                  accountType={accountType}
+                  form={form}
+                  updateField={updateField}
+                  canContinue={Boolean(canContinue)}
+                  onSubmit={handleSubmit}
+                  onBack={() =>
+                    isSignup ? setStep("choice") : setStep("welcome")
                   }
-                >
-                  {/* Signup account type */}
-
-                  {isSignup &&
-                  step === "choice" ? (
-                    <ChoiceStep
-                      accountType={
-                        accountType
-                      }
-                      setAccountType={
-                        setAccountType
-                      }
-                      onContinue={() =>
-                        setStep("form")
-                      }
-                      onBack={() =>
-                        setStep("welcome")
-                      }
-                    />
-                  ) : (
-                    <FormStep
-                      isSignup={isSignup}
-                      accountType={
-                        accountType
-                      }
-                      form={form}
-                      updateField={
-                        updateField
-                      }
-                      canContinue={Boolean(
-                        canContinue
-                      )}
-                      onSubmit={handleSubmit}
-                      onBack={() =>
-                        isSignup
-                          ? setStep("choice")
-                          : setStep("welcome")
-                      }
-                      showPassword={
-                        showPassword
-                      }
-                      setShowPassword={
-                        setShowPassword
-                      }
-                      showConfirmPassword={
-                        showConfirmPassword
-                      }
-                      setShowConfirmPassword={
-                        setShowConfirmPassword
-                      }
-                      loading={loading}
-                      passwordRequirements={
-                        passwordRequirements
-                      }
-                      passwordsMatch={
-                        passwordsMatch
-                      }
-                      onModeSwitch={
-                        handleModeSwitch
-                      }
-                    />
-                  )}
-                </div>
+                  showPassword={showPassword}
+                  setShowPassword={setShowPassword}
+                  showConfirmPassword={showConfirmPassword}
+                  setShowConfirmPassword={setShowConfirmPassword}
+                  loading={loading}
+                  passwordRequirements={passwordRequirements}
+                  passwordsMatch={passwordsMatch}
+                  onModeSwitch={handleModeSwitch}
+                />
               )}
             </div>
 
-            {/* Terms */}
-
             <p className="mt-5 px-4 text-center text-[11px] leading-5 text-neutral-400">
-              By continuing, you agree to Forsa's{" "}
-              <Link
-                to="/terms"
-                className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline"
-              >
+              By continuing, you agree to Forsa&apos;s{" "}
+              <Link to="/terms" className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline">
                 Terms
               </Link>{" "}
               and{" "}
-              <Link
-                to="/privacy"
-                className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline"
-              >
+              <Link to="/privacy" className="font-semibold text-neutral-600 transition hover:text-neutral-900 hover:underline">
                 Privacy Policy
               </Link>
               .
             </p>
           </div>
-        </div>
+        )}
       </section>
     </main>
   );
@@ -798,15 +841,9 @@ function ChoiceStep({
       </button>
 
       <div className="mb-5">
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--forsa-primary)]">
-            Step 1 of 2
-          </p>
-
-          <span className="text-[11px] font-medium text-neutral-400">
-            Choose your path
-          </span>
-        </div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--forsa-primary)]">
+          Choose your path
+        </p>
 
         <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-neutral-950">
           How will you use Forsa?
@@ -847,7 +884,7 @@ function ChoiceStep({
       <button
         type="button"
         onClick={onContinue}
-        className="forsa-click mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--forsa-primary-light)] hover:shadow-md active:translate-y-0 active:scale-[0.99]"
+        className="forsa-click mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--forsa-primary-light)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forsa-primary)] focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.99]"
       >
         Continue
         <FaArrowRight className="text-xs" />
@@ -901,51 +938,22 @@ function FormStep({
         >
           <FaArrowLeft className="text-[10px]" />
 
-          {isSignup
-            ? "Change type"
-            : "Back"}
+          {isSignup ? "Change account type" : "Back"}
         </button>
-
-        <div
-          className="flex items-center gap-2"
-          aria-label={
-            isSignup
-              ? "Signup progress"
-              : "Login"
-          }
-        >
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              isSignup
-                ? "bg-[var(--forsa-primary)]"
-                : "bg-neutral-300"
-            }`}
-          />
-
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              isSignup
-                ? "bg-[var(--forsa-primary)]"
-                : "bg-neutral-300"
-            }`}
-          />
-        </div>
       </div>
 
       {/* Heading */}
 
       <div className="mb-6">
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--forsa-primary)]">
-          {isSignup
-            ? "Step 2 of 2"
-            : "Welcome back"}
+          {isSignup ? "Welcome" : "Welcome back"}
         </p>
 
         <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-neutral-950">
           {isSignup
             ? isHiring
-              ? "Create company account"
-              : "Create your work profile"
+              ? "Create a company account"
+              : "Create your account"
             : "Log in to Forsa"}
         </h2>
 
@@ -960,7 +968,7 @@ function FormStep({
 
       {/* Form */}
 
-      <div className="grid gap-4">
+      <div className={`grid gap-4 ${isSignup ? "lg:grid-cols-2" : ""}`}>
         {/* Hiring fields */}
 
         {isSignup && isHiring && (
@@ -1008,6 +1016,20 @@ function FormStep({
               }
               autoComplete="name"
             />
+
+            <Field
+              icon={<FaAt />}
+              label="Username"
+              placeholder="johndoe_98"
+              value={form.username}
+              onChange={(value) =>
+                updateField(
+                  "username",
+                  value
+                )
+              }
+              autoComplete="username"
+            />
           </>
         )}
 
@@ -1027,6 +1049,20 @@ function FormStep({
                 )
               }
               autoComplete="name"
+            />
+
+            <Field
+              icon={<FaAt />}
+              label="Username"
+              placeholder="johndoe_98"
+              value={form.username}
+              onChange={(value) =>
+                updateField(
+                  "username",
+                  value
+                )
+              }
+              autoComplete="username"
             />
 
             <Field
@@ -1052,9 +1088,9 @@ function FormStep({
         {!isSignup && (
           <Field
             icon={<FaEnvelope />}
-            label="Email"
-            type="email"
-            placeholder="you@example.com"
+            label="Email or username"
+            type="text"
+            placeholder="you@example.com or username"
             value={form.email}
             onChange={(value) =>
               updateField(
@@ -1062,8 +1098,7 @@ function FormStep({
                 value
               )
             }
-            autoComplete="email"
-            inputMode="email"
+            autoComplete="username"
           />
         )}
 
@@ -1089,11 +1124,21 @@ function FormStep({
               : "current-password"
           }
         />
+        {!isSignup && (
+          <div className="flex justify-start">
+            <Link
+              to="/forgot-password"
+              className="text-xs font-semibold text-[var(--forsa-primary)] transition hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
+        )}
 
         {/* Password requirements */}
 
         {isSignup && (
-          <div className="rounded-2xl border border-[var(--forsa-border)] bg-neutral-50/80 p-4">
+          <div className={`rounded-2xl border border-[var(--forsa-border)] bg-neutral-50/80 p-4 ${isHiring ? "lg:col-span-2" : ""}`}>
             <p className="mb-3 text-[11px] font-semibold text-neutral-700">
               Password requirements
             </p>
@@ -1178,19 +1223,6 @@ function FormStep({
           </div>
         )}
 
-        {/* Forgot password */}
-
-        {!isSignup && (
-          <div className="flex justify-end">
-            <Link
-              to="/forgot-password"
-              className="text-xs font-semibold text-[var(--forsa-primary)] transition hover:underline"
-            >
-              Forgot password?
-            </Link>
-          </div>
-        )}
-
         {/* Signup location */}
 
         {isSignup && (
@@ -1221,18 +1253,16 @@ function FormStep({
             !canContinue ||
             loading
           }
-          className={`forsa-click mt-1 flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition active:scale-[0.99] ${
+          className={`forsa-click mt-1 flex min-h-12 lg:col-span-2 w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forsa-primary)] focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${
             canContinue && !loading
-              ? "bg-[var(--forsa-primary)] text-white shadow-sm hover:bg-[var(--forsa-primary-light)]"
-              : "cursor-not-allowed bg-neutral-100 text-neutral-400"
+              ? "bg-[var(--forsa-primary)] text-white shadow-[0_10px_24px_rgba(109,40,217,0.18)] hover:bg-[var(--forsa-primary-dark)]"
+              : "bg-neutral-100 text-neutral-400"
           }`}
         >
           {loading
             ? "Please wait..."
             : isSignup
-            ? isHiring
-              ? "Verify your account"
-              : "Verify your account"
+            ? "Create account"
             : "Log in"}
 
           {!loading && (
@@ -1241,8 +1271,9 @@ function FormStep({
         </button>
 
         {/* Mode switch */}
+        
 
-        <div className="pt-1 text-center text-xs text-neutral-500">
+        <div className="pt-1 text-center text-xs text-neutral-500 lg:col-span-2">
           {isSignup
             ? "Already have an account?"
             : "Don't have an account?"}
@@ -1257,11 +1288,11 @@ function FormStep({
                   : "signup"
               )
             }
-            className="ml-1 font-semibold text-[var(--forsa-primary)] hover:underline disabled:opacity-50"
+            className="ml-1 font-semibold text-[var(--forsa-primary)] transition hover:underline disabled:opacity-50"
           >
             {isSignup
               ? "Log in"
-              : "Create one"}
+              : "Sign up"}
           </button>
         </div>
       </div>

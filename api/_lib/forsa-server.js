@@ -102,6 +102,82 @@ export function getR2() {
 /* Validation                                                                 */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Lightweight in-memory rate limiter for public-only API functions.
+ *
+ * Non-secret/public endpoints (username check, username login) must not be
+ * brute-forced or enumerated. This keeps per-IP and per-IP+key counters in a
+ * fixed sliding window. Memory-only: counters reset on serverless cold starts,
+ * so platform-level (edge/WAF) limits are recommended for hard enforcement.
+ */
+const RATE_WINDOW_MS = 60 * 1000;
+const RATE_MAX = 30;
+
+const rateBuckets = new Map();
+
+export function rateLimit(req, extraKey) {
+  const forwarded = req.headers["x-forwarded-for"];
+
+  const ip =
+    (typeof forwarded === "string" &&
+      forwarded.split(",")[0].trim()) ||
+    req.socket?.remoteAddress ||
+    "unknown";
+
+  if (rateBuckets.size > 10_000) {
+    rateBuckets.clear();
+  }
+
+  const now = Date.now();
+
+  const keys = [
+    ip,
+    extraKey ? `${ip}:${extraKey}` : null,
+  ].filter(Boolean);
+
+  for (const key of keys) {
+    const entry = rateBuckets.get(key);
+
+    if (!entry || now - entry.startedAt >= RATE_WINDOW_MS) {
+      rateBuckets.set(key, {
+        startedAt: now,
+        count: 1,
+      });
+
+      continue;
+    }
+
+    if (entry.count >= RATE_MAX) {
+      const error = new Error(
+        "Too many requests. Please try again later."
+      );
+
+      error.status = 429;
+
+      throw error;
+    }
+
+    entry.count += 1;
+  }
+}
+
+/**
+ * The project's consumer web API key, used to call Firebase Auth's public
+ * REST API. This is NOT a secret: the same value is embedded in the browser
+ * bundle. It only identifies the Firebase project.
+ */
+export function getWebApiKey() {
+  const key =
+    process.env.FIREBASE_WEB_API_KEY ||
+    process.env.VITE_FIREBASE_API_KEY;
+
+  if (!key) {
+    throw new Error("Missing FIREBASE_WEB_API_KEY configuration.");
+  }
+
+  return key;
+}
+
 export function isValidFileName(fileName, size) {
   if (typeof fileName !== "string") {
     return false;

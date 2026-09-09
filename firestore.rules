@@ -70,6 +70,8 @@ service cloud.firestore {
         "emailVerified",
         "createdAt",
         "isNewRegistration",
+        "username",
+        "usernameLower",
         "welcomeEmailSentAt",
         "onboardingCompletedAt",
         "profileCompleteEmailSentAt",
@@ -95,6 +97,21 @@ service cloud.firestore {
   allow delete: if signedIn() &&
     request.auth.uid == userId;
 }
+
+    // Unique username mapping: one document per lowercased username.
+    // Created atomically with the user profile during registration.
+    // `create` is rejected by Firestore if the document already exists,
+    // which is what guarantees a username can never be claimed twice.
+    match /usernames/{usernameLower} {
+      allow read: if signedIn();
+
+      allow create: if signedIn() &&
+        request.resource.data.uid == request.auth.uid;
+
+      // Users may only release their own mapping (e.g. account deletion).
+      allow delete: if signedIn() &&
+        resource.data.uid == request.auth.uid;
+    }
 
     match /connections/{connectionId} {
       allow read: if signedIn();

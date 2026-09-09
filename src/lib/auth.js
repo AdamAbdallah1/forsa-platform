@@ -4,10 +4,12 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCustomToken,
   sendPasswordResetEmail,
   sendEmailVerification,
   updateEmail,
   updatePassword,
+  deleteUser,
 } from "firebase/auth";
 
 import {
@@ -16,6 +18,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 
 import { auth, db } from "./firebase";
@@ -44,6 +47,78 @@ export function getAccount() {
 
 export function setSession(account) {
   localStorage.setItem("forsaAccount", JSON.stringify(account));
+}
+
+/* =========================================================
+USERNAME HELPERS
+========================================================= */
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
+
+function normalizeUsername(username) {
+  return String(username || "")
+    .trim()
+    .toLowerCase();
+}
+
+async function postApi(path, body) {
+  let response;
+
+  try {
+    response = await fetch(`/api/${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error(
+      "Network error. Check your connection and try again."
+    );
+  }
+
+  const text = await response.text();
+
+  let data = null;
+
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error || "Request failed. Please try again."
+    );
+  }
+
+  return data;
+}
+
+/**
+ * Check whether a username has already been claimed.
+ *
+ * Called BEFORE the Firebase Auth account is created so a duplicate
+ * username never results in a stale account.
+ */
+export async function checkUsernameAvailable(username) {
+  const lower = normalizeUsername(username);
+
+  if (!USERNAME_RE.test(lower)) {
+    return false;
+  }
+
+  const data = await postApi("check-username", {
+    username: lower,
+  });
+
+  return data?.available === true;
 }
 
 /* =========================================================
@@ -101,6 +176,23 @@ export async function registerUser(accountData) {
   const email = accountData.email.trim().toLowerCase();
   const password = accountData.password;
 
+  const username = String(accountData.username || "").trim();
+  const usernameLower = username.toLowerCase();
+
+  /*
+   * Username uniqueness is checked BEFORE the Firebase account is
+   * created so a duplicate username never leaves a stale Auth account.
+   */
+  if (!USERNAME_RE.test(usernameLower)) {
+    throw new Error("USERNAME_INVALID");
+  }
+
+  const available = await checkUsernameAvailable(usernameLower);
+
+  if (!available) {
+    throw new Error("USERNAME_TAKEN");
+  }
+
   const credential = await createUserWithEmailAndPassword(
     auth,
     email,
@@ -126,13 +218,53 @@ export async function registerUser(accountData) {
     ...safeAccountData,
     uid,
     email,
+    username,
+    usernameLower,
     emailVerified: false,
     isNewRegistration: true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
 
-  await setDoc(doc(db, "users", uid), cleanAccount);
+  /*
+   * users/{uid} and usernames/{usernameLower} are written in a single
+   * atomic batch. Firestore rules only allow `create` on the usernames
+   * document, so the second writer to claim the same username fails the
+   * entire batch instead of overwriting the mapping.
+   */
+  const batch = writeBatch(db);
+
+  batch.set(doc(db, "users", uid), cleanAccount);
+  batch.set(doc(db, "usernames", usernameLower), { uid });
+
+  try {
+    await batch.commit();
+  } catch (batchError) {
+    /*
+     * If the username was claimed between the availability check and
+     * this batch, remove the freshly created Auth account and report
+     * the collision so no orphan account is left behind.
+     */
+    const exists = await getDoc(
+      doc(db, "usernames", usernameLower)
+    )
+      .then((snap) => snap.exists())
+      .catch(() => false);
+
+    if (exists) {
+      try {
+        await deleteUser(auth.currentUser);
+      } catch {
+        // Best effort cleanup only.
+      }
+
+      throw new Error("USERNAME_TAKEN", {
+        cause: batchError,
+      });
+    }
+
+    throw batchError;
+  }
 
   /*
    * Do NOT create the local session yet.
@@ -143,6 +275,8 @@ export async function registerUser(accountData) {
     ...safeAccountData,
     uid,
     email,
+    username,
+    usernameLower,
     emailVerified: false,
     requiresEmailVerification: true,
   };
@@ -153,18 +287,50 @@ LOGIN
 ========================================================= */
 
 /**
- * Login with email/password.
+ * Login with email/password or username/password.
+ *
+ * - Email input uses the existing Firebase email/password login.
+ * - Username input is authenticated by the server, which resolves the
+ *   username to its owning account and verifies the password against
+ *   Firebase WITHOUT returning the email to the client. The client signs
+ *   in with the returned custom token via the same Firebase SDK session.
  *
  * Unverified email accounts are rejected.
  */
-export async function loginUser(email, password) {
-  const credential = await signInWithEmailAndPassword(
-    auth,
-    email.trim().toLowerCase(),
-    password
-  );
+export async function loginUser(identifier, password) {
+  const value = String(identifier || "").trim();
 
-  const user = credential.user;
+  let user;
+
+  if (EMAIL_RE.test(value)) {
+    const credential = await signInWithEmailAndPassword(
+      auth,
+      value.toLowerCase(),
+      password
+    );
+
+    user = credential.user;
+  } else {
+    const data = await postApi("username-login", {
+      username: value,
+      password,
+    });
+
+    if (data?.error === "EMAIL_NOT_VERIFIED") {
+      throw new Error("EMAIL_NOT_VERIFIED");
+    }
+
+    if (!data?.customToken) {
+      throw new Error("INVALID_USERNAME_PASSWORD");
+    }
+
+    const credential = await signInWithCustomToken(
+      auth,
+      data.customToken
+    );
+
+    user = credential.user;
+  }
 
   /*
    * Always reload Auth state before checking verification.
