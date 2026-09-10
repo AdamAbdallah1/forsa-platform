@@ -12,10 +12,9 @@
 
     <meta
   name="description"
-  content="Find jobs, internships, freelance opportunities, and talent in Lebanon. Forsa connects students, professionals, freelancers, and businesses in one platform."
+  content="Forsa is a Lebanese career community connecting students, early-career talent, and ambitious professionals with companies, opportunities, and people across Lebanon."
 />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
-    <meta name="googlebot" content="index, follow" />
+    <meta name="robots" content="index, follow" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <meta name="language" content="English" />
@@ -33,40 +32,45 @@
     <meta name="twitter:image" content="https://forsa.digital/og-image.png" />
 
     <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
     {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Forsa Digital",
+      "@type": "Organization",
+      "@id": "https://forsa.digital/#organization",
+      "name": "Forsa",
       "url": "https://forsa.digital",
-      "description": "Forsa helps students, freelancers, creators, and businesses in Lebanon find work, hire talent, and manage applications.",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web",
+      "description": "Forsa is a Lebanese career community connecting students, early-career talent, and ambitious professionals with companies, opportunities, and people across Lebanon.",
+      "logo": {
+        "@type": "ImageObject",
+        "@id": "https://forsa.digital/#logo",
+        "url": "https://forsa.digital/forsa-logo.svg"
+      },
+      "sameAs": [
+        "https://www.instagram.com/heyforsa/",
+        "https://www.linkedin.com/company/forsa-digital/"
+      ],
+      "founder": {
+        "@id": "https://forsa.digital/#founder"
+      },
       "areaServed": {
         "@type": "Country",
         "name": "Lebanon"
-      },
-      "hasOfferCatalog": {
-        "@type": "OfferCatalog",
-        "name": "Forsa Services",
-        "itemListElement": [
-          {
-            "@type": "Offer",
-            "itemOffered": {
-              "@type": "Service",
-              "name": "Freelance & Job Board Lebanon"
-            }
-          },
-          {
-            "@type": "Offer",
-            "itemOffered": {
-              "@type": "Service",
-              "name": "Talent Recruitment Marketplace"
-            }
-          }
-        ]
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://forsa.digital/#founder",
+      "name": "Adam Yakoub Abdallah",
+      "jobTitle": "Founder",
+      "url": "https://forsa.digital/about",
+      "worksFor": {
+        "@id": "https://forsa.digital/#organization"
       }
     }
-    </script>
+  ]
+}
+</script>
   </head>
 
   <body>

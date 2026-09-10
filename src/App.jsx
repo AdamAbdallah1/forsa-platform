@@ -1,11 +1,18 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import JobsInLebanon from "./pages/JobsInLebanon";
 import { auth, db } from "./lib/firebase";
 import { setSession } from "./lib/auth";
 import Home from "./pages/Home";
+import About from "./pages/About";
 import Onboarding from "./pages/Onboarding";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
@@ -35,6 +42,7 @@ import SeekerRoute from "./components/SeekerRoute";
 import CompanyProfile from "./pages/CompanyProfile";
 import PublicSeekerProfile from "./pages/PublicSeekerProfile";
 import AdminReview from "./pages/AdminReview";
+import AdminRoute from "./components/AdminRoute";
 import Toast from "./components/Toast";
 
 const toIso = (value) => {
@@ -42,6 +50,43 @@ const toIso = (value) => {
   if (typeof value?.toDate === "function") return value.toDate().toISOString();
   return value;
 };
+
+const INDEXABLE_EXACT_PATHS = new Set([
+  "/",
+  "/about",
+  "/jobs-in-lebanon",
+  "/explore",
+  "/companies",
+  "/privacy",
+  "/terms",
+]);
+
+const isIndexablePath = (pathname) => {
+  if (INDEXABLE_EXACT_PATHS.has(pathname)) return true;
+  return pathname.startsWith("/jobs/");
+};
+
+function RobotsController() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const content = isIndexablePath(location.pathname)
+      ? "index, follow"
+      : "noindex, nofollow";
+
+    let tag = document.querySelector('meta[name="robots"]');
+
+    if (!tag) {
+      tag = document.createElement("meta");
+      tag.setAttribute("name", "robots");
+      document.head.appendChild(tag);
+    }
+
+    tag.setAttribute("content", content);
+  }, [location.pathname]);
+
+  return null;
+}
 
 export default function App() {
   useEffect(() => {
@@ -91,9 +136,11 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <RobotsController />
       <main className="min-h-screen overflow-x-hidden bg-[var(--forsa-bg)] pb-24 text-[#111111] md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
           <Route path="/jobs-in-lebanon" element={<JobsInLebanon />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
@@ -101,7 +148,7 @@ export default function App() {
           <Route path="/explore" element={<Explore />} />
           <Route path="/jobs/:jobId" element={<JobDetails />} />
           <Route path="/dashboard" element={<HiringRoute><Dashboard /></HiringRoute>}/>
-          <Route path="/admin-review" element={<AdminReview />} />
+          <Route path="/admin-review" element={<AdminRoute><AdminReview /></AdminRoute>} />
           <Route path="/saved" element={<ProtectedRoute><SavedJobs /></ProtectedRoute>} />
           <Route path="/applications" element={<SeekerRoute><MyApplications /></SeekerRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -113,8 +160,8 @@ export default function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/text" element={<Text />} />
-          <Route path="/admin/outreach" element={<AdminOutreach />} />
-          <Route path="/admin/email" element={<AdminEmail />} />
+          <Route path="/admin/outreach" element={<AdminRoute><AdminOutreach /></AdminRoute>} />
+          <Route path="/admin/email" element={<AdminRoute><AdminEmail /></AdminRoute>} />
           <Route path="/applicants" element={<HiringRoute><Applicants /></HiringRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/company/:email" element={<CompanyProfile />} />

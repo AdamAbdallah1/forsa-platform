@@ -5,7 +5,7 @@ const siteName = "Forsa";
 const defaults = {
   title: "Forsa — Find work. Hire talent. Without chaos.",
   description:
-    "Forsa helps students, freelancers, creators, and businesses in Lebanon find work, hire talent, and manage applications without chaos.",
+    "Forsa is a Lebanese career community connecting students, early-career talent, and ambitious professionals with companies, opportunities, and people across Lebanon.",
 };
 
 function setMeta(name, content, attr = "name") {
@@ -41,7 +41,6 @@ canonical.setAttribute("href", finalUrl);
     document.title = finalTitle;
 
     setMeta("description", finalDescription);
-    setMeta("robots", "index, follow");
 
     setMeta("og:title", finalTitle, "property");
     setMeta("og:description", finalDescription, "property");

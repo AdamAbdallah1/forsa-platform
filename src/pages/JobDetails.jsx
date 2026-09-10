@@ -21,6 +21,7 @@ import SEO from "../components/SEO";
 import SignInRequiredModal from "../components/SignInRequiredModal";
 import ExternalAppliedModal from "../components/ExternalAppliedModal";
 import { getPostById, incrementPostMetric, recordApplyClick } from "../lib/postService";
+import { buildJobPostingSchema } from "../lib/seo";
 import { createReport } from "../lib/reportService";
 import { getUserSavedJobs, saveJob, unsaveJob } from "../lib/savedJobsService";
 import { createExternalApplication } from "../lib/applicationService";
@@ -188,6 +189,34 @@ export default function JobDetails() {
       active = false;
     };
   }, [job?.id]);
+
+  useEffect(() => {
+    const previous = document.querySelector(
+      "script[data-forsa-jobposting]"
+    );
+
+    if (previous) previous.remove();
+
+    if (!job) return undefined;
+
+    const schema = buildJobPostingSchema(job);
+
+    if (!schema) return undefined;
+
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.setAttribute("data-forsa-jobposting", "true");
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+
+    return () => {
+      const current = document.querySelector(
+        "script[data-forsa-jobposting]"
+      );
+
+      if (current) current.remove();
+    };
+  }, [job]);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -433,6 +462,7 @@ export default function JobDetails() {
           job.description ||
           `${job.title} opportunity${job.company ? ` at ${job.company}` : ""} on Forsa.`
         }
+        url={`https://forsa.digital/jobs/${job.id}`}
       />
 
       <AppHeader />

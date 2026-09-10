@@ -47,6 +47,14 @@ export default function HomeNavbar() {
 
           <button
             type="button"
+            onClick={() => goTo("/about")}
+            className="relative text-[13px] font-medium text-neutral-500 transition-colors duration-200 hover:text-[var(--forsa-primary)]"
+          >
+            About
+          </button>
+
+          <button
+            type="button"
             onClick={() => goTo("/auth")}
             className="relative text-[13px] font-medium text-neutral-500 transition-colors duration-200 hover:text-[var(--forsa-primary)]"
           >
@@ -126,6 +134,16 @@ export default function HomeNavbar() {
               className="flex items-center justify-between border-b border-neutral-100 py-4 text-left text-sm font-medium text-neutral-700 transition-colors hover:text-[var(--forsa-primary)]"
             >
               For employers
+
+              <FaArrowRight className="text-[10px] text-neutral-400" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => goTo("/about")}
+              className="flex items-center justify-between border-b border-neutral-100 py-4 text-left text-sm font-medium text-neutral-700 transition-colors hover:text-[var(--forsa-primary)]"
+            >
+              About Forsa
 
               <FaArrowRight className="text-[10px] text-neutral-400" />
             </button>

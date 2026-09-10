@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import {
   FaInstagram,
   FaLinkedin,
-  FaTiktok,
   FaEnvelope,
 } from "react-icons/fa";
 import BrandLogo from "./BrandLogo";
@@ -23,9 +22,16 @@ export default function Footer() {
             </p>
 
             <div className="mt-6 flex items-center gap-3">
-              <SocialLink icon={<FaInstagram />} />
-              <SocialLink icon={<FaTiktok />} />
-              <SocialLink icon={<FaLinkedin />} />
+              <SocialLink
+                href="https://www.instagram.com/heyforsa/"
+                label="Forsa on Instagram"
+                icon={<FaInstagram />}
+              />
+              <SocialLink
+                href="https://www.linkedin.com/company/forsa-digital/"
+                label="Forsa on LinkedIn"
+                icon={<FaLinkedin />}
+              />
             </div>
           </div>
 
@@ -42,6 +48,7 @@ export default function Footer() {
           <FooterGroup
             title="Company"
             links={[
+              { label: "About", href: "/about" },
               { label: "Privacy Policy", href: "/privacy" },
               { label: "Terms of Service", href: "/terms" },
             ]}
@@ -101,10 +108,16 @@ function FooterGroup({ title, links }) {
   );
 }
 
-function SocialLink({ icon }) {
+function SocialLink({ href, label, icon }) {
   return (
-    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--forsa-border)] bg-white text-neutral-600 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]">
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--forsa-border)] bg-white text-neutral-600 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)]"
+    >
       {icon}
-    </button>
+    </a>
   );
 }
