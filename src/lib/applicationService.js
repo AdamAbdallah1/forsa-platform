@@ -5,6 +5,8 @@ import {
   deleteDoc,
   deleteField,
   doc,
+  getDocs,
+  limit,
   onSnapshot,
   query,
   serverTimestamp,
@@ -117,6 +119,142 @@ export async function createApplicationThread(threadData) {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+}
+
+const EXTERNAL_TRACKING_STATUSES = [
+  "applied",
+  "waiting",
+  "interview",
+  "offer",
+  "rejected",
+  "withdrawn",
+];
+
+const findExistingExternalApplication = async ({ userUid, postId }) => {
+  const q = query(
+    collection(db, "applications"),
+    where("seeker.uid", "==", userUid),
+    where("opportunityId", "==", postId),
+    where("applicationMethod", "==", "external"),
+    limit(1)
+  );
+
+  const snapshot = await getDocs(q);
+
+  return snapshot.empty ? null : normalizeThread(snapshot.docs[0]);
+};
+
+export async function createExternalApplication(post, account) {
+  const postId = post?.id;
+  const userUid = account?.uid;
+
+  if (!postId || !userUid) {
+    throw new Error(
+      "External application requires a post and a signed-in seeker."
+    );
+  }
+
+  const existing = await findExistingExternalApplication({
+    userUid,
+    postId,
+  });
+
+  if (existing) {
+    return {
+      ...existing,
+      appliedAt: toIso(existing.appliedAt) || existing.appliedAt,
+    };
+  }
+
+  const externalType =
+    post.externalApplicationType === "email" ? "email" : "url";
+
+  const now = new Date().toISOString();
+
+  const payload = {
+    applicationMethod: "external",
+    externalApplicationType: externalType,
+    trackingStatus: "applied",
+    status: "pending",
+
+    opportunityId: postId,
+    title: post.title || "",
+    company: post.company || "",
+
+    opportunity: {
+      title: post.title || "",
+      company: post.company || "",
+      location: post.location || null,
+      type: post.type || null,
+      pay: post.pay || null,
+      contact: post.contact || null,
+    },
+
+    seeker: {
+      uid: userUid,
+      email: account.email || "",
+      name: account.name || "",
+      username: account.username || "",
+      usernameLower: account.usernameLower || "",
+      city: account.city || "",
+      lastSeen: now,
+    },
+
+    lastMessage:
+      externalType === "email"
+        ? "Application initiated through the company email."
+        : "Application initiated through the external application link.",
+
+    appliedAt: serverTimestamp(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  if (externalType === "email") {
+    const email = String(post.applicationEmail || "").trim();
+
+    if (email) {
+      payload.applicationEmail = email;
+    }
+  } else {
+    const url = String(post.applicationUrl || "").trim();
+
+    if (url) {
+      payload.applicationUrl = url;
+    }
+  }
+
+  const docRef = await addDoc(collection(db, "applications"), payload);
+
+  return {
+    id: docRef.id,
+    ...payload,
+    appliedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export async function updateExternalTrackingStatus(
+  applicationId,
+  trackingStatus
+) {
+  if (!applicationId) {
+    throw new Error(
+      "Application id is required to update the tracking status."
+    );
+  }
+
+  if (!EXTERNAL_TRACKING_STATUSES.includes(trackingStatus)) {
+    throw new Error(
+      `Invalid external tracking status: ${trackingStatus}`
+    );
+  }
+
+  await updateDoc(doc(db, "applications", applicationId), {
+    trackingStatus,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function sendThreadReply(

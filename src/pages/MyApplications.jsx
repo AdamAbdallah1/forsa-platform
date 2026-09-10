@@ -23,6 +23,7 @@ import {
   cancelThreadInterview,
   deleteThreadFromFirestore,
   listenUserThreads,
+  updateExternalTrackingStatus,
 } from "../lib/applicationService";
 
 
@@ -77,6 +78,88 @@ const statusMeta = {
     className: "bg-red-50 text-red-600",
   },
 };
+
+
+const externalTrackingStatuses = [
+  "applied",
+  "waiting",
+  "interview",
+  "offer",
+  "rejected",
+  "withdrawn",
+];
+
+
+const externalStatusMeta = {
+  applied: {
+    label: "Applied",
+    icon: FaCheckCircle,
+    className: "bg-emerald-50 text-emerald-700",
+  },
+
+  waiting: {
+    label: "Waiting",
+    icon: FaClock,
+    className: "bg-amber-50 text-amber-700",
+  },
+
+  interview: {
+    label: "Interview",
+    icon: FaClock,
+    className: "bg-blue-50 text-blue-700",
+  },
+
+  offer: {
+    label: "Offer",
+    icon: FaCheckCircle,
+    className: "bg-green-50 text-green-700",
+  },
+
+  rejected: {
+    label: "Rejected",
+    icon: FaTimesCircle,
+    className: "bg-red-50 text-red-600",
+  },
+
+  withdrawn: {
+    label: "Withdrawn",
+    icon: FaTimesCircle,
+    className: "bg-neutral-100 text-neutral-600",
+  },
+};
+
+
+function externalStatusBucket(trackingStatus) {
+  switch (trackingStatus) {
+    case "interview":
+      return "interview";
+
+    case "offer":
+      return "accepted";
+
+    case "rejected":
+      return "rejected";
+
+    default:
+      return "pending";
+  }
+}
+
+
+/*
+ * Internal Forsa applications carry an employer-owned `status` value.
+ *
+ * External tracking records carry a seeker-owned `trackingStatus`
+ * instead (Forsa never claims to know the employer's response).
+ *
+ * This maps tracking statuses into the same buckets the page already
+ * uses for filtering and stats, so external records appear in a
+ * coherent place without any redesign.
+ */
+const getBucketStatus = (item) =>
+  item?.applicationMethod === "external"
+    ? externalStatusBucket(item.trackingStatus)
+    : item.status || "pending";
 
 
 function formatDate(value) {
@@ -251,17 +334,19 @@ export default function MyApplications() {
       })
 
       .filter((thread) => {
-        const status = thread.status || "pending";
-
         const matchesStatus =
           statusFilter === "all" ||
-          status === statusFilter;
+          getBucketStatus(thread) === statusFilter;
 
         const text = `
           ${thread.title || ""}
           ${thread.company || ""}
           ${thread.lastMessage || ""}
           ${thread.status || ""}
+          ${thread.trackingStatus || ""}
+          ${thread.externalApplicationType || ""}
+          ${thread.applicationUrl || ""}
+          ${thread.applicationEmail || ""}
           ${thread.interview?.date || ""}
           ${thread.interview?.time || ""}
           ${thread.interview?.meetingLink || ""}
@@ -309,27 +394,27 @@ export default function MyApplications() {
 
       pending: applications.filter(
         (item) =>
-          (item.status || "pending") === "pending"
+          getBucketStatus(item) === "pending"
       ).length,
 
       interview: applications.filter(
         (item) =>
-          item.status === "interview"
+          getBucketStatus(item) === "interview"
       ).length,
 
       shortlisted: applications.filter(
         (item) =>
-          item.status === "shortlisted"
+          getBucketStatus(item) === "shortlisted"
       ).length,
 
       accepted: applications.filter(
         (item) =>
-          item.status === "accepted"
+          getBucketStatus(item) === "accepted"
       ).length,
 
       rejected: applications.filter(
         (item) =>
-          item.status === "rejected"
+          getBucketStatus(item) === "rejected"
       ).length,
     }),
     [applications]
@@ -471,6 +556,38 @@ export default function MyApplications() {
 
       alert(
         "Could not remove the application."
+      );
+    }
+  };
+
+  const updateTrackingStatus = async (
+    application,
+    trackingStatus
+  ) => {
+    if (!application?.id) {
+      return;
+    }
+
+    try {
+      await updateExternalTrackingStatus(
+        application.id,
+        trackingStatus
+      );
+
+      /*
+       * Do not manually update state here.
+       *
+       * The Firestore listener will deliver the
+       * updated document and refresh the card.
+       */
+    } catch (error) {
+      console.error(
+        "Could not update external tracking status:",
+        error
+      );
+
+      alert(
+        "Could not update the tracking status."
       );
     }
   };
@@ -702,6 +819,9 @@ export default function MyApplications() {
                   onRemoveApplication={
                     removeApplication
                   }
+                  onUpdateTrackingStatus={
+                    updateTrackingStatus
+                  }
                 />
               )
             )}
@@ -742,6 +862,7 @@ function ApplicationCard({
   application,
   onCancelInterview,
   onRemoveApplication,
+  onUpdateTrackingStatus,
 }) {
 
   /*
@@ -759,12 +880,19 @@ function ApplicationCard({
    * Rejected
    */
 
+  const isExternal =
+    application.applicationMethod === "external";
+
   const status =
     application.status || "pending";
 
-  const meta =
-    statusMeta[status] ||
-    statusMeta.pending;
+  const trackingStatus =
+    application.trackingStatus || "applied";
+
+  const meta = isExternal
+    ? externalStatusMeta[trackingStatus] ||
+      externalStatusMeta.applied
+    : statusMeta[status] || statusMeta.pending;
 
   const Icon = meta.icon;
 
@@ -793,6 +921,12 @@ function ApplicationCard({
 
               {meta.label}
             </span>
+
+            {isExternal && (
+              <span className="rounded-full bg-[var(--forsa-bg)] px-2.5 py-1 text-[11px] text-neutral-500">
+                Applied externally
+              </span>
+            )}
 
             <span className="rounded-full bg-[var(--forsa-bg)] px-2.5 py-1 text-[11px] text-neutral-500">
               Updated{" "}
@@ -872,12 +1006,31 @@ function ApplicationCard({
             />
 
             <InfoBox
-              icon={<FaEnvelope />}
-              label="Contact"
+              icon={
+                isExternal ? (
+                  <FaExternalLinkAlt />
+                ) : (
+                  <FaEnvelope />
+                )
+              }
+              label={
+                isExternal
+                  ? "External destination"
+                  : "Contact"
+              }
               value={
-                application.opportunity
-                  ?.contact ||
-                "Inside messages"
+                isExternal
+                  ? application.applicationEmail ||
+                    application.applicationUrl ||
+                    "External application"
+                  : application.opportunity?.contact ||
+                    "Inside messages"
+              }
+              href={
+                isExternal &&
+                application.applicationUrl
+                  ? application.applicationUrl
+                  : undefined
               }
             />
 
@@ -890,14 +1043,33 @@ function ApplicationCard({
 
         <div className="grid h-fit gap-2 sm:flex lg:w-[150px] lg:grid">
 
-          <Link
-            to="/messages"
-            className="forsa-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold text-white"
-          >
-            Messages
+          {isExternal ? (
+            <select
+              value={trackingStatus}
+              onChange={(event) =>
+                onUpdateTrackingStatus(
+                  application,
+                  event.target.value
+                )
+              }
+              className="w-full cursor-pointer rounded-full border border-[var(--forsa-border)] bg-white px-3 py-2.5 text-xs font-semibold text-neutral-700"
+            >
+              {externalTrackingStatuses.map((option) => (
+                <option key={option} value={option}>
+                  {externalStatusMeta[option].label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Link
+              to="/messages"
+              className="forsa-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold text-white"
+            >
+              Messages
 
-            <FaArrowRight className="text-[9px]" />
-          </Link>
+              <FaArrowRight className="text-[9px]" />
+            </Link>
+          )}
 
 
           <Link

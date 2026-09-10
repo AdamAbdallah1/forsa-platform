@@ -19,9 +19,11 @@ import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
 import SignInRequiredModal from "../components/SignInRequiredModal";
+import ExternalAppliedModal from "../components/ExternalAppliedModal";
 import { getPostById, incrementPostMetric, recordApplyClick } from "../lib/postService";
 import { createReport } from "../lib/reportService";
 import { getUserSavedJobs, saveJob, unsaveJob } from "../lib/savedJobsService";
+import { createExternalApplication } from "../lib/applicationService";
 import { showToast } from "../lib/Toast";
 
 const getWorkCountry = (item) => item?.workCountry || "Lebanon";
@@ -119,6 +121,7 @@ export default function JobDetails() {
   const [reporting, setReporting] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);
+  const [showExternalApplied, setShowExternalApplied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -228,6 +231,16 @@ export default function JobDetails() {
     if (job.applicationMethod === "external") {
       const externalType = getExternalApplicationType(job);
 
+      const trackExternalApplication = () => {
+        if (!seekerUid) return;
+
+        createExternalApplication(job, session)
+          .then(() => setShowExternalApplied(true))
+          .catch((error) => {
+            console.error("Could not save external application tracking:", error);
+          });
+      };
+
       if (externalType === "email") {
         const email = String(job.applicationEmail || "").trim();
 
@@ -241,6 +254,7 @@ export default function JobDetails() {
           "_blank",
           "noopener,noreferrer"
         );
+        trackExternalApplication();
         showToast(`Email ${email} with your CV and application details`);
         if (seekerUid) {
           recordApplyClick({ postId: job.id, uid: seekerUid, method: "email" });
@@ -256,6 +270,7 @@ export default function JobDetails() {
         }
 
         window.open(url.href, "_blank", "noopener,noreferrer");
+        trackExternalApplication();
         showToast("Opening the external application page");
         if (seekerUid) {
           recordApplyClick({ postId: job.id, uid: seekerUid, method: "url" });
@@ -695,6 +710,11 @@ export default function JobDetails() {
         onSignIn={() => navigate("/auth?mode=login")}
         onCreateAccount={() => navigate("/auth")}
         onClose={() => setShowSignInPrompt(false)}
+      />
+
+      <ExternalAppliedModal
+        open={showExternalApplied}
+        onClose={() => setShowExternalApplied(false)}
       />
     </section>
   );

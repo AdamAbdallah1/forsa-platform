@@ -10,7 +10,7 @@ import Button from "../components/ui/Button";
 import { getActivePosts, incrementPostMetric, recordApplyClick } from "../lib/postService.js";
 import Footer from "../components/Footer";
 import { createNotification } from "../lib/notificationService";
-import { createApplicationThread } from "../lib/applicationService";
+import { createApplicationThread, createExternalApplication } from "../lib/applicationService";
 import { getUserSavedJobs, saveJob, unsaveJob } from "../lib/savedJobsService";
 import { createReport } from "../lib/reportService";
 import {
@@ -39,6 +39,7 @@ import {
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import SignInRequiredModal from "../components/SignInRequiredModal";
+import ExternalAppliedModal from "../components/ExternalAppliedModal";
 import { opportunities } from "../data/opportunities";
 
 const safeJson = (key, fallback) => {
@@ -227,6 +228,7 @@ export default function Explore() {
   const [applyOpportunity, setApplyOpportunity] = useState(null);
   const [authModal, setAuthModal] = useState(null);
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);
+  const [showExternalApplied, setShowExternalApplied] = useState(false);
   const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [activeType, setActiveType] = useState("All");
   const [sortBy, setSortBy] = useState("Best match");
@@ -235,6 +237,7 @@ export default function Explore() {
   const [savedJobs, setSavedJobs] = useState(safeJson("forsaSavedJobs", []));
   const [savedLoading, setSavedLoading] = useState(false);
   const [recentlyViewed, setRecentlyViewed] = useState(safeJson("forsaRecentlyViewed", []));
+  const [trackedExternalVersion, setTrackedExternalVersion] = useState(0);
   const [firebasePosts, setFirebasePosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState("");
@@ -422,7 +425,9 @@ export default function Explore() {
         .filter((thread) => thread.seeker?.email === account.email)
         .map((thread) => thread.opportunityId)
     );
-  }, [account?.email]);
+    // External applies bump this version to re-evaluate appliedIds.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account?.email, trackedExternalVersion]);
 
   const rankedOpportunities = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -660,6 +665,48 @@ export default function Explore() {
     }
   };
 
+  const markExternalTracked = (item) => {
+    if (!account?.uid || !item?.id) return;
+
+    const now = new Date().toISOString();
+    const existing = safeJson("forsaMessages", []);
+
+    const alreadyTracked = existing.some(
+      (thread) =>
+        thread.opportunityId === item.id &&
+        thread.applicationMethod === "external" &&
+        thread.seeker?.uid === account.uid
+    );
+
+    if (alreadyTracked) return;
+
+    const updated = [
+      {
+        id: `external-tracking-${item.id}-${account.uid}`,
+        opportunityId: item.id,
+        title: item.title,
+        company: item.company,
+        lastMessage: "Tracked as an external application",
+        status: "pending",
+        applicationMethod: "external",
+        trackingStatus: "applied",
+        seeker: {
+          uid: account.uid,
+          email: account.email,
+          name: account.name,
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      ...existing,
+    ];
+
+    writeJson("forsaMessages", updated);
+    writeJson("forsaMessagesCache", updated);
+
+    setTrackedExternalVersion((version) => version + 1);
+  };
+
   const openApply = (item) => {
   if (!getAccount()) {
     setShowSignInPrompt(true);
@@ -668,6 +715,17 @@ export default function Explore() {
 
   if (item.applicationMethod === "external") {
   const externalType = getExternalApplicationType(item);
+
+  const trackExternalApplication = () => {
+    if (!canInteract || !account?.uid) return;
+
+    markExternalTracked(item);
+    createExternalApplication(item, account)
+      .then(() => setShowExternalApplied(true))
+      .catch((error) => {
+        console.error("Could not save external application tracking:", error);
+      });
+  };
 
   if (externalType === "email") {
     const email = String(item.applicationEmail || "").trim();
@@ -682,6 +740,7 @@ export default function Explore() {
       "_blank",
       "noopener,noreferrer"
     );
+    trackExternalApplication();
     showToast(`Email ${email} with your CV and application details`);
     if (canInteract) {
       recordApplyClick({
@@ -703,6 +762,7 @@ export default function Explore() {
     }
 
     window.open(url.href, "_blank", "noopener,noreferrer");
+    trackExternalApplication();
     if (canInteract) {
       recordApplyClick({
         postId: item.id,
@@ -1115,6 +1175,10 @@ try {
         onSignIn={() => navigate("/auth?mode=login")}
         onCreateAccount={() => navigate("/auth")}
         onClose={() => setShowSignInPrompt(false)}
+      />
+      <ExternalAppliedModal
+        open={showExternalApplied}
+        onClose={() => setShowExternalApplied(false)}
       />
       <Footer />
       <Modal

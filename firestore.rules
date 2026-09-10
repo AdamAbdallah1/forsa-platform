@@ -436,6 +436,43 @@ service cloud.firestore {
           request.resource.data.applicationMethod == "forsa"
         );
 
+      // Seeker-owned external application tracking.
+      // Forsa does not control the employer's application system and never
+      // claims to know the employer's response. This document only records
+      // that the seeker initiated an external application, so it must not
+      // carry employer-facing or conversation data.
+      allow create: if signedIn() &&
+        request.resource.data.seeker.uid == request.auth.uid &&
+        request.resource.data.status == "pending" &&
+        request.resource.data.applicationMethod == "external" &&
+        request.resource.data.trackingStatus in [
+          "applied",
+          "waiting",
+          "interview",
+          "offer",
+          "rejected",
+          "withdrawn"
+        ] &&
+        hasValidExternalApplication(request.resource.data) &&
+        !request.resource.data.keys().hasAny([
+          "ownerUid",
+          "ownerEmail",
+          "conversation",
+          "statusHistory",
+          "questions",
+          "answers",
+          "interview"
+        ]) &&
+        get(
+          /databases/$(database)/documents/posts/$(request.resource.data.opportunityId)
+        ).data.status == "active" &&
+        get(
+          /databases/$(database)/documents/posts/$(request.resource.data.opportunityId)
+        ).data.reviewStatus == "approved" &&
+        get(
+          /databases/$(database)/documents/posts/$(request.resource.data.opportunityId)
+        ).data.moderationStatus == "approved";
+
       // Applicants can only update messaging fields.
       allow update: if signedIn() &&
         resource.data.seeker.uid == request.auth.uid &&
@@ -446,6 +483,28 @@ service cloud.firestore {
             "updatedAt",
             "conversation"
           ]);
+
+      // Seekers can only manage their own external application tracking
+      // status. The internal `status` and all application data stay
+      // immutable, and an employer can never edit or reply through these
+      // records because they carry no owner fields.
+      allow update: if signedIn() &&
+        resource.data.seeker.uid == request.auth.uid &&
+        resource.data.applicationMethod == "external" &&
+        request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            "trackingStatus",
+            "updatedAt"
+          ]) &&
+        request.resource.data.trackingStatus in [
+          "applied",
+          "waiting",
+          "interview",
+          "offer",
+          "rejected",
+          "withdrawn"
+        ];
 
       // Hiring users can manage application status/interviews
       // and communicate with the applicant.

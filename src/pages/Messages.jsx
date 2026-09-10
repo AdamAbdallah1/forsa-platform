@@ -154,8 +154,17 @@ export default function Messages() {
   const visibleMessages = useMemo(() => {
     if (!account?.email) return [];
 
+    /*
+     * External applications are seeker-owned tracking records, not
+     * conversations. Exclude them from every thread/list/selection
+     * in this page. The document itself is left untouched.
+     */
+    const tracked = messages.filter(
+      (thread) => thread.applicationMethod !== "external"
+    );
+
     if (account.accountType === "hiring") {
-      return messages.filter(
+      return tracked.filter(
         (thread) =>
           thread.ownerEmail === account.email ||
           thread.opportunity?.contact === account.email ||
@@ -163,7 +172,7 @@ export default function Messages() {
       );
     }
 
-    return messages.filter(
+    return tracked.filter(
       (thread) => !thread.seeker?.email || thread.seeker.email === account.email
     );
   }, [messages, account]);
