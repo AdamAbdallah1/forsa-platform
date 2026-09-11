@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   FaBell,
   FaBookmark,
@@ -11,6 +11,7 @@ import {
   FaUsers,
 } from "react-icons/fa";
 import { BsFillPeopleFill } from "react-icons/bs";
+import AccountMenu from "./AccountMenu";
 
 function safeJson(key, fallback) {
   try {
@@ -22,7 +23,6 @@ function safeJson(key, fallback) {
 
 export default function MobileNav() {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [account, setAccount] = useState(() =>
     safeJson("forsaAccount", null)
@@ -213,21 +213,13 @@ export default function MobileNav() {
           )}
         </NavLink>
 
-        <button
-          type="button"
-          aria-label="Profile"
-          onClick={() => navigate("/profile")}
-          className={`flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-xl transition-all duration-200 active:scale-95 ${
-            location.pathname === "/profile"
-              ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-sm"
-              : "border-neutral-200/80 bg-[var(--forsa-primary)] text-white shadow-sm hover:bg-[var(--forsa-primary-light)]"
-          }`}
-        >
-          <span className="text-[11px] font-bold">
-            {account?.name?.trim()?.charAt(0)?.toUpperCase() || "P"}
-          </span>
-        </button>
-      </div>
+        <AccountMenu
+          account={account}
+          showLabel={false}
+          notificationCount={unreadNotificationsCount}
+        />
+
+        </div>
 
       <nav
         aria-label="Mobile navigation"

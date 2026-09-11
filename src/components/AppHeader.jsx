@@ -13,6 +13,7 @@ import {
 import { BsFillPeopleFill } from "react-icons/bs";
 
 import BrandLogo from "./BrandLogo";
+import AccountMenu from "./AccountMenu";
 
 function safeJson(key, fallback) {
   try {
@@ -194,13 +195,11 @@ export default function AppHeader() {
                 )}
               </NavLink>
 
-              <button
-                type="button"
-                onClick={() => navigate("/profile")}
-                className="hidden rounded-full bg-[var(--forsa-primary)] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[var(--forsa-primary-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forsa-primary)] focus-visible:ring-offset-2 sm:block"
-              >
-                Profile
-              </button>
+              <AccountMenu
+                account={account}
+                notificationCount={unreadNot}
+                containerClassName="hidden sm:block"
+              />
             </>
           ) : !isAuthPage ? (
             <button
