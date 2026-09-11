@@ -8,6 +8,10 @@ import {
 import { showToast } from "../lib/Toast";
 import SEO from "../components/SEO";
 import {
+  validatePassword,
+  getPasswordRequirements,
+} from "../lib/password";
+import {
   FaArrowLeft,
   FaArrowRight,
   FaBriefcase,
@@ -44,44 +48,6 @@ const validateUsername = (username) => {
   }
 
   return "";
-};
-
-const validatePassword = (password) => {
-  const value = password.trim();
-
-  if (value.length < 8) {
-    return "Password must be at least 8 characters.";
-  }
-
-  if (!/[A-Z]/.test(value)) {
-    return "Add at least one uppercase letter.";
-  }
-
-  if (!/[a-z]/.test(value)) {
-    return "Add at least one lowercase letter.";
-  }
-
-  if (!/[0-9]/.test(value)) {
-    return "Add at least one number.";
-  }
-
-  if (!/[^A-Za-z0-9]/.test(value)) {
-    return "Add at least one symbol.";
-  }
-
-  return "";
-};
-
-const getPasswordRequirements = (password) => {
-  const value = password.trim();
-
-  return {
-    length: value.length >= 8,
-    uppercase: /[A-Z]/.test(value),
-    lowercase: /[a-z]/.test(value),
-    number: /[0-9]/.test(value),
-    symbol: /[^A-Za-z0-9]/.test(value),
-  };
 };
 
 const validateName = (name, label = "Name") => {
@@ -360,20 +326,12 @@ export default function Auth() {
     setError("");
 
     try {
-      const { account, isNewUser } = await loginWithGoogle();
+      const { isNewUser } = await loginWithGoogle();
 
       showToast(
         isNewUser
           ? "Welcome to Forsa"
           : "Welcome back"
-      );
-
-      navigate(
-        isNewUser
-          ? "/onboarding"
-          : account.accountType === "hiring"
-          ? "/profile"
-          : "/explore"
       );
     } catch (err) {
       console.error("Google auth error:", err);
@@ -416,18 +374,12 @@ export default function Auth() {
       const password = form.password.trim();
 
       if (!isSignup) {
-        const user = await loginUser(
+        await loginUser(
           loginEmail,
           password
         );
 
         showToast("Welcome back");
-
-        navigate(
-          user.accountType === "hiring"
-            ? "/profile"
-            : "/explore"
-        );
 
         return;
       }
@@ -463,8 +415,6 @@ export default function Auth() {
       showToast(
         "Verification email sent. Please check your inbox."
       );
-
-      navigate("/verify-email");
     } catch (err) {
       console.error("Auth error:", err);
 

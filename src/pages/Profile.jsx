@@ -5,6 +5,7 @@ import SEO from "../components/SEO";
 import AppHeader from "../components/AppHeader";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
+import { useAuth } from "../contexts/AuthContext";
 import {
   requestCvUpload,
   uploadCvToR2,
@@ -13,7 +14,13 @@ import {
 } from "../lib/cvUpload";
 import Modal from "../components/ui/Modal";
 import { deleteCurrentAccount } from "../lib/accountDeletionService";
-import { changeUsername, checkUsernameAvailable } from "../lib/auth";
+import {
+  changeUsername,
+  checkUsernameAvailable,
+  logout,
+  reauthenticateCurrentUser,
+  reauthErrorMessage,
+} from "../lib/auth";
 import { showToast } from "../lib/Toast";
 import {
   deletePost as deletePostFromFirestore,
@@ -309,12 +316,18 @@ function FollowedCompaniesTab({ companies, onUnfollow }) {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { account: authAccount } = useAuth();
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  const savedAccount = safeJson("forsaAccount", null);
+  const isPasswordAccount = !(auth.currentUser?.providerData || []).some(
+    (provider) => provider.providerId === "google.com"
+  );
+
   const savedProfile = safeJson("forsaProfile", {
   skills: [],
   lookingFor: [],
@@ -325,7 +338,10 @@ if (!Array.isArray(savedProfile.skills)) {
   savedProfile.skills = [];
 }
 
-  const [account, setAccount] = useState(savedAccount);
+  const [account, setAccount] = useState(authAccount);
+
+  const savedAccount = authAccount;
+
   const [profile, setProfile] = useState(savedProfile);
   const [experiences, setExperiences] = useState(
   Array.isArray(savedAccount?.experience)
@@ -585,6 +601,31 @@ const displayEmail =
     });
   };
 
+const deleteApiErrorMessage = (error) => {
+    const code = error?.code || "";
+
+    if (code === "NETWORK") {
+      return "Network error. Check your connection and try again.";
+    }
+
+    if (code === "REAUTH_REQUIRED") {
+      return "Please sign in again, then delete your account.";
+    }
+
+    if (code === "DELETION_IN_PROGRESS") {
+      return "A deletion for this account is already in progress. Please try again in a few minutes.";
+    }
+
+    if (code === "NO_USER") {
+      return "Your session ended. Please sign in again.";
+    }
+
+    return (
+      error?.message ||
+      "Could not delete your account. Please try again."
+    );
+  };
+
 const handleDeleteAccount = async () => {
   if (deleteConfirmText !== "DELETE") {
     showToast("Type DELETE to confirm.", "error");
@@ -594,17 +635,29 @@ const handleDeleteAccount = async () => {
   setDeletingAccount(true);
 
   try {
-    await deleteCurrentAccount(account);
+    if (isPasswordAccount && !deletePassword) {
+      showToast("Enter your current password to confirm.", "error");
+      setDeletingAccount(false);
+      return;
+    }
+
+    try {
+      await reauthenticateCurrentUser({
+        password: isPasswordAccount ? deletePassword : undefined,
+      });
+    } catch (reauthError) {
+      showToast(reauthErrorMessage(reauthError), "error");
+      setDeletingAccount(false);
+      return;
+    }
+
+    await deleteCurrentAccount();
+
     showToast("Account deleted");
-    window.location.href = "/";
+    navigate("/auth", { replace: true });
   } catch (error) {
     console.error("Delete account error:", error);
-
-    if (error.code === "auth/requires-recent-login") {
-      showToast("Please logout, login again, then delete your account.", "error");
-    } else {
-      showToast(error.message || "Could not delete account.", "error");
-    }
+    showToast(deleteApiErrorMessage(error), "error");
   } finally {
     setDeletingAccount(false);
   }
@@ -934,31 +987,19 @@ const saveChanges = async () => {
     setEditingPost(null);
   };
 
-  const logout = () => {
-    localStorage.removeItem("forsaAccount");
-    setAccount(null);
-    navigate("/", { replace: true });
-  };
+  const handleLogout = async () => {
+    if (loggingOut) return;
 
-  const resetDemoAccount = () => {
-    const confirmed = window.confirm(
-      "This will remove your demo account, profile, saved jobs, messages, and posts."
-    );
+    setLoggingOut(true);
 
-    if (!confirmed) return;
-
-    localStorage.removeItem("forsaAccount");
-    localStorage.removeItem("forsaProfile");
-    localStorage.removeItem("forsaPosts");
-    localStorage.removeItem("forsaSavedJobs");
-    localStorage.removeItem("forsaMessages");
-    localStorage.removeItem("forsaNotifications");
-    localStorage.removeItem("forsaUsers");
-    localStorage.removeItem("forsaRecentlyViewed");
-    localStorage.removeItem("forsaSavedJobNotes");
-
-    setAccount(null);
-    navigate("/auth", { replace: true });
+    try {
+      await logout();
+      navigate("/auth", { replace: true });
+    } catch (error) {
+      console.error("Logout failed:", error);
+      showToast("Could not log out. Please try again.", "error");
+      setLoggingOut(false);
+    }
   };
 
   const loadDemo = () => {
@@ -1278,8 +1319,8 @@ const saveChanges = async () => {
 
               {tab === "settings" && (
                 <SettingsTab
-  logout={logout}
-  resetDemoAccount={resetDemoAccount}
+  logout={handleLogout}
+  loggingOut={loggingOut}
   loadDemo={loadDemo}
   clearDemo={clearDemo}
   isHiring={isHiring}
@@ -1310,6 +1351,7 @@ const saveChanges = async () => {
             if (!deletingAccount) {
               setDeleteModalOpen(false);
               setDeleteConfirmText("");
+              setDeletePassword("");
             }
           }}
         >
@@ -1324,6 +1366,28 @@ const saveChanges = async () => {
               placeholder="DELETE"
               className="mt-3 w-full rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-red-500"
             />
+
+            {isPasswordAccount ? (
+              <>
+                <label className="mt-4 block text-xs font-semibold text-red-700">
+                  Enter your current password to confirm your identity.
+                </label>
+
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Current password"
+                  autoComplete="current-password"
+                  className="mt-2 w-full rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-red-500"
+                />
+              </>
+            ) : (
+              <p className="mt-4 text-xs leading-5 text-red-600">
+                You will re-confirm your identity with Google before the
+                account is deleted.
+              </p>
+            )}
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-2">
@@ -1332,6 +1396,7 @@ const saveChanges = async () => {
               onClick={() => {
                 setDeleteModalOpen(false);
                 setDeleteConfirmText("");
+                setDeletePassword("");
               }}
               className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700 disabled:opacity-50"
             >
@@ -1339,7 +1404,11 @@ const saveChanges = async () => {
             </button>
 
             <button
-              disabled={deletingAccount || deleteConfirmText !== "DELETE"}
+              disabled={
+                deletingAccount ||
+                deleteConfirmText !== "DELETE" ||
+                (isPasswordAccount && !deletePassword)
+              }
               onClick={handleDeleteAccount}
               className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -4115,7 +4184,7 @@ function InterviewSummary({ interview }) {
 
 function SettingsTab({
   logout,
-  resetDemoAccount,
+  loggingOut,
   loadDemo,
   clearDemo,
   isHiring,
@@ -4151,8 +4220,8 @@ function SettingsTab({
           Manage your current signed-in session. More security settings will be added here.
         </p>
 
-        <button onClick={logout} className="forsa-click mt-5 w-full rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit">
-          Log out
+        <button onClick={logout} disabled={loggingOut} className="forsa-click mt-5 w-full rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit disabled:cursor-not-allowed disabled:opacity-60">
+          {loggingOut ? "Logging out…" : "Log out"}
         </button>
       </div>
 

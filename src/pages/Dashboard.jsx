@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../lib/firebase";
 import AppHeader from "../components/AppHeader";
 import Button from "../components/ui/Button";
 import {
@@ -17,6 +15,7 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import { getCompanyAnalytics } from "../lib/analyticsService";
 import {
   getPostsByOwner,
@@ -783,8 +782,7 @@ function AnalyticsTab({ analytics, onNewPost, onOpenApplicants }) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-
-  const [account, setAccount] = useState(null);
+  const { user, account, loading: authLoading } = useAuth();
 
   const [analytics, setAnalytics] = useState({
     rows: [],
@@ -843,38 +841,16 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        setAccount(null);
-        setPosts([]);
-        setPostsLoading(false);
-        return;
-      }
+    if (authLoading) return;
 
-      let acc = null;
-
-      try {
-        acc = JSON.parse(
-          localStorage.getItem("forsaAccount") || "null"
-        );
-      } catch {
-        acc = null;
-      }
-
-      if (!acc?.uid) {
-        setAccount(null);
-        setPosts([]);
-        setPostsLoading(false);
-        return;
-      }
-
-      setAccount(acc);
-
-      await refreshDashboard(user, acc);
-    });
-
-    return () => unsubscribe();
-  }, []);
+    if (user && account?.uid) {
+      Promise.resolve().then(() => {
+        refreshDashboard(user, account);
+      });
+    }
+    // Reload when the resolved auth account changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user?.uid, account?.uid]);
 
   const handleViewPost = (post) => {
     navigate(`/jobs/${post.id}`);
@@ -1201,8 +1177,6 @@ export default function Dashboard() {
 
             <Button
               onClick={() => {
-                const user = auth.currentUser;
-
                 if (user) {
                   refreshDashboard(user, account);
                 }

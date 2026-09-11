@@ -3,13 +3,17 @@ import {
   signInWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
+  EmailAuthProvider,
   signInWithPopup,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
   signInWithCustomToken,
   sendPasswordResetEmail,
   sendEmailVerification,
-  updateEmail,
   updatePassword,
   deleteUser,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
 } from "firebase/auth";
 
 import {
@@ -23,6 +27,21 @@ import {
 } from "firebase/firestore";
 
 import { auth, db } from "./firebase";
+
+/*
+ * Production destination for Firebase's password-reset action links.
+ *
+ * handleCodeInApp routes the email link directly to the Forsa SPA
+ * (Vercel-hosted, not Firebase Hosting) with the Firebase-validated
+ * oobCode in the query string, where /reset-password completes the flow
+ * via verifyPasswordResetCode()/confirmPasswordReset().
+ */
+const RESET_PASSWORD_URL = "https://forsa.digital/reset-password";
+
+const RESET_PASSWORD_ACTION_CODE_SETTINGS = {
+  url: RESET_PASSWORD_URL,
+  handleCodeInApp: true,
+};
 
 /* =========================================================
 LOCAL SESSION HELPERS
@@ -571,6 +590,16 @@ RESEND VERIFICATION EMAIL
 
 /**
  * Resend Firebase's verification email.
+ *
+ * Returns:
+ * { sent: true }            -> email was sent
+ * { alreadyVerified: true } -> no email sent; Firebase auth already reports
+ *                              the address as verified (e.g. verified in
+ *                              another tab), so the caller should refresh
+ *                              centralized auth state
+ *
+ * Throws when Firebase rejects the send; the caller must surface the
+ * rejection instead of claiming an email was sent.
  */
 export async function resendVerificationEmail() {
   const user = auth.currentUser;
@@ -588,10 +617,12 @@ export async function resendVerificationEmail() {
    * Do not send another verification email if already verified.
    */
   if (user.emailVerified) {
-    return;
+    return { alreadyVerified: true };
   }
 
   await sendEmailVerification(user);
+
+  return { sent: true };
 }
 
 /* =========================================================
@@ -775,44 +806,31 @@ PASSWORD RESET
 export async function resetPassword(email) {
   await sendPasswordResetEmail(
     auth,
-    email.trim().toLowerCase()
+    email.trim().toLowerCase(),
+    RESET_PASSWORD_ACTION_CODE_SETTINGS
   );
 }
 
-/* =========================================================
-CHANGE EMAIL
-========================================================= */
+/**
+ * Validate a Firebase password-reset action code.
+ *
+ * Firebase validates the oobCode server-side and resolves with the email
+ * address it belongs to. Throws for invalid/expired/already-used codes.
+ * The URL's oobCode is never trusted or decoded client-side.
+ */
+export async function verifyPasswordResetActionCode(oobCode) {
+  return verifyPasswordResetCode(auth, oobCode);
+}
 
 /**
- * Change the current user's email.
+ * Complete a password reset with Firebase.
  *
- * The new email must be verified again.
+ * Firebase re-validates the code server-side and sets the new password.
+ * It does NOT manufacture an authenticated session; the caller directs
+ * the user to the login flow.
  */
-export async function changeCurrentUserEmail(newEmail) {
-  if (!auth.currentUser) {
-    throw new Error("No authenticated user.");
-  }
-
-  const email = newEmail.trim().toLowerCase();
-
-  await updateEmail(auth.currentUser, email);
-
-  /*
-   * The new address must be verified again.
-   */
-  await sendEmailVerification(auth.currentUser);
-
-  /*
-   * Remove the old application session because the account
-   * is now waiting for email verification.
-   */
-  localStorage.removeItem("forsaAccount");
-
-  return {
-    ...getAccount(),
-    email,
-    emailVerified: false,
-  };
+export async function confirmPasswordResetActionCode(oobCode, newPassword) {
+  await confirmPasswordReset(auth, oobCode, newPassword);
 }
 
 /* =========================================================
@@ -828,9 +846,115 @@ export async function changeCurrentUserPassword(newPassword) {
 }
 
 /* =========================================================
+REAUTHENTICATION (account deletion)
+========================================================= */
+
+function googleReauthProvider() {
+  const provider = new GoogleAuthProvider();
+
+  /*
+   * Force an explicit, non-silent Google sign-in so the user actively
+   * re-confirms their identity before a destructive operation. This is
+   * the equivalent of a fresh login, which keeps Firebase's recent-login
+   * protection intact instead of weakening it.
+   */
+  provider.setCustomParameters({
+    prompt: "login",
+  });
+
+  return provider;
+}
+
+/**
+ * Re-authenticate the current Firebase user with their current
+ * credentials. Required before account deletion.
+ *
+ * - Google users: explicit Google reauthentication prompt.
+ * - Email/password users: the account's current password.
+ *
+ * The password is only supplied to Firebase's reauthentication call and
+ * is never stored, logged, or returned.
+ *
+ * Throws errors whose `code` is a stable Firebase code (or a local
+ * "PASSWORD_REQUIRED" / "NO_USER" value) for user-safe mapping via
+ * reauthErrorMessage().
+ */
+export async function reauthenticateCurrentUser({ password } = {}) {
+  const user = auth.currentUser;
+
+  if (!user) {
+    const error = new Error("No authenticated user.");
+    error.code = "NO_USER";
+    throw error;
+  }
+
+  const isGoogle = user.providerData.some(
+    (provider) => provider.providerId === "google.com"
+  );
+
+  if (isGoogle) {
+    await reauthenticateWithPopup(user, googleReauthProvider());
+    return;
+  }
+
+  if (!password) {
+    const error = new Error("Current password is required.");
+    error.code = "PASSWORD_REQUIRED";
+    throw error;
+  }
+
+  const credential = EmailAuthProvider.credential(user.email, password);
+
+  await reauthenticateWithCredential(user, credential);
+}
+
+/**
+ * Map a reauthentication error to a safe, user-facing message.
+ */
+export function reauthErrorMessage(error) {
+  const code = error?.code || "";
+
+  switch (code) {
+    case "auth/wrong-password":
+    case "auth/invalid-credential":
+      return "That password is incorrect. Please try again.";
+    case "auth/too-many-requests":
+      return "Too many attempts. Please try again in a little while.";
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      return "Google sign-in was cancelled.";
+    case "auth/popup-blocked":
+      return "Google sign-in was blocked. Allow popups for this site and try again.";
+    case "auth/network-request-failed":
+      return "Network error. Check your connection and try again.";
+    case "auth/user-not-found":
+    case "auth/user-disabled":
+      return "This account is no longer available. Please try again.";
+    case "auth/requires-recent-login":
+      return "Please sign in again and retry.";
+    default:
+      return "Could not verify your identity. Please try again.";
+  }
+}
+
+/* =========================================================
 LOGOUT
 ========================================================= */
 
+/*
+ * The single canonical logout implementation for the whole application.
+ *
+ * 1. signOut(auth)                          -> the source of truth. If it
+ *    throws, nothing else runs, so we never pretend the session ended or
+ *    wipe the compatibility cache for a Firebase session that still exists.
+ * 2. AuthContext observes the sign-out via its single onAuthStateChanged
+ *    listener and resolves user/account to null and loading to false.
+ * 3. The forsaAccount compatibility cache is removed here; callers must
+ *    not perform partial logouts themselves.
+ *
+ * Navigation to /auth (replace) is a UI-layer concern and is done by the
+ * caller.
+ */
 export async function logout() {
   await signOut(auth);
 

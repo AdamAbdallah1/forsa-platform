@@ -123,11 +123,7 @@ export default function AdminReview() {
   const [busyId, setBusyId] = useState(null);
 
   const isAdmin = useMemo(() => {
-    return (
-      account?.email === "support.forsa@gmail.com" ||
-      account?.email === "adamabdallah.dev@gmail.com" ||
-      account?.role === "admin"
-    );
+    return account?.role === "admin";
   }, [account]);
 
   const loadAdminData = useCallback(async () => {

@@ -8,6 +8,8 @@ import {
   FaUser,
 } from "react-icons/fa";
 import { logout } from "../lib/auth";
+import { useAuth } from "../contexts/AuthContext";
+import { showToast } from "../lib/Toast";
 
 function initialsOf(value) {
   const parts = String(value || "")
@@ -25,7 +27,6 @@ function initialsOf(value) {
 }
 
 export default function AccountMenu({
-  account,
   containerClassName = "",
   showLabel = true,
   notificationCount = 0,
@@ -33,6 +34,8 @@ export default function AccountMenu({
   const navigate = useNavigate();
   const location = useLocation();
   const menuId = useId();
+
+  const { account } = useAuth();
 
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -122,6 +125,7 @@ export default function AccountMenu({
       navigate("/auth", { replace: true });
     } catch (error) {
       console.error("Sign out failed:", error);
+      showToast("Could not log out. Please try again.", "error");
       setSigningOut(false);
     }
   };

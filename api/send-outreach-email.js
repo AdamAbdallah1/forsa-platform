@@ -2,37 +2,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
 import { Resend } from "resend";
-import {
-  initializeApp,
-  cert,
-  getApps,
-} from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-
-/* Firebase Admin */
-
-if (getApps().length === 0) {
-  let serviceAccount;
-
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-    serviceAccount = JSON.parse(
-      process.env.FIREBASE_SERVICE_ACCOUNT_JSON
-    );
-  } else {
-    throw new Error(
-      "Missing FIREBASE_SERVICE_ACCOUNT_JSON."
-    );
-  }
-
-  initializeApp({
-    credential: cert(serviceAccount),
-    projectId:
-      process.env.FIREBASE_PROJECT_ID ||
-      serviceAccount.project_id,
-  });
-}
-
-const adminAuth = getAuth();
+import { authenticate, db } from "./_lib/forsa-server.js";
 
 /* Resend */
 
@@ -46,10 +16,6 @@ if (!process.env.FROM_EMAIL) {
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-/* Admin */
-
-const ADMIN_EMAIL = "support.forsa@gmail.com";
-
 /* API */
 
 export default async function handler(req, res) {
@@ -60,34 +26,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    /* Authenticate Firebase user */
+    /*
+     * Authenticate with the shared server helper. It verifies the Bearer
+     * ID token and requires email_verified === true.
+     */
+    const decoded = await authenticate(req);
 
-    const authHeader = req.headers.authorization;
+    const uid = String(decoded.uid || "");
 
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({
-        error: "Unauthorized.",
-      });
-    }
+    /*
+     * Admin authority: role === "admin" on the user's Firestore document.
+     * Capability checks are role-based everywhere; no hardcoded email.
+     */
+    const userSnap = await db.collection("users").doc(uid).get();
 
-    const idToken = authHeader.slice("Bearer ".length);
-
-    let decodedToken;
-
-    try {
-      decodedToken = await adminAuth.verifyIdToken(idToken);
-    } catch {
-      return res.status(401).json({
-        error: "Invalid authentication token.",
-      });
-    }
-
-    /* Admin-only */
-
-    if (
-      decodedToken.email?.toLowerCase() !==
-      ADMIN_EMAIL.toLowerCase()
-    ) {
+    if (!userSnap.exists || userSnap.data().role !== "admin") {
       return res.status(403).json({
         error: "Forbidden.",
       });
@@ -137,8 +90,10 @@ export default async function handler(req, res) {
       error
     );
 
-    return res.status(500).json({
-      error: "Internal server error.",
+    const status = error.status || 500;
+
+    return res.status(status).json({
+      error: error.message || "Internal server error.",
     });
   }
 }

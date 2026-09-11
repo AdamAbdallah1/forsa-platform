@@ -1,12 +1,8 @@
-import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../lib/firebase";
-
-const ADMIN_EMAIL = "support.forsa@gmail.com";
+import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function AdminEmail() {
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { user, account, loading: authLoading } = useAuth();
 
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
@@ -14,13 +10,6 @@ export default function AdminEmail() {
 
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setAuthLoading(false);
-    });
-  }, []);
 
   const sendEmail = async (e) => {
     e.preventDefault();
@@ -31,7 +20,7 @@ export default function AdminEmail() {
       return;
     }
 
-    if (user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    if (account?.role !== "admin") {
       setResult({ type: "error", text: "Admin access required." });
       return;
     }
@@ -96,7 +85,7 @@ export default function AdminEmail() {
     );
   }
 
-  if (!user || user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+  if (!user || account?.role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="rounded-2xl bg-white border p-8 text-center shadow-sm">

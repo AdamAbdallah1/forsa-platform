@@ -67,8 +67,13 @@ export default function ForgotPassword() {
             <div className="mt-6 rounded-[24px] bg-green-50 p-5">
               <p className="font-semibold text-green-700">Check your email</p>
               <p className="mt-2 text-sm leading-6 text-green-700">
-                If an account exists for {email}, you’ll receive a reset link shortly.
+                Check your email for a password reset link.
               </p>
+              {email && (
+                <p className="mt-1 text-sm text-green-700">
+                  Sent to {email}.
+                </p>
+              )}
 
               <Link
                 to="/auth"

@@ -1,28 +1,48 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaCheckCircle, FaEnvelope, FaRedo, FaSignOutAlt } from "react-icons/fa";
+import { FaCheckCircle, FaRedo, FaSignOutAlt } from "react-icons/fa";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import emailAnimation from "../assets/cta-hero.lottie";
-import {
-  auth,
-  db,
-} from "../lib/firebase";
 import {
   completeEmailVerification,
   resendVerificationEmail,
   logout,
 } from "../lib/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { useAuth } from "../contexts/AuthContext";
+import { showToast } from "../lib/Toast";
+
+const getResendError = (err) => {
+  const code = err?.code || "";
+  const rawMessage = String(err?.message || "");
+
+  if (err?.message === "No authenticated user.") {
+    return "Your session has ended. Please sign in again.";
+  }
+
+  if (
+    code === "auth/too-many-requests" ||
+    rawMessage.toLowerCase().includes("too many")
+  ) {
+    return "You've sent too many verification emails. Wait a minute and try again.";
+  }
+
+  if (code === "auth/network-request-failed") {
+    return "Network error. Check your connection and try again.";
+  }
+
+  return "We couldn't send the verification email right now. Please wait a moment and try again.";
+};
 
 export default function VerifyEmail() {
   const navigate = useNavigate();
+  const { user, refresh } = useAuth();
 
   const [checking, setChecking] = useState(false);
   const [resending, setResending] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const email = auth.currentUser?.email || "";
+  const email = user?.email || "";
 
   const handleCheckVerification = async () => {
     setChecking(true);
@@ -40,23 +60,11 @@ export default function VerifyEmail() {
       }
 
       /*
-       * Get the user's profile so we can determine
-       * which part of Forsa they should enter.
+       * Firebase confirms the email. Re-derive the centralized auth and
+       * account state so the guard routes to the canonical destination;
+       * this page never navigates to a destination itself.
        */
-      const uid = auth.currentUser.uid;
-      const userDoc = await getDoc(doc(db, "users", uid));
-
-      if (!userDoc.exists()) {
-        throw new Error("User profile not found.");
-      }
-
-      const account = userDoc.data();
-
-      if (account.accountType === "hiring") {
-        navigate("/post", { replace: true });
-      } else {
-        navigate("/onboarding", { replace: true });
-      }
+      await refresh();
     } catch (err) {
       console.error("Email verification check failed:", err);
 
@@ -75,7 +83,18 @@ export default function VerifyEmail() {
     setError("");
 
     try {
-      await resendVerificationEmail();
+      const result = await resendVerificationEmail();
+
+      if (result?.alreadyVerified) {
+        /*
+         * Verified in another tab while this page was open. Re-derive
+         * centralized state so the route guard sends the user onward.
+         */
+        await refresh();
+
+        setMessage("Your email is already verified.");
+        return;
+      }
 
       setMessage(
         "Verification email sent. Check your inbox and spam folder."
@@ -83,9 +102,7 @@ export default function VerifyEmail() {
     } catch (err) {
       console.error("Verification email resend failed:", err);
 
-      setError(
-        "We couldn't resend the verification email right now. Please wait a moment and try again."
-      );
+      setError(getResendError(err));
     } finally {
       setResending(false);
     }
@@ -97,6 +114,7 @@ export default function VerifyEmail() {
       navigate("/auth", { replace: true });
     } catch (err) {
       console.error("Logout failed:", err);
+      showToast("Could not log out. Please try again.", "error");
     }
   };
 

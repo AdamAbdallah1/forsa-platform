@@ -245,10 +245,7 @@ export default function PostOpportunity() {
     safeJson("forsaAccount", null)
   );
 
-  const isForsaAdmin =
-    account?.email === "support.forsa@gmail.com" ||
-    account?.email === "adamabdallah.dev@gmail.com" ||
-    account?.role === "admin";
+  const isForsaAdmin = account?.role === "admin";
 
   const [form, setForm] = useState(() => emptyForm(account));
   const [step, setStep] = useState(1);

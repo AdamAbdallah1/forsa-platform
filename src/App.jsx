@@ -1,16 +1,5 @@
-import { useEffect } from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-} from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { Routes, Route, useLocation } from "react-router-dom";
 import JobsInLebanon from "./pages/JobsInLebanon";
-import { auth, db } from "./lib/firebase";
-import { setSession } from "./lib/auth";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Onboarding from "./pages/Onboarding";
@@ -19,6 +8,7 @@ import Profile from "./pages/Profile";
 import MyApplications from "./pages/MyApplications";
 import Auth from "./pages/Auth";
 import VerifyEmail from "./pages/VerifyEmail";
+import ResetPassword from "./pages/ResetPassword";
 import JobDetails from "./pages/JobDetails";
 import People from "./pages/People";
 import NotFound from "./pages/NotFound";
@@ -43,13 +33,12 @@ import CompanyProfile from "./pages/CompanyProfile";
 import PublicSeekerProfile from "./pages/PublicSeekerProfile";
 import AdminReview from "./pages/AdminReview";
 import AdminRoute from "./components/AdminRoute";
+import AuthRoute from "./components/AuthRoute";
+import VerifyEmailRoute from "./components/VerifyEmailRoute";
+import ForgotPasswordRoute from "./components/ForgotPasswordRoute";
 import Toast from "./components/Toast";
 
-const toIso = (value) => {
-  if (!value) return new Date().toISOString();
-  if (typeof value?.toDate === "function") return value.toDate().toISOString();
-  return value;
-};
+import { useEffect } from "react";
 
 const INDEXABLE_EXACT_PATHS = new Set([
   "/",
@@ -89,61 +78,17 @@ function RobotsController() {
 }
 
 export default function App() {
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-  if (!currentUser) {
-    localStorage.removeItem("forsaAccount");
-    return;
-  }
-
-  try {
-    const isGoogleUser = currentUser.providerData.some(
-      (provider) => provider.providerId === "google.com"
-    );
-
-    if (!isGoogleUser && !currentUser.emailVerified) {
-      localStorage.removeItem("forsaAccount");
-      return;
-    }
-
-    const userDoc = await getDoc(
-      doc(db, "users", currentUser.uid)
-    );
-
-    if (!userDoc.exists()) {
-      console.error("Authenticated user profile not found.");
-      localStorage.removeItem("forsaAccount");
-      return;
-    }
-
-    const data = userDoc.data();
-
-    setSession({
-      uid: currentUser.uid,
-      ...data,
-      emailVerified: currentUser.emailVerified,
-      createdAt: toIso(data.createdAt),
-      updatedAt: toIso(data.updatedAt),
-    });
-  } catch (error) {
-    console.error("Auth sync failed:", error);
-    localStorage.removeItem("forsaAccount");
-  }
-});
-
-    return unsubscribe;
-  }, []);
-
   return (
-    <BrowserRouter>
+    <>
       <RobotsController />
       <main className="min-h-screen overflow-x-hidden bg-[var(--forsa-bg)] pb-24 text-[#111111] md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/jobs-in-lebanon" element={<JobsInLebanon />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+          <Route path="/verify-email" element={<VerifyEmailRoute><VerifyEmail /></VerifyEmailRoute>} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/onboarding" element={<SeekerRoute><Onboarding /></SeekerRoute>} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/jobs/:jobId" element={<JobDetails />} />
@@ -155,7 +100,7 @@ export default function App() {
           <Route path="/seeker/:uid" element={<ProtectedRoute><PublicSeekerProfile /></ProtectedRoute>} />
           <Route path="/companies" element={<Companies />} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/forgot-password" element={<ForgotPasswordRoute><ForgotPassword /></ForgotPasswordRoute>} />
           <Route path="/people"element={<SeekerRoute><People /></SeekerRoute>}/>
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
@@ -171,6 +116,6 @@ export default function App() {
         <MobileNav />
         <Toast />
       </main>
-    </BrowserRouter>
+    </>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from "react-icons/fa";
 import { BsFillPeopleFill } from "react-icons/bs";
 import AccountMenu from "./AccountMenu";
+import { useAuth } from "../contexts/AuthContext";
 
 function safeJson(key, fallback) {
   try {
@@ -24,9 +25,7 @@ function safeJson(key, fallback) {
 export default function MobileNav() {
   const location = useLocation();
 
-  const [account, setAccount] = useState(() =>
-    safeJson("forsaAccount", null)
-  );
+  const { account } = useAuth();
 
   const [notifications, setNotifications] = useState(() =>
     safeJson("forsaNotificationsCache", [])
@@ -36,19 +35,16 @@ export default function MobileNav() {
 
   useEffect(() => {
     const refreshHeader = () => {
-      setAccount(safeJson("forsaAccount", null));
       setNotifications(safeJson("forsaNotificationsCache", []));
     };
 
     refreshHeader();
 
     window.addEventListener("storage", refreshHeader);
-    window.addEventListener("forsa:account-updated", refreshHeader);
     window.addEventListener("forsa:notifications-updated", refreshHeader);
 
     return () => {
       window.removeEventListener("storage", refreshHeader);
-      window.removeEventListener("forsa:account-updated", refreshHeader);
       window.removeEventListener(
         "forsa:notifications-updated",
         refreshHeader
@@ -214,7 +210,6 @@ export default function MobileNav() {
         </NavLink>
 
         <AccountMenu
-          account={account}
           showLabel={false}
           notificationCount={unreadNotificationsCount}
         />

@@ -13,6 +13,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -277,6 +278,26 @@ export async function objectMeta(objectKey) {
   };
 }
 
+/**
+ * List all R2 objects under a user's CV prefix, returning only keys that
+ * are owned by that UID (defense in depth against any prefix misuse).
+ */
+export async function listUidObjects(uid) {
+  const r2 = getR2();
+
+  const result = await r2.send(
+    new ListObjectsV2Command({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Prefix: `cvs/${uid}/`,
+      MaxKeys: 1000,
+    })
+  );
+
+  return (result.Contents || [])
+    .map((item) => String(item.Key || ""))
+    .filter((key) => isOwnKey(key, uid));
+}
+
 /* -------------------------------------------------------------------------- */
 /* Auth                                                                       */
 /* -------------------------------------------------------------------------- */
@@ -305,6 +326,43 @@ export async function authenticate(req) {
   if (decodedToken.email_verified !== true) {
     const error = new Error("Email is not verified.");
     error.status = 403;
+    throw error;
+  }
+
+  return decodedToken;
+}
+
+/**
+ * Authenticate like `authenticate` and additionally require the user to have
+ * authenticated within a short freshness window. Intended for destructive
+ * operations such as account deletion.
+ *
+ * The check uses the ID token's `auth_time` claim (seconds since epoch), which
+ * is a signed server claim from Firebase issued at sign-in — never a client
+ * timestamp. `verifyIdToken` also independently confirms recency, so this only
+ * enforces the same recent-login guarantee that client-side `deleteUser`
+ * requires.
+ */
+export async function authenticateFresh(req, maxAgeSeconds = 5 * 60) {
+  const decodedToken = await authenticate(req);
+
+  const authTimeSeconds = Number(decodedToken.auth_time || 0);
+
+  if (!authTimeSeconds) {
+    const error = new Error("Reauthentication required.");
+    error.status = 401;
+    error.code = "REAUTH_REQUIRED";
+    throw error;
+  }
+
+  const authTimeMs = authTimeSeconds * 1000;
+
+  if (Date.now() - authTimeMs > maxAgeSeconds * 1000) {
+    const error = new Error(
+      "Reauthentication required. Please sign in again before deleting your account."
+    );
+    error.status = 401;
+    error.code = "REAUTH_REQUIRED";
     throw error;
   }
 

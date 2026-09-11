@@ -1,119 +1,138 @@
-import { deleteUser } from "firebase/auth";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  where,
-  writeBatch,
-} from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { signOut } from "firebase/auth";
+import { auth } from "./firebase";
 
-async function deleteQueryResults(collectionName, field, value) {
-  if (!value) return;
+/*
+ * ACCOUNT DELETION (CLIENT WRAPPER)
+ *
+ * Deletion is fully orchestrated server-side by /api/delete-account.js. The
+ * browser no longer runs the Firestore deletion sequence or Firebase's
+ * deleteUser() for account deletion; it is only a thin authenticated wrapper
+ * that:
+ *   1. sends the just-reauthenticated ID token to the endpoint,
+ *   2. clears Forsa local storage ONLY after the server confirms success,
+ *   3. signs out locally so the existing AuthContext listener settles.
+ *
+ * The server enforces fresh authentication (recent auth_time), a per-UID
+ * concurrency lock, and UID-scoped cleanup — with honest, retryable failures.
+ */
 
-  console.log(`[ACCOUNT DELETE] Checking ${collectionName}.${field}`);
+/*
+ * The complete set of Forsa-owned localStorage keys. Deletion clears ONLY
+ * these, never the whole origin.
+ */
+const FORSA_LOCAL_KEYS = [
+  "forsaAccount",
+  "forsaProfile",
+  "forsaPosts",
+  "forsaPostsCache",
+  "forsaMessages",
+  "forsaMessagesCache",
+  "forsaNotifications",
+  "forsaNotificationsCache",
+  "forsaSavedJobs",
+  "forsaSavedJobNotes",
+  "forsaRecentlyViewed",
+  "forsaUsers",
+  "forsaCompanyFollowers",
+  "forsaFollowedCompanies",
+  "forsaCustomTags",
+  "forsaNetLine",
+  "forsaPostAnalytics",
+  "forsaPresence",
+  "forsaTrustedPosters",
+];
 
-  const q = query(
-    collection(db, collectionName),
-    where(field, "==", value)
-  );
-
-  const snap = await getDocs(q);
-
-  console.log(
-    `[ACCOUNT DELETE] ${collectionName}.${field}: ${snap.size} documents`
-  );
-
-  if (snap.empty) return;
-
-  const batch = writeBatch(db);
-
-  snap.docs.forEach((item) => {
-    batch.delete(item.ref);
-  });
-
-  await batch.commit();
-
-  console.log(
-    `[ACCOUNT DELETE] Deleted ${snap.size} documents from ${collectionName}`
-  );
+export function clearForsaLocalData() {
+  FORSA_LOCAL_KEYS.forEach((key) => localStorage.removeItem(key));
 }
 
-export async function deleteCurrentAccount(account) {
-  const currentUser = auth.currentUser;
-
-  if (!currentUser) {
-    throw new Error("No authenticated user found.");
+function getServerError(data, fallback) {
+  if (data && typeof data.error === "string") {
+    return data.error;
   }
 
-  const uid = currentUser.uid;
-  const email = String(currentUser.email || "").trim().toLowerCase();
+  return fallback;
+}
 
-  if (!uid) {
-    throw new Error("Missing account ID.");
+async function callDeleteEndpoint() {
+  const user = auth.currentUser;
+
+  if (!user) {
+    const error = new Error("No authenticated user.");
+    error.code = "NO_USER";
+    throw error;
   }
 
-  console.log("[ACCOUNT DELETE] Starting account deletion:", {
-    uid,
-    email,
-  });
+  let idToken;
 
-  // Delete user's posts.
-  await deleteQueryResults("posts", "ownerUid", uid);
-
-  // Delete applications owned by the hiring account.
-  await deleteQueryResults("applications", "ownerUid", uid);
-
-  // Delete applications created by the seeker.
-  await deleteQueryResults("applications", "seeker.uid", uid);
-
-  // Delete saved jobs.
-  await deleteQueryResults("savedJobs", "userUid", uid);
-
-  // Delete notifications belonging to this email.
-  await deleteQueryResults("notifications", "targetEmail", email);
-
-  // Delete connections.
-  await deleteQueryResults("connections", "fromUid", uid);
-  await deleteQueryResults("connections", "toUid", uid);
-
-  // Delete verification requests.
-  await deleteQueryResults("verificationRequests", "uid", uid);
-
-  // Delete Firestore user profile.
-  console.log("[ACCOUNT DELETE] Deleting users/" + uid);
-
-  await deleteDoc(doc(db, "users", uid));
-
-  // Release the username mapping so it can be claimed again.
-  if (account?.usernameLower) {
-    try {
-      await deleteDoc(
-        doc(db, "usernames", account.usernameLower)
-      );
-
-      console.log(
-        "[ACCOUNT DELETE] Deleted usernames/" +
-          account.usernameLower
-      );
-    } catch (error) {
-      console.error(
-        "[ACCOUNT DELETE] Could not delete username mapping:",
-        error
-      );
-    }
+  try {
+    idToken = await user.getIdToken(true);
+  } catch {
+    const error = new Error(
+      "Could not refresh your session. Please sign in again."
+    );
+    error.code = "NETWORK";
+    throw error;
   }
 
-  console.log("[ACCOUNT DELETE] Firestore deletion complete.");
+  let response;
 
-  // Finally delete Firebase Authentication account.
-  console.log("[ACCOUNT DELETE] Deleting Firebase Auth account.");
+  try {
+    response = await fetch("/api/delete-account", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: "{}",
+    });
+  } catch {
+    const error = new Error(
+      "Network error. Check your connection and try again."
+    );
+    error.code = "NETWORK";
+    throw error;
+  }
 
-  await deleteUser(currentUser);
+  let data;
 
-  console.log("[ACCOUNT DELETE] Firebase Auth account deleted.");
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
 
-  localStorage.clear();
+  if (!response.ok) {
+    const error = new Error(
+      getServerError(data, "Could not delete your account. Please try again.")
+    );
+
+    error.code = data?.code || "DELETION_FAILED";
+    error.status = response.status;
+
+    throw error;
+  }
+
+  return data || { success: true };
+}
+
+/**
+ * Delete the current account and clear all Forsa local data.
+ *
+ * The caller is responsible for reauthenticating the user first (see
+ * reauthenticateCurrentUser) — the server rejects requests whose auth_time is
+ * older than the freshness window.
+ */
+export async function deleteCurrentAccount() {
+  const result = await callDeleteEndpoint();
+
+  try {
+    await signOut(auth);
+  } catch {
+    // The Firebase account may already be gone; local cleanup still runs.
+  }
+
+  clearForsaLocalData();
+
+  return result;
 }

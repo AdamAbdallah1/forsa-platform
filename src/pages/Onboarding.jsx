@@ -17,6 +17,7 @@ import {
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
 import { db } from "../lib/firebase";
+import { useAuth } from "../contexts/AuthContext";
 import { requestWelcomeEmail } from "../lib/welcomeEmail";
 import { requestProfileCompleteEmail } from "../lib/profileCompleteEmail";
 import {
@@ -73,9 +74,8 @@ const safeJson = (key, fallback) => {
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { account: savedAccount } = useAuth();
 
-  // Lazy Initialization Strategy to Prevent Memory/Storage Sync Drops
-  const [savedAccount] = useState(() => safeJson("forsaAccount", null));
   const [savedProfile] = useState(() => safeJson("forsaProfile", {
     skills: [],
     lookingFor: [],
@@ -332,7 +332,7 @@ export default function Onboarding() {
     void requestProfileCompleteEmail();
 
     showToast("Profile completed successfully");
-    navigate("/explore");
+    navigate("/explore", { replace: true });
   };
 
   return (

@@ -14,6 +14,7 @@ import { BsFillPeopleFill } from "react-icons/bs";
 
 import BrandLogo from "./BrandLogo";
 import AccountMenu from "./AccountMenu";
+import { useAuth } from "../contexts/AuthContext";
 
 function safeJson(key, fallback) {
   try {
@@ -27,9 +28,7 @@ export default function AppHeader() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [account, setAccount] = useState(() =>
-    safeJson("forsaAccount", null)
-  );
+  const { account } = useAuth();
 
   const [notifications, setNotifications] = useState(() =>
     safeJson("forsaNotificationsCache", [])
@@ -40,7 +39,6 @@ export default function AppHeader() {
 
   useEffect(() => {
     const refreshHeader = () => {
-      setAccount(safeJson("forsaAccount", null));
       setNotifications(safeJson("forsaNotificationsCache", []));
     };
 
@@ -48,7 +46,6 @@ export default function AppHeader() {
 
     window.addEventListener("storage", refreshHeader);
     window.addEventListener("forsa:notifications-updated", refreshHeader);
-    window.addEventListener("forsa:account-updated", refreshHeader);
 
     return () => {
       window.removeEventListener("storage", refreshHeader);
@@ -56,7 +53,6 @@ export default function AppHeader() {
         "forsa:notifications-updated",
         refreshHeader
       );
-      window.removeEventListener("forsa:account-updated", refreshHeader);
     };
   }, []);
 
@@ -196,7 +192,6 @@ export default function AppHeader() {
               </NavLink>
 
               <AccountMenu
-                account={account}
                 notificationCount={unreadNot}
                 containerClassName="hidden sm:block"
               />

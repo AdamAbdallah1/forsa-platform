@@ -1,5 +1,6 @@
 import { useAuth } from "../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { isVerifiedUser, getPostAuthDestination } from "../lib/authRoutes";
 
 const AUTH_LOADING_SPINNER = (
   <div
@@ -19,7 +20,7 @@ const AUTH_LOADING_SPINNER = (
   </div>
 );
 
-export default function SeekerRoute({ children }) {
+export default function VerifyEmailRoute({ children }) {
   const { user, account, loading } = useAuth();
 
   if (loading) {
@@ -30,20 +31,8 @@ export default function SeekerRoute({ children }) {
     return <Navigate to="/auth" replace />;
   }
 
-  const isGoogleUser = user.providerData.some(
-    (provider) => provider.providerId === "google.com"
-  );
-
-  if (!isGoogleUser && !user.emailVerified) {
-    return <Navigate to="/verify-email" replace />;
-  }
-
-  if (!account) {
-    return <Navigate to="/explore" replace />;
-  }
-
-  if (account.accountType === "hiring") {
-    return <Navigate to="/dashboard" replace />;
+  if (isVerifiedUser(user)) {
+    return <Navigate to={getPostAuthDestination(account)} replace />;
   }
 
   return children;

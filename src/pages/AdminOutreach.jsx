@@ -11,10 +11,8 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth, db } from "../lib/firebase";
-
-const ADMIN_EMAIL = "support.forsa@gmail.com";
+import { db } from "../lib/firebase";
+import { useAuth } from "../contexts/AuthContext";
 
 const stages = [
   "New",
@@ -209,8 +207,7 @@ function isClosedStage(stage) {
 }
 
 export default function AdminOutreach() {
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { user, account, loading: authLoading } = useAuth();
 
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -226,18 +223,6 @@ export default function AdminOutreach() {
   const [contactLead, setContactLead] = useState(null);
   const [contactForm, setContactForm] =
     useState(emptyContactForm);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (currentUser) => {
-        setUser(currentUser);
-        setAuthLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, []);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -286,13 +271,10 @@ export default function AdminOutreach() {
   };
 
   useEffect(() => {
-    if (
-      user?.email?.toLowerCase() ===
-      ADMIN_EMAIL.toLowerCase()
-    ) {
+    if (account?.role === "admin") {
       fetchLeads();
     }
-  }, [user]);
+  }, [user, account]);
 
   const filteredLeads = useMemo(() => {
     const q = normalize(search);
@@ -763,8 +745,7 @@ export default function AdminOutreach() {
 
   if (
     !user ||
-    user.email?.toLowerCase() !==
-      ADMIN_EMAIL.toLowerCase()
+    account?.role !== "admin"
   ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">

@@ -68,6 +68,7 @@ service cloud.firestore {
         "trusted",
         "verified",
         "emailVerified",
+        "email",
         "createdAt",
         "isNewRegistration",
         "username",
@@ -533,8 +534,7 @@ service cloud.firestore {
     }
 
     match /outreachLeads/{leadId} {
-      allow read, create, update, delete: if signedIn() &&
-        request.auth.token.email == "support.forsa@gmail.com";
+      allow read, create, update, delete: if isAdmin();
     }
   }
 }
