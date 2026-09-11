@@ -22,14 +22,9 @@ import {
   reauthErrorMessage,
 } from "../lib/auth";
 import { showToast } from "../lib/Toast";
-import {
-  deletePost as deletePostFromFirestore,
-  getPostsByOwner,
-  updatePost,
-} from "../lib/postService.js";
+import { getPostsByOwner } from "../lib/postService.js";
 
 import { createVerificationRequest } from "../lib/verificationService";
-import { calculateApplicantScore } from "../lib/applicantScore";
 import { requestProfileCompleteEmail } from "../lib/profileCompleteEmail";
 import { requestProfileImprovementEmail } from "../lib/profileImprovementEmail";
 import {
@@ -37,29 +32,20 @@ import {
   FaBookmark,
   FaCog,
   FaEdit,
-  FaFileAlt,
   FaMapMarkerAlt,
   FaPlus,
-  FaTrash,
   FaUser,
   FaUsers,
   FaEnvelope,
   FaCheckCircle,
-  FaTimesCircle,
   FaPaperPlane,
-  FaClock,
   FaEye,
-  FaArrowRight,
   FaExternalLinkAlt,
   FaShieldAlt,
   FaGlobe,
   FaInstagram,
   FaPhone,
   FaChartLine,
-  FaShareAlt,
-  FaPercent,
-  FaFlag,
-  FaBullseye,
 } from "react-icons/fa";
 
 const safeJson = (key, fallback) => {
@@ -68,20 +54,6 @@ const safeJson = (key, fallback) => {
   } catch {
     return fallback;
   }
-};
-
-const writeJson = (key, value) => {
-  localStorage.setItem(key, JSON.stringify(value));
-};
-
-/*
- * Public handle for a seeker: @username when available (new applications),
- * falling back to their name for legacy threads that predate usernames.
- */
-const seekerUsername = (seeker) => {
-  const raw = seeker?.username || seeker?.name;
-
-  return raw ? `@${raw}` : "Applicant";
 };
 
 const formatDate = (value) => {
@@ -95,92 +67,6 @@ const formatDate = (value) => {
     hour: "2-digit",
     minute: "2-digit",
   });
-};
-
-const applicationSteps = ["pending", "shortlisted", "interview", "accepted"];
-
-const getApplicationStepIndex = (status) => {
-  if (status === "rejected") return 0;
-  return Math.max(0, applicationSteps.indexOf(status || "pending"));
-};
-
-const getPostAnalytics = () => safeJson("forsaPostAnalytics", {});
-
-const getAnalyticsForPost = (postId) => {
-  const analytics = getPostAnalytics();
-  return analytics[postId] || {
-    views: 0,
-    saves: 0,
-    applications: 0,
-    shares: 0,
-    reports: 0,
-  };
-};
-
-const percent = (part, total) => {
-  if (!total) return 0;
-  return Math.round((Number(part || 0) / Number(total || 0)) * 100);
-};
-
-const formatNumber = (value) => Number(value || 0).toLocaleString();
-
-const buildPostAnalytics = (posts, messages) => {
-  const rows = posts.map((post) => {
-    const analytics = getAnalyticsForPost(post.id);
-    const applicants = messages.filter(
-      (thread) => thread.opportunityId === post.id || thread.postId === post.id
-    );
-
-    const applications = Math.max(Number(analytics.applications || 0), applicants.length);
-    const views = Number(analytics.views || post.views || 0);
-    const saves = Number(analytics.saves || post.saves || 0);
-    const shares = Number(analytics.shares || post.shares || 0);
-    const reports = Number(analytics.reports || post.reports || 0);
-
-    const avgFit = applicants.length
-      ? Math.round(applicants.reduce((total, thread) => total + calculateApplicantScore(thread).score, 0) / applicants.length)
-      : 0;
-
-    return {
-      post,
-      views,
-      saves,
-      applications,
-      shares,
-      reports,
-      avgFit,
-      conversionRate: percent(applications, views),
-      saveRate: percent(saves, views),
-    };
-  });
-
-  const totals = rows.reduce(
-    (acc, row) => ({
-      views: acc.views + row.views,
-      saves: acc.saves + row.saves,
-      applications: acc.applications + row.applications,
-      shares: acc.shares + row.shares,
-      reports: acc.reports + row.reports,
-      fitTotal: acc.fitTotal + (row.avgFit ? row.avgFit : 0),
-      fitCount: acc.fitCount + (row.avgFit ? 1 : 0),
-    }),
-    { views: 0, saves: 0, applications: 0, shares: 0, reports: 0, fitTotal: 0, fitCount: 0 }
-  );
-
-  const bestPost = rows.length
-    ? [...rows].sort((a, b) => b.applications - a.applications || b.views - a.views || b.conversionRate - a.conversionRate)[0]
-    : null;
-
-  return {
-    rows: rows.sort((a, b) => b.applications - a.applications || b.views - a.views || b.conversionRate - a.conversionRate),
-    totals: {
-      ...totals,
-      conversionRate: percent(totals.applications, totals.views),
-      saveRate: percent(totals.saves, totals.views),
-      avgFit: totals.fitCount ? Math.round(totals.fitTotal / totals.fitCount) : 0,
-    },
-    bestPost,
-  };
 };
 
 function normalizePersistedExperience(value) {
@@ -211,97 +97,124 @@ function normalizePersistedEducation(value) {
   return value;
 }
 
-function FollowedCompaniesTab({ companies, onUnfollow }) {
-  return (
-    <div className="mt-6 sm:mt-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-neutral-500">Followed companies</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
-            Companies you follow
-          </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
-            Keep track of companies you’re interested in and quickly open their profiles.
-          </p>
-        </div>
+function nonEmptyString(value) {
+  return Boolean(String(value ?? "").trim());
+}
 
-        {companies.length > 0 && (
-          <span className="w-fit rounded-full bg-[var(--forsa-bg)] px-4 py-2 text-sm text-neutral-600">
-            {companies.length} followed
-          </span>
-        )}
-      </div>
+function hasEducation(value) {
+  if (!value) return false;
+  if (typeof value === "string") return Boolean(value.trim());
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") {
+    return Object.values(value).some((item) => nonEmptyString(item));
+  }
+  return false;
+}
 
-      {companies.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--forsa-primary)]">
-            <FaUsers />
-          </div>
-
-          <p className="mt-4 text-xl font-semibold">No followed companies yet.</p>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
-            Open a company profile and follow it to save it here.
-          </p>
-
-          <Link
-            to="/explore"
-            className="mt-6 inline-flex rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
-          >
-            Explore opportunities
-          </Link>
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {companies.map((company) => (
-            <div
-              key={company.email || company.name}
-              className="rounded-[24px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl forsa-button font-semibold text-white">
-                  {(company.name || "C").charAt(0).toUpperCase()}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold tracking-[-0.03em]">
-                      {company.name || "Company"}
-                    </h3>
-
-                    {company.verified && (
-                      <span className="rounded-full bg-[var(--forsa-bg-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--forsa-primary)]">
-                        Verified
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="mt-1 text-sm text-neutral-500">
-                    {company.city || "Lebanon"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5 grid grid-cols-2 gap-2">
-                <Link
-                  to={`/company/${encodeURIComponent(company.email || company.name)}`}
-                  className="forsa-click inline-flex items-center justify-center rounded-full forsa-button px-4 py-2.5 text-sm font-medium text-white"
-                >
-                  View profile
-                </Link>
-
-                <button
-                  onClick={() => onUnfollow(company.email)}
-                  className="forsa-click rounded-full border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600"
-                >
-                  Unfollow
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+function hasValidExperience(value) {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  return value.some(
+    (item) => nonEmptyString(item?.title) || nonEmptyString(item?.company)
   );
+}
+
+function buildCompletionSignals(account, profile, experiences, isHiring, posts) {
+  if (isHiring) {
+    return [
+      {
+        key: "company-name",
+        label: "Company name",
+        done: nonEmptyString(account.name),
+      },
+      {
+        key: "contact-email",
+        label: "Contact email",
+        done: nonEmptyString(account.companyEmail || account.email),
+      },
+      {
+        key: "location",
+        label: "Location",
+        done: nonEmptyString(account.city),
+      },
+      {
+        key: "public-profile",
+        label: "Public profile",
+        done: Boolean(account.companyBio || account.website || account.instagram),
+      },
+      {
+        key: "first-post",
+        label: "First post",
+        done: posts.length > 0,
+        action: { to: "/post" },
+      },
+    ];
+  }
+
+  const skills = Array.isArray(profile.skills)
+    ? profile.skills
+    : Array.isArray(profile.publicSkills)
+    ? profile.publicSkills
+    : [];
+
+  const lookingFor = Array.isArray(profile.lookingFor)
+    ? profile.lookingFor
+    : Array.isArray(profile.publicLookingFor)
+    ? profile.publicLookingFor
+    : [];
+
+  const experienceItems =
+    Array.isArray(experiences) && experiences.length > 0
+      ? experiences
+      : account.experience;
+
+  const cvSet = Boolean(
+    profile.cv?.url ||
+      profile.cv?.name ||
+      profile.publicCv?.url ||
+      profile.publicCv?.name ||
+      account.cv?.url ||
+      account.cv?.name
+  );
+
+  return [
+    { key: "name", label: "Full name", done: nonEmptyString(account.name) },
+    {
+      key: "location",
+      label: "Location",
+      done: Boolean(account.city || profile.cityPreference),
+    },
+    {
+      key: "about",
+      label: "About you",
+      done: nonEmptyString(account.bio || account.about || account.summary),
+    },
+    { key: "skills", label: "Skills", done: skills.length > 0 },
+    { key: "goals", label: "Looking for", done: lookingFor.length > 0 },
+    { key: "cv", label: "CV / Resume", done: cvSet },
+    {
+      key: "experience",
+      label: "Work experience",
+      done: hasValidExperience(experienceItems),
+    },
+    {
+      key: "education",
+      label: "Education",
+      done: hasEducation(account.education),
+    },
+  ];
+}
+
+function getProfileCompletion(signals) {
+  if (!Array.isArray(signals) || signals.length === 0) return 0;
+  const completed = signals.filter((signal) => signal.done).length;
+  return Math.round((completed / signals.length) * 100);
+}
+
+function getProfileLevel(completionScore) {
+  if (completionScore >= 90) return "Strong";
+  if (completionScore >= 70) return "Good";
+  if (completionScore >= 45) return "Getting started";
+  return "Just started";
 }
 
 export default function Profile() {
@@ -346,23 +259,19 @@ if (!Array.isArray(savedProfile.skills)) {
   (post) => post.ownerUid === savedAccount.uid
 );
   });
-  const [savedJobs, setSavedJobs] = useState(safeJson("forsaSavedJobs", []));
-  const [messages, setMessages] = useState(() => {
+  const [savedJobs] = useState(safeJson("forsaSavedJobs", []));
+  const [messages] = useState(() => {
     const localMessages = safeJson("forsaMessages", []);
     const cachedMessages = safeJson("forsaMessagesCache", []);
     return localMessages.length ? localMessages : cachedMessages;
   });
-  const [recentlyViewed, setRecentlyViewed] = useState(safeJson("forsaRecentlyViewed", []));
-  const [followedCompanies, setFollowedCompanies] = useState(
+  const [recentlyViewed] = useState(safeJson("forsaRecentlyViewed", []));
+  const [followedCompanies] = useState(
   safeJson("forsaFollowedCompanies", [])
 );
-  const [selectedApplicantsPost, setSelectedApplicantsPost] = useState(null);
   const [tab, setTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
 
-  const [editingPostId, setEditingPostId] = useState(null);
-  const [editingPost, setEditingPost] = useState(null);
-  const [postsLoading, setPostsLoading] = useState(false);
   const [verificationOpen, setVerificationOpen] = useState(false);
   const [verificationForm, setVerificationForm] = useState({
     phone: account?.phone || "",
@@ -372,9 +281,6 @@ if (!Array.isArray(savedProfile.skills)) {
   });
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [postSaving, setPostSaving] = useState(false);
-  const [deletingPostCandidate, setDeletingPostCandidate] = useState(null);
-  const [deletingPost, setDeletingPost] = useState(false);
 
   useEffect(() => {
     if (!savedAccount || savedAccount.accountType !== "hiring") return;
@@ -382,21 +288,15 @@ if (!Array.isArray(savedProfile.skills)) {
     let active = true;
 
     const loadPosts = async () => {
-      setPostsLoading(true);
-
       try {
         const remotePosts = await getPostsByOwner({
   uid: savedAccount.uid,
 });
 
-        if (!active) return;
-
-        setPosts(remotePosts);
+        if (active) setPosts(remotePosts);
       } catch (error) {
         console.error("Profile posts load error:", error);
         showToast("Could not refresh your posts. Showing saved data.", "info");
-      } finally {
-        if (active) setPostsLoading(false);
       }
     };
 
@@ -449,90 +349,29 @@ const displayEmail =
     : account.email;
   const initial = account.name?.charAt(0)?.toUpperCase() || "F";
 
-  const getApplicantsForPost = (postId) => {
-    return messages.filter((thread) => thread.opportunityId === postId);
-  };
+  const profileSignals = buildCompletionSignals(
+    account,
+    profile,
+    experiences,
+    isHiring,
+    posts
+  );
 
-  const getApplicantsCount = (postId) => {
-    return getApplicantsForPost(postId).length;
-  };
+  const completionScore = getProfileCompletion(profileSignals);
 
-  const getProfileCompletion = () => {
-  const checks = isHiring
-    ? [
-        Boolean(account.name),
-        Boolean(account.email),
-        Boolean(account.city),
-        posts.length > 0,
-      ]
-    : [
-        Boolean(account.name),
-        Boolean(account.email),
-        Boolean(account.city),
-        Array.isArray(profile.skills) && profile.skills.length > 0,
-        Array.isArray(profile.lookingFor) && (profile.lookingFor || []).length > 0,
-        Boolean(profile.cv?.url || profile.cv?.name),
-      ];
-
-  const completed = checks.filter(Boolean).length;
-  return Math.round((completed / checks.length) * 100);
-};
-
-  const completionScore = getProfileCompletion();
-
-  const profileLevel =
-    completionScore >= 90
-      ? "Pro"
-      : completionScore >= 70
-      ? "Advanced"
-      : completionScore >= 45
-      ? "Active"
-      : "Starter";
-
-  const profileSignals = isHiring
-    ? [
-        { label: "Company name", done: Boolean(account.companyName || account.name) },
-        { label: "Contact email", done: Boolean(account.companyEmail || account.email) },
-        { label: "Location", done: Boolean(account.city) },
-        { label: "Public profile", done: Boolean(account.companyBio || account.website || account.instagram) },
-        { label: "First post", done: posts.length > 0 },
-      ]
-    : [
-        { label: "Full name", done: Boolean(account.name) },
-        { label: "Location", done: Boolean(account.city || profile.cityPreference) },
-        { label: "Skills", done: profile.skills.length > 0 },
-        { label: "Goals", done: (profile.lookingFor || []).length > 0 },
-        { label: "CV", done: Boolean(profile.cv?.url || profile.cv?.name) },
-      ];
+  const profileLevel = getProfileLevel(completionScore);
 
   const seekerApplications = messages.filter(
     (thread) => thread.seeker?.email === account.email
   );
 
-  const hiringAnalytics = isHiring
-    ? buildPostAnalytics(posts, messages)
-    : { rows: [], totals: {}, bestPost: null };
+  const hiringApplicantsCount = isHiring
+    ? messages.filter(
+        (thread) => Boolean(thread.opportunityId) || Boolean(thread.postId)
+      ).length
+    : 0;
 
-  const persistOwnPosts = (updatedOwnPosts) => {
-    const allPosts = safeJson("forsaPosts", []);
-    const otherPosts = allPosts.filter(
-      (post) =>
-        !(
-          post.ownerEmail === account.email ||
-          post.ownerUid === account.uid ||
-          (!post.ownerEmail && post.ownerName === account.name) ||
-          (!post.ownerEmail && !post.ownerName)
-        )
-    );
-
-    const nextPosts = [...updatedOwnPosts, ...otherPosts];
-
-    setPosts(updatedOwnPosts);
-    localStorage.setItem("forsaPosts", JSON.stringify(nextPosts));
-    localStorage.setItem("forsaPostsCache", JSON.stringify(nextPosts));
-  };
-
-  const syncUserRecord = (nextAccount) => {
+    const syncUserRecord = (nextAccount) => {
     const users = safeJson("forsaUsers", []);
     if (!nextAccount?.email || users.length === 0) return;
 
@@ -545,39 +384,7 @@ const displayEmail =
     localStorage.setItem("forsaUsers", JSON.stringify(updatedUsers));
   };
 
-  const updateApplicantStatus = (threadId, status) => {
-    const updatedMessages = messages.map((thread) =>
-      thread.id === threadId ? { ...thread, status } : thread
-    );
-
-    setMessages(updatedMessages);
-    localStorage.setItem("forsaMessages", JSON.stringify(updatedMessages));
-
-    const thread = messages.find((item) => item.id === threadId);
-    const notifications = safeJson("forsaNotifications", []);
-
-    showToast(`Application marked as ${status}`);
-
-    if (thread?.seeker?.email) {
-      localStorage.setItem(
-        "forsaNotifications",
-        JSON.stringify([
-          {
-            id: Date.now(),
-            type: "application_status",
-            title: "Application updated",
-            text: `Your application for ${thread.title} was marked as ${status}.`,
-            targetEmail: thread.seeker.email,
-            createdAt: new Date().toISOString(),
-            read: false,
-          },
-          ...notifications,
-        ])
-      );
-    }
-  };
-
-  const updateAccount = (field, value) => {
+    const updateAccount = (field, value) => {
     setAccount((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -833,165 +640,7 @@ const saveChanges = async () => {
   setIsEditing(false);
 };
 
-  const removeSavedJob = (jobId) => {
-    const updated = savedJobs.filter((job) => job.id !== jobId);
-    setSavedJobs(updated);
-    localStorage.setItem("forsaSavedJobs", JSON.stringify(updated));
-    showToast("Saved job removed");
-  };
-
-  const requestDeletePost = (post) => {
-    setDeletingPostCandidate(post);
-  };
-
-  const confirmDeletePost = async () => {
-    if (!deletingPostCandidate || deletingPost) return;
-
-    setDeletingPost(true);
-
-    try {
-      await deletePostFromFirestore(deletingPostCandidate.id);
-
-      const updatedPosts = posts.filter(
-        (post) => post.id !== deletingPostCandidate.id
-      );
-      persistOwnPosts(updatedPosts);
-
-      setDeletingPostCandidate(null);
-      showToast("Post deleted");
-    } catch (error) {
-      console.error("Delete post error:", error);
-      showToast("Could not delete post. Try again.", "error");
-    } finally {
-      setDeletingPost(false);
-    }
-  };
-
-  const togglePostStatus = async (postId) => {
-    const post = posts.find((item) => item.id === postId);
-    if (!post) return;
-
-    const nextStatus = post.status === "closed" ? "active" : "closed";
-
-    try {
-      await updatePost(postId, { status: nextStatus });
-
-      const updatedPosts = posts.map((item) =>
-        item.id === postId ? { ...item, status: nextStatus } : item
-      );
-
-      persistOwnPosts(updatedPosts);
-      showToast(nextStatus === "active" ? "Post reopened" : "Post closed");
-    } catch (error) {
-      console.error("Update post status error:", error);
-      showToast("Could not update post status. Try again.", "error");
-    }
-  };
-
-  const startEditPost = (post) => {
-    setEditingPostId(post.id);
-    setEditingPost({ ...post });
-  };
-    const updateEditingPost = (field, value) => {
-    setEditingPost((prev) => ({ ...prev, [field]: value }));
-  };
-
-    const savePostEdit = async () => {
-      if (!editingPostId || !editingPost) return;
-      if (postSaving) return;
-            if (editingPost.applicationMethod === "external") {
-        const isEmailType =
-          editingPost.externalApplicationType === "email";
-
-        if (isEmailType) {
-          const email = String(
-            editingPost.applicationEmail || ""
-          ).trim();
-
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            showToast("Please enter a valid application email.", "error");
-            return;
-          }
-        } else {
-          try {
-            const url = new URL(
-              String(editingPost.applicationUrl || "").trim()
-            );
-
-            if (
-              url.protocol !== "http:" &&
-              url.protocol !== "https:"
-            ) {
-              throw new Error("Unsupported URL protocol");
-            }
-          } catch {
-            showToast("Please enter a valid application URL.", "error");
-            return;
-          }
-        }
-      }
-
-      const updatePayload = {
-        title: editingPost.title || "",
-        location: editingPost.location || "",
-        pay: editingPost.pay || "",
-        contact: editingPost.contact || "",
-        applicationMethod: editingPost.applicationMethod || "forsa",
-        externalApplicationType:
-          (editingPost.applicationMethod || "forsa") === "external"
-            ? editingPost.externalApplicationType || "url"
-            : "",
-        applicationUrl:
-          (editingPost.applicationMethod || "forsa") === "external" &&
-          (editingPost.externalApplicationType || "url") === "url"
-            ? editingPost.applicationUrl || ""
-            : "",
-        applicationEmail:
-          (editingPost.applicationMethod || "forsa") === "external" &&
-          editingPost.externalApplicationType === "email"
-            ? editingPost.applicationEmail || ""
-            : "",
-        deadline: editingPost.deadline || "",
-        description: editingPost.description || "",
-        type: editingPost.type || "Project",
-        category: editingPost.category || "",
-        experience: editingPost.experience || "",
-        shift: editingPost.shift || "",
-        gender: editingPost.gender || "",
-        packageDetails: editingPost.packageDetails || "",
-        requirements: editingPost.requirements || "",
-        tags: editingPost.tags || [],
-        questions: editingPost.questions || [],
-      };
-
-      try {
-      setPostSaving(true);
-      await updatePost(editingPostId, updatePayload);
-
-      const updatedPosts = posts.map((post) =>
-        post.id === editingPostId
-          ? { ...post, ...editingPost, updatedAt: new Date().toISOString() }
-          : post
-      );
-
-      persistOwnPosts(updatedPosts);
-      setEditingPostId(null);
-      setEditingPost(null);
-      showToast("Post updated");
-    } catch (error) {
-      console.error("Edit post error:", error);
-      showToast("Could not update post. Try again.", "error");
-    } finally {
-      setPostSaving(false);
-    }
-  };
-
-  const cancelPostEdit = () => {
-    setEditingPostId(null);
-    setEditingPost(null);
-  };
-
-  const handleLogout = async () => {
+    const handleLogout = async () => {
     if (loggingOut) return;
 
     setLoggingOut(true);
@@ -1153,35 +802,6 @@ const saveChanges = async () => {
               Overview
             </TabButton>
 
-            {isHiring ? (
-              <>
-                <TabButton active={tab === "posts"} onClick={() => setTab("posts")} icon={<FaBriefcase />}>
-                  Posts
-                </TabButton>
-
-                <TabButton active={tab === "analytics"} onClick={() => setTab("analytics")} icon={<FaChartLine />}>
-                  Analytics
-                </TabButton>
-              </>
-            ) : (
-              <>
-                <TabButton active={tab === "saved"} onClick={() => setTab("saved")} icon={<FaBookmark />}>
-                  Saved
-                </TabButton>
-
-                <TabButton active={tab === "applications"} onClick={() => setTab("applications")} icon={<FaPaperPlane />}>
-                  Applications
-                </TabButton>
-
-                <TabButton active={tab === "viewed"} onClick={() => setTab("viewed")} icon={<FaEye />}>
-                  Viewed
-                </TabButton>
-                <TabButton active={tab === "companies"} onClick={() => setTab("companies")} icon={<FaUsers />}>
-  Companies
-</TabButton>
-              </>
-            )}
-
             <TabButton active={tab === "settings"} onClick={() => setTab("settings")} icon={<FaCog />}>
               Settings
             </TabButton>
@@ -1213,63 +833,14 @@ const saveChanges = async () => {
                   profileSignals={profileSignals}
                   seekerApplications={seekerApplications}
                   recentlyViewed={recentlyViewed}
+                  followedCompanies={followedCompanies}
+                  applicantsCount={hiringApplicantsCount}
                   account={account}
                   onRequestVerification={requestVerification}
+                  onEdit={() => setIsEditing(true)}
                   experiences={experiences}
                 />
               )}
-
-              {tab === "posts" && isHiring && (
-                <PostsTab
-                  posts={posts}
-                  postsLoading={postsLoading}
-                  deletePost={requestDeletePost}
-                  togglePostStatus={togglePostStatus}
-                  startEditPost={startEditPost}
-                  editingPostId={editingPostId}
-                  editingPost={editingPost}
-                  updateEditingPost={updateEditingPost}
-                  savePostEdit={savePostEdit}
-                  cancelPostEdit={cancelPostEdit}
-                  postSaving={postSaving}
-                  getApplicantsCount={getApplicantsCount}
-                  openApplicants={setSelectedApplicantsPost}
-                />
-              )}
-
-              {tab === "analytics" && isHiring && (
-                <AnalyticsTab analytics={hiringAnalytics} />
-              )}
-
-              {tab === "saved" && !isHiring && (
-                <SavedJobsTab jobs={savedJobs} removeSavedJob={removeSavedJob} />
-              )}
-
-              {tab === "applications" && !isHiring && (
-                <ApplicationsTab applications={seekerApplications} />
-              )}
-
-              {tab === "viewed" && !isHiring && (
-                <RecentlyViewedTab
-                  jobs={recentlyViewed}
-                  onClear={() => {
-                    writeJson("forsaRecentlyViewed", []);
-                    setRecentlyViewed([]);
-                    showToast("Recently viewed cleared");
-                  }}
-                />
-              )}
-              {tab === "companies" && !isHiring && (
-  <FollowedCompaniesTab
-    companies={followedCompanies}
-    onUnfollow={(email) => {
-      const next = followedCompanies.filter((item) => item.email !== email);
-      setFollowedCompanies(next);
-      writeJson("forsaFollowedCompanies", next);
-      showToast("Company unfollowed");
-    }}
-  />
-)}
 
               {tab === "settings" && (
                 <SettingsTab
@@ -1368,52 +939,30 @@ const saveChanges = async () => {
             </button>
           </div>
         </Modal>
-        <Modal
-          open={Boolean(deletingPostCandidate)}
-          title="Delete opportunity?"
-          onClose={() => {
-            if (!deletingPost) {
-              setDeletingPostCandidate(null);
-            }
-          }}
-        >
-          <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4">
-            <p className="text-sm leading-6 text-red-700">
-              "{deletingPostCandidate?.title || "This opportunity"}" will be
-              permanently deleted from Forsa. This action cannot be undone.
-            </p>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-2">
-            <button
-              disabled={deletingPost}
-              onClick={() => setDeletingPostCandidate(null)}
-              className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700 disabled:opacity-50"
-            >
-              Cancel
-            </button>
-
-            <button
-              disabled={deletingPost}
-              onClick={confirmDeletePost}
-              className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {deletingPost ? "Deleting..." : "Delete"}
-            </button>
-          </div>
-        </Modal>
       <Footer />
-
-      {selectedApplicantsPost && (
-        <ApplicantsModal
-          post={selectedApplicantsPost}
-          applicants={getApplicantsForPost(selectedApplicantsPost.id)}
-          onClose={() => setSelectedApplicantsPost(null)}
-          onStatusChange={updateApplicantStatus}
-          onOpenMessage={() => navigate("/messages")}
-        />
-      )}
     </section>
+  );
+}
+
+function QuickLink({ to, icon, label, value }) {
+  return (
+    <Link
+      to={to}
+      className="forsa-click flex items-center justify-between gap-3 rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 transition hover:border-[var(--forsa-primary)]/40"
+    >
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--forsa-bg)] text-[var(--forsa-primary)]">
+          {icon}
+        </span>
+        <span className="truncate text-sm font-semibold text-neutral-800">{label}</span>
+      </span>
+
+      {value && (
+        <span className="shrink-0 text-xs font-medium text-neutral-500">{value}</span>
+      )}
+
+      <FaExternalLinkAlt className="shrink-0 text-[10px] text-neutral-400" />
+    </Link>
   );
 }
 
@@ -1427,22 +976,22 @@ function OverviewTab({
   profileSignals = [],
   seekerApplications = [],
   recentlyViewed = [],
+  followedCompanies = [],
+  applicantsCount = 0,
   account,
   experiences,
   onRequestVerification,
+  onEdit,
 }) {
   return (
     <div className="mt-6 sm:mt-8">
-      <CompletionCard completionScore={completionScore} isHiring={isHiring} />
-
-      <ProfileLevelCard
-        level={profileLevel}
+      <CompletionCard
         completionScore={completionScore}
+        level={profileLevel}
         signals={profileSignals}
         isHiring={isHiring}
+        onEdit={onEdit}
       />
-
-      <CompletionTips isHiring={isHiring} profile={profile} posts={posts} />
 
       <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
         <StatCard
@@ -1461,6 +1010,58 @@ function OverviewTab({
           label={isHiring ? "Total posts" : "Skills"}
           value={isHiring ? posts.length : profile.skills.length}
         />
+      </div>
+
+      <div className="mt-5 grid gap-2 sm:grid-cols-2">
+        {isHiring ? (
+          <>
+            <QuickLink
+              to="/dashboard"
+              icon={<FaBriefcase className="text-xs" />}
+              label="Manage opportunities"
+              value={posts.length > 0 ? `${posts.length} ${posts.length === 1 ? "post" : "posts"}` : null}
+            />
+            <QuickLink
+              to="/applicants"
+              icon={<FaUsers className="text-xs" />}
+              label="View applicants"
+              value={applicantsCount > 0 ? `${applicantsCount} ${applicantsCount === 1 ? "applicant" : "applicants"}` : null}
+            />
+            <QuickLink
+              to="/dashboard"
+              icon={<FaChartLine className="text-xs" />}
+              label="View analytics"
+              value={null}
+            />
+          </>
+        ) : (
+          <>
+            <QuickLink
+              to="/applications"
+              icon={<FaPaperPlane className="text-xs" />}
+              label="View applications"
+              value={seekerApplications.length > 0 ? `${seekerApplications.length} ${seekerApplications.length === 1 ? "application" : "applications"}` : null}
+            />
+            <QuickLink
+              to="/saved"
+              icon={<FaBookmark className="text-xs" />}
+              label="View saved opportunities"
+              value={savedJobs.length > 0 ? `${savedJobs.length} ${savedJobs.length === 1 ? "job" : "jobs"}` : null}
+            />
+            <QuickLink
+              to="/explore"
+              icon={<FaEye className="text-xs" />}
+              label="Explore opportunities"
+              value={recentlyViewed.length > 0 ? `${recentlyViewed.length} recently viewed` : null}
+            />
+            <QuickLink
+              to="/companies"
+              icon={<FaUsers className="text-xs" />}
+              label="Followed companies"
+              value={followedCompanies.length > 0 ? `${followedCompanies.length} ${followedCompanies.length === 1 ? "company" : "companies"}` : null}
+            />
+          </>
+        )}
       </div>
 
       <div className="mt-5 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
@@ -1684,75 +1285,100 @@ function OverviewTab({
   );
 }
 
-function ProfileLevelCard({ level, completionScore, signals, isHiring }) {
-  const nextTarget = completionScore >= 90 ? 100 : completionScore >= 70 ? 90 : completionScore >= 45 ? 70 : 45;
-  const missing = signals.filter((item) => !item.done);
+function CompletionCard({ completionScore, level, signals = [], isHiring, onEdit }) {
+  const missingCount = signals.filter((item) => !item.done).length;
+
+  const supportingText = isHiring
+    ? "Complete your hiring profile and post opportunities to attract better applicants."
+    : missingCount === 0
+    ? "Your profile is complete and ready for better matches."
+    : `Add ${missingCount === 1 ? "the missing section" : `${missingCount} missing sections`} to help companies understand your profile.`;
 
   return (
-    <div className="forsa-card mb-5 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white shadow-sm sm:mb-6">
-      <div className="relative p-5 sm:p-6">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-[var(--forsa-glow)]/15 blur-3xl" />
-
-        <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-medium text-neutral-500">
-              {isHiring ? "Company level" : "Profile level"}
-            </p>
-
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <h3 className="text-3xl font-semibold tracking-[-0.05em]">
-                {level}
-              </h3>
-
-              <span className="rounded-full bg-[var(--forsa-bg-soft)] px-3 py-1 text-xs font-semibold text-[var(--forsa-primary)]">
-                {completionScore}% complete
-              </span>
-            </div>
-
-            <p className="mt-3 max-w-xl text-sm leading-6 text-neutral-600">
-              {missing.length === 0
-                ? "Your profile has strong trust signals and is ready for better matches."
-                : `Complete ${missing[0].label.toLowerCase()} to move closer to the next level.`}
-            </p>
-          </div>
-
-          <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 md:w-[220px]">
-            <div className="flex items-center justify-between text-xs text-neutral-500">
-              <span>Next level</span>
-              <span>{nextTarget}%</span>
-            </div>
-
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
-              <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))] transition-all duration-500"
-                style={{ width: `${Math.min(100, completionScore)}%` }}
-              />
-            </div>
-          </div>
+    <div className="forsa-card mb-5 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:mb-6 sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-neutral-500">Profile completion</p>
+          <h3 className="mt-1 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+            {completionScore}%
+          </h3>
         </div>
 
-        <div className="relative mt-5 flex flex-wrap gap-2">
-          {signals.map((item) => (
-            <ProfileSignal key={item.label} done={item.done} label={item.label} />
-          ))}
+        <div className="text-right">
+          <span className="shrink-0 rounded-full forsa-button px-3 py-1 text-xs font-medium text-white sm:text-sm">
+            {level}
+          </span>
+          <p className="mt-2 text-xs text-neutral-500">
+            {isHiring ? "Company level" : "Profile level"}
+          </p>
         </div>
       </div>
+
+      <div className="mt-5 h-2 overflow-hidden rounded-full bg-[var(--forsa-bg)]">
+        <div
+          className="h-full rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))] transition-all duration-500"
+          style={{ width: `${Math.min(100, completionScore)}%` }}
+        />
+      </div>
+
+      <p className="mt-4 text-sm leading-6 text-neutral-600">{supportingText}</p>
+
+      {signals.length > 0 && (
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          {signals.map((item) => (
+            <CompletionSignal
+              key={item.key || item.label}
+              done={item.done}
+              label={item.label}
+              action={item.done ? undefined : item.action}
+              onEdit={onEdit}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function ProfileSignal({ done, label }) {
+function CompletionSignal({ done, label, action, onEdit }) {
+  const actionIsLink = action && action.to;
+
   return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
-        done
-          ? "bg-[var(--forsa-primary)] text-white"
-          : "bg-[var(--forsa-bg)] text-neutral-500"
+    <div
+      className={`flex items-center justify-between gap-3 rounded-2xl px-3.5 py-2.5 ${
+        done ? "border border-[var(--forsa-border)] bg-white" : "bg-[var(--forsa-bg)]"
       }`}
     >
-      {done ? <FaCheckCircle className="text-[10px]" /> : <FaClock className="text-[10px]" />}
-      {label}
-    </span>
+      <span
+        className={`text-xs font-semibold ${
+          done ? "text-neutral-700" : "text-neutral-500"
+        }`}
+      >
+        {label}
+      </span>
+
+      {done ? (
+        <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-emerald-600">
+          <FaCheckCircle className="text-[11px]" />
+          Done
+        </span>
+      ) : actionIsLink ? (
+        <Link
+          to={action.to}
+          className="forsa-click shrink-0 rounded-full border border-[var(--forsa-primary)]/25 bg-white px-3 py-1 text-xs font-medium text-[var(--forsa-primary)] transition hover:bg-[var(--forsa-primary)] hover:text-white"
+        >
+          Add
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="forsa-click shrink-0 rounded-full border border-[var(--forsa-primary)]/25 bg-white px-3 py-1 text-xs font-medium text-[var(--forsa-primary)] transition hover:bg-[var(--forsa-primary)] hover:text-white"
+        >
+          Add
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -1851,861 +1477,6 @@ function TrustChip({ icon, text, active }) {
   );
 }
 
-
-function CompletionCard({ completionScore, isHiring }) {
-  return (
-    <div className="mb-5 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 sm:mb-6 sm:rounded-[26px] sm:p-5">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs text-neutral-500 sm:text-sm">Profile completion</p>
-          <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] sm:text-2xl">
-            {completionScore}% complete
-          </h3>
-        </div>
-
-        <span className="shrink-0 rounded-full forsa-button px-3 py-1 text-xs font-medium text-white sm:text-sm">
-          {completionScore >= 80 ? "Strong" : completionScore >= 50 ? "Good" : "Start"}
-        </span>
-      </div>
-
-      <div className="mt-5 h-2 rounded-full bg-[var(--forsa-bg)]">
-        <div className="h-2 rounded-full forsa-button transition-all" style={{ width: `${completionScore}%` }} />
-      </div>
-
-      <p className="mt-4 text-sm leading-6 text-neutral-600">
-        {isHiring
-          ? "Complete your hiring profile and post opportunities to attract better applicants."
-          : "Add skills, goals, and CV to improve your applications and matches."}
-      </p>
-    </div>
-  );
-}
-
-function CompletionTips({ isHiring, profile, posts }) {
-  const tips = isHiring
-    ? [
-        posts.length === 0 && "Post your first opportunity.",
-        "Keep job descriptions clear and specific.",
-        "Add pay range to build trust.",
-      ].filter(Boolean)
-    : [
-        profile.skills.length === 0 && "Add at least 3 skills.",
-        (profile.lookingFor || []).length === 0 && "Choose what kind of work you want.",
-        !(profile.cv?.url || profile.cv?.name) && "Add your CV link.",
-      ].filter(Boolean);
-
-  if (tips.length === 0) return null;
-
-  return (
-    <div className="mb-5 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 sm:mb-6 sm:rounded-[26px] sm:p-5">
-      <p className="text-sm font-medium">Recommended next steps</p>
-
-      <div className="mt-4 grid gap-2">
-        {tips.map((tip) => (
-          <div key={tip} className="rounded-2xl bg-[var(--forsa-bg)] px-4 py-3 text-sm text-neutral-700">
-            {tip}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-
-function AnalyticsTab({ analytics }) {
-  const rows = analytics.rows || [];
-  const totals = analytics.totals || {};
-  const bestPost = analytics.bestPost;
-
-  return (
-    <div className="mt-6 sm:mt-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-neutral-500">Company analytics</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
-            Hiring performance
-          </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
-            Track views, saves, applications, shares, reports, conversion rate, and average applicant fit across your posts.
-          </p>
-        </div>
-
-        <Link
-          to="/post"
-          className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
-        >
-          <FaPlus className="text-xs" />
-          New post
-        </Link>
-      </div>
-
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <AnalyticsMetric icon={<FaEye />} label="Total views" value={formatNumber(totals.views)} />
-        <AnalyticsMetric icon={<FaPaperPlane />} label="Applications" value={formatNumber(totals.applications)} />
-        <AnalyticsMetric icon={<FaBookmark />} label="Saves" value={formatNumber(totals.saves)} />
-        <AnalyticsMetric icon={<FaShareAlt />} label="Shares" value={formatNumber(totals.shares)} />
-      </div>
-
-      <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <AnalyticsMetric icon={<FaPercent />} label="Conversion rate" value={`${totals.conversionRate || 0}%`} />
-        <AnalyticsMetric icon={<FaBullseye />} label="Avg applicant fit" value={`${totals.avgFit || 0}%`} />
-        <AnalyticsMetric icon={<FaFlag />} label="Reports" value={formatNumber(totals.reports)} danger={totals.reports > 0} />
-      </div>
-
-      {bestPost && (
-        <div className="mt-6 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white shadow-sm">
-          <div className="p-5 sm:p-6">
-            <p className="text-sm font-medium text-neutral-500">Best performing post</p>
-            <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-2xl font-semibold tracking-[-0.04em]">{bestPost.post.title}</h3>
-                <p className="mt-2 text-sm text-neutral-500">
-                  {bestPost.post.location || "Lebanon"} · {bestPost.post.pay || "Pay not set"}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 sm:w-[330px]">
-                <MiniAnalytics label="Views" value={bestPost.views} />
-                <MiniAnalytics label="Apps" value={bestPost.applications} />
-                <MiniAnalytics label="Conv." value={`${bestPost.conversionRate}%`} />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {rows.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--forsa-primary)]">
-            <FaChartLine />
-          </div>
-          <p className="mt-4 text-xl font-semibold">No analytics yet.</p>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
-            Post your first opportunity and analytics will appear here.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-6 overflow-hidden rounded-[28px] border border-[var(--forsa-border)] bg-white shadow-sm">
-          <div className="border-b border-[var(--forsa-border)] p-5">
-            <p className="font-semibold">Post performance table</p>
-            <p className="mt-1 text-sm text-neutral-500">Sorted by applications, views, and conversion.</p>
-          </div>
-
-          <div className="divide-y divide-[var(--forsa-border)]">
-            {rows.map((row) => (
-              <div key={row.post.id} className="p-4 sm:p-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="line-clamp-1 font-semibold tracking-[-0.03em]">{row.post.title}</h3>
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.post.status === "closed" ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>
-                        {row.post.status === "closed" ? "Closed" : "Live"}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-neutral-500">
-                      {row.post.location || "Lebanon"} · {row.post.category || row.post.type || "Opportunity"}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-7 lg:w-[620px]">
-                    <MiniAnalytics label="Views" value={row.views} />
-                    <MiniAnalytics label="Saves" value={row.saves} />
-                    <MiniAnalytics label="Apps" value={row.applications} />
-                    <MiniAnalytics label="Shares" value={row.shares} />
-                    <MiniAnalytics label="Conv." value={`${row.conversionRate}%`} />
-                    <MiniAnalytics label="Fit" value={`${row.avgFit}%`} />
-                    <MiniAnalytics label="Reports" value={row.reports} />
-                  </div>
-                </div>
-
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--forsa-bg)]">
-                  <div
-                    className="h-full rounded-full bg-[linear-gradient(90deg,var(--forsa-primary),var(--forsa-glow))]"
-                    style={{ width: `${Math.min(100, Math.max(4, row.conversionRate))}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AnalyticsMetric({ icon, label, value, danger }) {
-  return (
-    <div className={`rounded-[24px] border p-4 shadow-sm ${danger ? "border-red-100 bg-red-50" : "border-[var(--forsa-border)] bg-white"}`}>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className={`text-xs font-medium ${danger ? "text-red-500" : "text-neutral-500"}`}>{label}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{value}</p>
-        </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${danger ? "bg-white text-red-600" : "bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"}`}>
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PostsTab({
-  posts,
-  postsLoading,
-  deletePost,
-  togglePostStatus,
-  startEditPost,
-  editingPostId,
-  editingPost,
-  updateEditingPost,
-  savePostEdit,
-  cancelPostEdit,
-  postSaving,
-  getApplicantsCount,
-  openApplicants,
-}) {
-  return (
-    <div className="mt-6 sm:mt-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-neutral-500">Hiring dashboard</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
-            Your posted opportunities
-          </h2>
-        </div>
-
-        <Link
-          to="/post"
-          className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
-        >
-          <FaPlus className="text-xs" />
-          New post
-        </Link>
-      </div>
-
-      {postsLoading ? (
-        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
-          <p className="text-xl font-semibold">Loading your posts...</p>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
-            Fetching your latest Firestore posts.
-          </p>
-        </div>
-      ) : posts.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
-          <p className="text-xl font-semibold">No posts yet.</p>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
-            Once you post an opportunity, it will appear here and in Explore.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          {posts.map((post) =>
-            editingPostId === post.id ? (
-              <EditPostCard
-                key={post.id}
-                editingPost={editingPost}
-                updateEditingPost={updateEditingPost}
-                savePostEdit={savePostEdit}
-                cancelPostEdit={cancelPostEdit}
-                saving={postSaving}
-              />
-            ) : (
-              <PostCard
-                key={post.id}
-                post={post}
-                deletePost={deletePost}
-                togglePostStatus={togglePostStatus}
-                startEditPost={startEditPost}
-                getApplicantsCount={getApplicantsCount}
-                openApplicants={openApplicants}
-                analytics={getAnalyticsForPost(post.id)}
-              />
-            )
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EditPostCard({
-  editingPost,
-  updateEditingPost,
-  savePostEdit,
-  cancelPostEdit,
-  saving,
-}) {
-  return (
-    <div className="forsa-card rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
-      <div className="grid gap-3">
-        <Field label="Title" value={editingPost.title} onChange={(value) => updateEditingPost("title", value)} />
-        <Field label="Location" value={editingPost.location} onChange={(value) => updateEditingPost("location", value)} />
-        <Field label="Pay" value={editingPost.pay} onChange={(value) => updateEditingPost("pay", value)} />
-        <Field label="Contact" value={editingPost.contact} onChange={(value) => updateEditingPost("contact", value)} />
-        <div>
-  <label className="text-sm font-medium">Application deadline</label>
-
-  <input
-    type="date"
-    value={editingPost.deadline || ""}
-    min={new Date().toISOString().split("T")[0]}
-    onChange={(e) => updateEditingPost("deadline", e.target.value)}
-    className="mt-2 w-full rounded-xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--forsa-primary)]"
-  />
-
-  <p className="mt-2 text-xs text-neutral-500">
-    Optional. Applications will close after this date.
-  </p>
-</div>
-<div>
-  <label className="text-sm font-medium">Application destination</label>
-
-  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-    <button
-      type="button"
-      onClick={() => updateEditingPost("applicationMethod", "forsa")}
-      className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
-        (editingPost.applicationMethod || "forsa") === "forsa"
-          ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
-          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
-      }`}
-    >
-      Apply on Forsa
-    </button>
-
-    <button
-      type="button"
-      onClick={() => updateEditingPost("applicationMethod", "external")}
-      className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
-        editingPost.applicationMethod === "external"
-          ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
-          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
-      }`}
-    >
-      Apply externally ↗
-    </button>
-  </div>
-
-  {editingPost.applicationMethod === "external" && (
-    <div className="mt-3">
-      <label className="text-sm font-medium">Destination type</label>
-
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={() =>
-            updateEditingPost("externalApplicationType", "url")
-          }
-          className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
-            (editingPost.externalApplicationType || "url") === "url"
-              ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
-              : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
-          }`}
-        >
-          Website / application link
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            updateEditingPost("externalApplicationType", "email")
-          }
-          className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
-            editingPost.externalApplicationType === "email"
-              ? "border-[var(--forsa-primary)] bg-[var(--forsa-bg-soft)] text-[var(--forsa-primary)]"
-              : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
-          }`}
-        >
-          Email
-        </button>
-      </div>
-
-      {(editingPost.externalApplicationType || "url") === "url" ? (
-        <div className="mt-3">
-          <Field
-            label="Application URL"
-            value={editingPost.applicationUrl || ""}
-            onChange={(value) => updateEditingPost("applicationUrl", value)}
-            placeholder="https://company.com/careers/job..."
-          />
-
-          <p className="mt-2 text-xs text-neutral-500">
-            Applicants will leave Forsa and continue on the company’s application page.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-3">
-          <Field
-            label="Application email"
-            value={editingPost.applicationEmail || ""}
-            onChange={(value) =>
-              updateEditingPost("applicationEmail", value)
-            }
-            placeholder="jobs@company.com"
-          />
-
-          <p className="mt-2 text-xs text-neutral-500">
-            Applicants will email their CV to this address when they click Apply.
-          </p>
-        </div>
-      )}
-    </div>
-  )}
-</div>
-
-        <div>
-          <label className="text-sm font-medium">Description</label>
-          <textarea
-            value={editingPost.description}
-            onChange={(e) => updateEditingPost("description", e.target.value)}
-            className="mt-2 min-h-28 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--forsa-green)]"
-          />
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-2 gap-2">
-        <button onClick={cancelPostEdit} disabled={saving} className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60">
-          Cancel
-        </button>
-        <button onClick={savePostEdit} disabled={saving} className="forsa-click rounded-full forsa-button px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60">
-          {saving ? "Saving..." : "Save"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function PostCard({
-  post,
-  deletePost,
-  togglePostStatus,
-  startEditPost,
-  getApplicantsCount,
-  openApplicants,
-  analytics,
-}) {
-  const applicantsCount = getApplicantsCount(post.id);
-
-  return (
-    <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="line-clamp-2 font-semibold">{post.title}</h3>
-          <p className="mt-1 text-sm text-neutral-500">
-            {post.location} · {post.pay}
-          </p>
-        </div>
-
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <span className="rounded-full bg-white px-3 py-1 text-xs">{post.category || post.type}</span>
-
-          <span
-            className={`rounded-full px-3 py-1 text-xs ${
-              post.status === "closed" ? "bg-red-100 text-red-700" : "bg-white text-neutral-600"
-            }`}
-          >
-            {post.status === "closed" ? "Closed" : "Active"}
-          </span>
-        </div>
-      </div>
-
-      <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-600">
-        {post.description}
-      </p>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {[post.type, post.experience, post.shift].filter(Boolean).slice(0, 3).map((tag) => (
-          <span key={tag} className="rounded-full bg-white px-3 py-1 text-xs">
-            {tag}
-          </span>
-        ))}
-        {(post.tags || []).slice(0, 6).map((tag) => (
-          <span key={tag} className="rounded-full bg-white px-3 py-1 text-xs">
-            {tag}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-5 grid grid-cols-4 gap-2 rounded-2xl bg-white p-3">
-        <MiniAnalytics label="Views" value={analytics?.views || 0} />
-        <MiniAnalytics label="Saves" value={analytics?.saves || 0} />
-        <MiniAnalytics label="Apps" value={Math.max(analytics?.applications || 0, applicantsCount)} />
-        <MiniAnalytics label="Shares" value={analytics?.shares || 0} />
-      </div>
-
-      <div className="mt-3 grid gap-2 rounded-2xl bg-white p-3 sm:grid-cols-3">
-        <MiniAnalytics label="Conversion" value={`${percent(Math.max(analytics?.applications || 0, applicantsCount), analytics?.views || post.views || 0)}%`} />
-        <MiniAnalytics label="Reports" value={analytics?.reports || post.reports || 0} />
-        <MiniAnalytics label="Status" value={post.status === "closed" ? "Closed" : "Live"} />
-      </div>
-
-      <div className="mt-3 rounded-2xl bg-white p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium">Applicants</p>
-            <p className="mt-1 text-xs text-neutral-500">
-              {applicantsCount} application{applicantsCount === 1 ? "" : "s"} received
-            </p>
-          </div>
-
-          <button
-            onClick={() => openApplicants(post)}
-            className="forsa-click inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-4 py-2 text-xs font-medium text-white sm:w-fit"
-          >
-            <FaUsers className="text-xs" />
-            View
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-        <button
-          onClick={() => togglePostStatus(post.id)}
-          className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium"
-        >
-          {post.status === "closed" ? "Reopen" : "Close"}
-        </button>
-
-        <button
-          onClick={() => startEditPost(post)}
-          className="inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium"
-        >
-          <FaEdit className="text-xs" />
-          Edit
-        </button>
-
-        <button
-          onClick={() => deletePost(post)}
-          className="col-span-2 inline-flex items-center justify-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 sm:col-span-1"
-        >
-          <FaTrash className="text-xs" />
-          Delete
-        </button>
-      </div>
-    </div>
-  );
-}
-
-
-function MiniAnalytics({ label, value }) {
-  return (
-    <div className="rounded-2xl bg-[var(--forsa-bg)] px-3 py-2 text-center">
-      <p className="text-sm font-semibold">{value}</p>
-      <p className="mt-1 text-[10px] font-medium text-neutral-500">{label}</p>
-    </div>
-  );
-}
-
-function SavedJobsTab({ jobs, removeSavedJob }) {
-  const [notes, setNotes] = useState(safeJson("forsaSavedJobNotes", {}));
-
-  const updateNote = (jobId, value) => {
-    const updated = {
-      ...notes,
-      [jobId]: value,
-    };
-
-    setNotes(updated);
-    writeJson("forsaSavedJobNotes", updated);
-  };
-
-  return (
-    <div className="mt-6 sm:mt-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-neutral-500">Saved jobs</p>
-
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
-            Opportunities you liked
-          </h2>
-
-          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
-            Keep private notes, open posts quickly, and apply when ready.
-          </p>
-        </div>
-
-        {jobs.length > 0 && (
-          <span className="w-fit rounded-full bg-[var(--forsa-bg)] px-4 py-2 text-sm text-neutral-600">
-            {jobs.length} saved
-          </span>
-        )}
-      </div>
-
-      {jobs.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
-          <p className="text-xl font-semibold">No saved jobs yet.</p>
-
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
-            Save opportunities from Explore and they will appear here.
-          </p>
-
-          <Link
-            to="/explore"
-            className="mt-6 inline-flex rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
-          >
-            Explore opportunities
-          </Link>
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {jobs.map((job) => (
-            <div
-              key={job.id}
-              className="rounded-[24px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="line-clamp-2 font-semibold">{job.title}</h3>
-
-                  <p className="mt-1 text-sm text-neutral-500">
-                    {job.company} · {job.location}
-                  </p>
-                </div>
-
-                <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs text-neutral-600">
-                  {job.type || "Saved"}
-                </span>
-              </div>
-
-              <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-600">
-                {job.description}
-              </p>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {(job.tags || []).slice(0, 4).map((tag) => (
-                  <span key={tag} className="rounded-full bg-white px-3 py-1 text-xs">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-
-              <div className="mt-5 rounded-2xl bg-white p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm font-medium">Private note</label>
-                  <span className="text-xs text-neutral-400">
-                    {(notes[job.id] || "").length} chars
-                  </span>
-                </div>
-
-                <textarea
-                  value={notes[job.id] || ""}
-                  onChange={(e) => updateNote(job.id, e.target.value)}
-                  placeholder="Example: Ask about schedule, pay, or portfolio..."
-                  className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--forsa-green)]"
-                />
-
-                <p className="mt-2 text-xs text-neutral-500">
-                  Only visible to you.
-                </p>
-              </div>
-
-              <div className="mt-5 grid grid-cols-2 gap-2">
-                <Link
-                  to={`/explore?post=${job.id}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-full forsa-button px-4 py-2.5 text-sm font-medium text-white"
-                >
-                  Open
-                  <FaArrowRight className="text-xs" />
-                </Link>
-
-                <button
-                  onClick={() => removeSavedJob(job.id)}
-                  className="rounded-full border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-function ApplicationsTab({ applications }) {
-  const pending = applications.filter((item) => (item.status || "pending") === "pending").length;
-  const shortlisted = applications.filter((item) => item.status === "shortlisted").length;
-  const interview = applications.filter((item) => item.status === "interview").length;
-  const accepted = applications.filter((item) => item.status === "accepted").length;
-  const rejected = applications.filter((item) => item.status === "rejected").length;
-
-  return (
-    <div className="mt-6 sm:mt-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-neutral-500">Application tracker</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
-            Jobs you applied to
-          </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
-            Track your sent applications, status updates, and attached CV metadata.
-          </p>
-        </div>
-
-        <Link
-          to="/explore"
-          className="inline-flex w-full items-center justify-center rounded-full forsa-button px-5 py-3 text-sm font-medium text-white sm:w-fit"
-        >
-          Find more
-        </Link>
-      </div>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-5">
-        <StatCard label="Pending" value={pending} />
-        <StatCard label="Shortlisted" value={shortlisted} />
-        <StatCard label="Interviews" value={interview} />
-        <StatCard label="Accepted" value={accepted} />
-        <StatCard label="Rejected" value={rejected} />
-      </div>
-
-      {applications.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white">
-            <FaPaperPlane />
-          </div>
-
-          <p className="mt-4 text-xl font-semibold">No applications yet.</p>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
-            Apply to opportunities from Explore and they will appear here.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-4">
-          {applications.map((application) => (
-            <div
-              key={application.id}
-              className="rounded-[24px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5"
-            >
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div className="min-w-0">
-                  <h3 className="line-clamp-2 font-semibold">{application.title}</h3>
-                  <p className="mt-1 text-sm text-neutral-500">
-                    {application.company} · {application.opportunity?.location || "Lebanon"}
-                  </p>
-                  <p className="mt-2 text-xs text-neutral-400">
-                    Updated {formatDate(application.updatedAt || application.createdAt)}
-                  </p>
-                </div>
-
-                <StatusPill status={application.status || "pending"} />
-              </div>
-
-              <ApplicationTimeline status={application.status || "pending"} />
-
-              <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-600">
-                {application.lastMessage || "Application sent."}
-              </p>
-
-              {application.interview && (
-                <InterviewSummary interview={application.interview} />
-              )}
-
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl bg-white p-4">
-                  <p className="text-xs text-neutral-500">CV</p>
-                  {application.cv ? (
-                    application.cv.url ? (
-                      <a
-                        href={application.cv.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-[var(--forsa-green)]"
-                      >
-                        <FaExternalLinkAlt className="text-xs" />
-                        Open CV
-                      </a>
-                    ) : (
-                      <p className="mt-2 truncate text-sm font-medium">{application.cv.name}</p>
-                    )
-                  ) : (
-                    <p className="mt-2 text-sm text-neutral-500">No CV attached.</p>
-                  )}
-                </div>
-
-                <div className="rounded-2xl bg-white p-4">
-                  <p className="text-xs text-neutral-500">Contact</p>
-                  <p className="mt-2 break-all text-sm font-medium">
-                    {application.opportunity?.contact || "Inside messages"}
-                  </p>
-                </div>
-              </div>
-
-              <Link
-                to="/messages"
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full forsa-button px-4 py-2.5 text-sm font-medium text-white sm:w-fit"
-              >
-                <FaEnvelope className="text-xs" />
-                Open conversation
-              </Link>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ApplicationTimeline({ status }) {
-  const stepIndex = getApplicationStepIndex(status);
-
-  if (status === "rejected") {
-    return (
-      <div className="mt-4 rounded-2xl bg-white p-4">
-        <div className="flex items-center gap-2">
-          <FaTimesCircle className="text-red-600" />
-          <p className="text-sm font-medium text-red-700">Application rejected</p>
-        </div>
-        <p className="mt-2 text-sm leading-6 text-neutral-600">
-          Keep applying. Your saved jobs and recommendations can help you find a better fit.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-4 rounded-2xl bg-white p-4">
-      <div className="flex gap-2">
-        {applicationSteps.map((step, index) => (
-          <div
-            key={step}
-            className={`h-2 flex-1 rounded-full ${
-              index <= stepIndex ? "forsa-button" : "bg-neutral-200"
-            }`}
-          />
-        ))}
-      </div>
-
-      <div className="mt-3 grid grid-cols-4 text-[11px] uppercase tracking-wide text-neutral-500">
-        <span>Pending</span>
-        <span className="text-center">Shortlisted</span>
-        <span className="text-center">Interview</span>
-        <span className="text-right">Accepted</span>
-      </div>
-    </div>
-  );
-}
-
-
-function StatusPill({ status }) {
-  const styles =
-    status === "interview"
-      ? "bg-blue-100 text-blue-700"
-      : status === "shortlisted"
-      ? "forsa-button text-white"
-      : status === "accepted"
-      ? "bg-green-100 text-green-700"
-      : status === "rejected"
-      ? "bg-red-100 text-red-700"
-      : "bg-white text-neutral-600";
-
-  return (
-    <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${styles}`}>
-      {status}
-    </span>
-  );
-}
 
 function ApplicationsSentBox({ applications }) {
   return (
@@ -3797,86 +2568,6 @@ function RecentlyViewedPreview({ jobs }) {
   );
 }
 
-function RecentlyViewedTab({ jobs, onClear }) {
-  return (
-    <div className="mt-6 sm:mt-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-neutral-500">Recently viewed</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-[28px]">
-            Continue browsing
-          </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
-            Posts you opened from Explore are saved here automatically.
-          </p>
-        </div>
-
-        {jobs.length > 0 && (
-          <button
-            onClick={onClear}
-            className="rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium"
-          >
-            Clear history
-          </button>
-        )}
-      </div>
-
-      {jobs.length === 0 ? (
-        <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white">
-            <FaEye />
-          </div>
-
-          <p className="mt-4 text-xl font-semibold">No viewed jobs yet.</p>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral-600">
-            Open opportunities from Explore and they will appear here.
-          </p>
-
-          <Link
-            to="/explore"
-            className="mt-6 inline-flex rounded-full forsa-button px-5 py-3 text-sm font-medium text-white"
-          >
-            Explore opportunities
-          </Link>
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {jobs.map((job) => (
-            <Link
-              key={job.id}
-              to={`/explore?post=${job.id}`}
-              className="rounded-[24px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4 transition hover:border-[var(--forsa-green)] sm:rounded-[26px] sm:p-5"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="line-clamp-2 font-semibold">{job.title}</h3>
-                  <p className="mt-1 text-sm text-neutral-500">
-                    {job.company} · {job.location}
-                  </p>
-                </div>
-
-                <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs text-neutral-600">
-                  {job.type || "Viewed"}
-                </span>
-              </div>
-
-              <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-600">
-                {job.description}
-              </p>
-
-              <p className="mt-4 text-xs text-neutral-400">
-                Viewed {formatDate(job.viewedAt)}
-              </p>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-
 function VerificationRequestModal({
   open,
   form,
@@ -3965,98 +2656,6 @@ function VerificationInput({ icon, label, value, onChange, placeholder }) {
           className="w-full bg-transparent text-sm outline-none"
         />
       </div>
-    </div>
-  );
-}
-
-function InterviewSummary({ interview }) {
-  const isOnline = interview?.type === "online";
-
-  return (
-    <div className="mt-4 rounded-[24px] border border-blue-100 bg-blue-50 p-4">
-      <p className="font-semibold text-blue-700">
-        Interview scheduled
-      </p>
-
-      <div className="mt-3 grid gap-3 text-sm text-blue-700 sm:grid-cols-3">
-        <div>
-          <p className="text-xs font-semibold text-blue-500">
-            Date
-          </p>
-
-          <p className="mt-1">
-            {interview.date}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold text-blue-500">
-            Time
-          </p>
-
-          <p className="mt-1">
-            {interview.time}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs font-semibold text-blue-500">
-            {isOnline ? "Type" : "Location"}
-          </p>
-
-          <p className="mt-1">
-            {isOnline
-              ? "Online interview"
-              : interview.locationName || "In person"}
-          </p>
-        </div>
-      </div>
-
-      {isOnline && interview.meetingLink && (
-        <div className="mt-4 rounded-2xl bg-white p-4">
-          <p className="text-xs font-semibold text-blue-500">
-            Meeting link
-          </p>
-
-          <a
-            href={interview.meetingLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-flex rounded-full forsa-button px-4 py-2 text-sm font-medium text-white"
-          >
-            Join interview
-          </a>
-
-          <p className="mt-2 break-all text-xs text-neutral-500">
-            {interview.meetingLink}
-          </p>
-        </div>
-      )}
-
-      {!isOnline && interview.mapsLink && (
-        <div className="mt-4">
-          <a
-            href={interview.mapsLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-700"
-          >
-            Open location in Maps
-          </a>
-        </div>
-      )}
-
-      {interview.notes && (
-        <div className="mt-4 rounded-2xl bg-white p-4">
-          <p className="text-xs font-semibold text-blue-500">
-            Notes
-          </p>
-
-          <p className="mt-1 text-sm leading-6 text-blue-700">
-            {interview.notes}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
@@ -4164,152 +2763,6 @@ function CvBox({ cv }) {
       ) : (
         <p className="mt-4 text-sm text-neutral-500">No CV added yet.</p>
       )}
-    </div>
-  );
-}
-
-function ApplicantsModal({ post, applicants, onClose, onStatusChange, onOpenMessage }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center forsa-button/30 px-4 pb-4 backdrop-blur-sm sm:items-center sm:px-6 sm:pb-0">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-[26px] bg-white p-4 shadow-xl sm:rounded-[32px] sm:p-6">
-        <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-5">
-          <div className="min-w-0">
-            <p className="text-sm text-neutral-500">Applicants for</p>
-            <h2 className="mt-1 line-clamp-2 text-xl font-semibold tracking-[-0.03em] sm:text-2xl">
-              {post.title}
-            </h2>
-            <p className="mt-2 text-sm text-neutral-500">
-              {applicants.length} application{applicants.length === 1 ? "" : "s"}
-            </p>
-          </div>
-
-          <button onClick={onClose} className="shrink-0 rounded-full bg-[var(--forsa-bg)] px-4 py-2 text-sm font-medium">
-            Close
-          </button>
-        </div>
-
-        {applicants.length === 0 ? (
-          <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-6 text-center sm:rounded-[26px] sm:p-8">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white">
-              <FaUsers />
-            </div>
-
-            <h3 className="mt-4 text-xl font-semibold">No applicants yet.</h3>
-
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-600">
-              When someone applies to this opportunity, their application will appear here.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-6 grid gap-4">
-            {applicants.map((applicant) => (
-              <ApplicantCard
-                key={applicant.id}
-                applicant={applicant}
-                onStatusChange={onStatusChange}
-                onOpenMessage={onOpenMessage}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ApplicantCard({ applicant, onStatusChange, onOpenMessage }) {
-  const seeker = applicant.seeker || {};
-  const cv = applicant.cv;
-  const status = applicant.status || "pending";
-
-  return (
-    <div className="rounded-[24px] border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full forsa-button text-white">
-              {(seeker.name || "A").charAt(0).toUpperCase()}
-            </div>
-
-            <div className="min-w-0">
-              <h3 className="truncate font-semibold">{seeker.name || "Applicant"}</h3>
-              <p className="break-all text-sm text-neutral-500">
-                {seeker.city || "Lebanon"} · {seekerUsername(seeker)}
-              </p>
-            </div>
-          </div>
-
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-neutral-600">
-            {applicant.lastMessage}
-          </p>
-        </div>
-
-        <span
-          className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${
-            status === "shortlisted"
-              ? "forsa-button text-white"
-              : status === "rejected"
-              ? "bg-red-100 text-red-700"
-              : "bg-white text-neutral-600"
-          }`}
-        >
-          {status}
-        </span>
-      </div>
-
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
-        <MiniInfo title="Skills" text={seeker.skills?.length ? seeker.skills.join(", ") : "No skills"} />
-        <MiniInfo title="Looking for" text={seeker.lookingFor?.length ? seeker.lookingFor.join(", ") : "Not selected"} />
-      </div>
-
-      <div className="mt-3 rounded-2xl bg-white p-4">
-        <p className="text-xs text-neutral-500">CV metadata</p>
-
-        {cv ? (
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-            <FaFileAlt />
-            <span className="break-all">{cv.name}</span>
-            <span className="text-neutral-400">· {(cv.size / 1024 / 1024).toFixed(2)} MB</span>
-          </div>
-        ) : (
-          <p className="mt-2 text-sm text-neutral-500">No CV attached.</p>
-        )}
-      </div>
-
-      <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-        <button
-          onClick={() => onStatusChange(applicant.id, "shortlisted")}
-          className="inline-flex items-center justify-center gap-2 rounded-full forsa-button px-4 py-2 text-sm font-medium text-white"
-        >
-          <FaCheckCircle className="text-xs" />
-          Shortlist
-        </button>
-
-        <button
-          onClick={() => onStatusChange(applicant.id, "rejected")}
-          className="inline-flex items-center justify-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600"
-        >
-          <FaTimesCircle className="text-xs" />
-          Reject
-        </button>
-
-        <button
-          onClick={onOpenMessage}
-          className="col-span-2 inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium sm:col-span-1"
-        >
-          <FaEnvelope className="text-xs" />
-          Open message
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function MiniInfo({ title, text }) {
-  return (
-    <div className="rounded-2xl bg-white p-4">
-      <p className="text-xs text-neutral-500">{title}</p>
-      <p className="mt-2 text-sm leading-6">{text}</p>
     </div>
   );
 }

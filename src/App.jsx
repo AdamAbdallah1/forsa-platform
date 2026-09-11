@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import JobsInLebanon from "./pages/JobsInLebanon";
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -79,7 +79,7 @@ function RobotsController() {
 
 export default function App() {
   return (
-    <>
+    <BrowserRouter>
       <RobotsController />
       <main className="min-h-screen overflow-x-hidden bg-[var(--forsa-bg)] pb-24 text-[#111111] md:pb-0">
         <Routes>
@@ -116,6 +116,6 @@ export default function App() {
         <MobileNav />
         <Toast />
       </main>
-    </>
+    </BrowserRouter>
   );
 }
