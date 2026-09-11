@@ -1,17 +1,14 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { createElement, useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FaArrowRight, FaSearch, FaMapMarkerAlt, FaChevronDown,
   FaBuilding, FaClock, FaBriefcase, FaCode, FaGlobe, FaLaptopCode,
+  FaCompass, FaUserCircle, FaComments,
 } from "react-icons/fa";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
-import ctaHero from "../assets/cta-hero.lottie";
 import SEO from "../components/SEO";
-import WhyForsa from "../components/WhyForsa";
 import HomeNavbar from "../components/HomeNavbar";
-import TalentCompanySection from "../components/TalentCompanySection";
 import Footer from "../components/Footer";
 import { getActivePosts } from "../lib/postService";
 
@@ -37,22 +34,290 @@ const getOpportunityIcon = (post) => {
   return FaBriefcase;
 };
 
+const initialsOf = (value) =>
+  String(value || "F")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+const getPostSkills = (posts) => {
+  const skills = [];
+
+  (posts || []).forEach((post) => {
+    (post.tags || []).forEach((tag) => {
+      const value = String(tag).trim();
+
+      if (value && !skills.includes(value)) skills.push(value);
+    });
+  });
+
+  return skills.slice(0, 3);
+};
+
+const renderOpportunityIcon = (post, className) =>
+  createElement(post ? getOpportunityIcon(post) : FaBriefcase, { className });
+
+const STAGES = [
+  {
+    number: "01",
+    title: "Discover",
+    copy: "Find opportunities worth pursuing.",
+    detail: "Jobs, internships, freelance work, and early-career opportunities from companies and teams across Lebanon.",
+    chips: ["Jobs", "Internships", "Freelance"],
+    cta: "Explore opportunities",
+    to: "/jobs-in-lebanon",
+    Icon: FaCompass,
+  },
+  {
+    number: "02",
+    title: "Build",
+    copy: "Put your work forward.",
+    detail: "Create a professional presence around your skills, experience, projects, and the direction you want your career to take.",
+    chips: ["Skills", "Experience", "Projects"],
+    cta: "Build your profile",
+    to: "/auth?mode=signup",
+    Icon: FaUserCircle,
+  },
+  {
+    number: "03",
+    title: "Connect",
+    copy: "Get closer to the people behind the opportunity.",
+    detail: "Move beyond endless applications and discover the companies, teams, and people building what comes next in Lebanon.",
+    chips: ["Companies", "Teams", "People"],
+    cta: "Meet companies & teams",
+    to: "/companies",
+    Icon: FaComments,
+  },
+];
+
+function MiniTalentCard({ skills }) {
+  return (
+    <div className="rounded-2xl border border-[#e7e6ec] bg-white p-4 shadow-[0_18px_45px_rgba(20,16,50,.08)]">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f1efff] text-[#5B3DF5]">
+            <FaUserCircle />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold">Talent profile</p>
+            <p className="text-[10px] text-[#777681]">On Forsa</p>
+          </div>
+        </div>
+        <span className="shrink-0 rounded-full bg-[#5B3DF5]/8 px-2 py-0.5 text-[9px] font-bold text-[#5B3DF5]">
+          Open to work
+        </span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {skills.map((skill) => (
+          <span
+            key={skill}
+            className="rounded-md bg-[#f6f4ff] px-2 py-1 text-[9px] font-semibold text-[#5B3DF5]"
+          >
+            {skill}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MiniOpportunityCard({ post }) {
+  const title = post?.title || "Open role";
+  const company = post?.company || post?.ownerName || "Local company";
+  const location = post?.location || "Lebanon";
+  const type = post?.type || "Opportunity";
+
+  return (
+    <div className="rounded-2xl border border-[#e7e6ec] bg-white p-4 shadow-[0_30px_70px_rgba(25,20,55,.14)]">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f5f3ff] text-[#5B3DF5]">
+            {renderOpportunityIcon(post, "text-xs")}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{title}</p>
+            <p className="truncate text-[10px] text-[#777681]">
+              {company} · {location}
+            </p>
+          </div>
+        </div>
+        <span className="shrink-0 rounded-full bg-[#f5f5f8] px-2 py-1 text-[9px] font-semibold">
+          {type}
+        </span>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between border-t border-[#eeeeF2] pt-2.5 text-[10px] text-[#777681]">
+        <span>{post ? getRelativeTime(post.createdAt) : "Posted recently"}</span>
+        <span className="font-semibold text-[#5B3DF5]">View on Forsa</span>
+      </div>
+    </div>
+  );
+}
+
+function MiniCompanyCard({ post }) {
+  const company = post?.company || post?.ownerName || "Local company";
+  const location = post?.location || "Lebanon";
+
+  return (
+    <div className="rounded-2xl border border-[#e7e6ec] bg-white p-4 shadow-[0_18px_45px_rgba(20,16,50,.08)]">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f1efff] text-[10px] font-bold text-[#5B3DF5]">
+          {initialsOf(company)}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold">{company}</p>
+          <p className="text-[10px] text-[#777681]">{location}</p>
+        </div>
+        <span className="ml-auto shrink-0 rounded-full bg-[#5B3DF5]/8 px-2 py-1 text-[9px] font-bold text-[#5B3DF5]">
+          Active
+        </span>
+      </div>
+
+      <div className="mt-3 rounded-xl border border-[#eeeeF2] bg-[#fbfbfd] p-2.5">
+        <p className="text-[10px] font-semibold">Open roles on Forsa</p>
+        <p className="mt-0.5 text-[9px] leading-4 text-[#777681]">
+          Meet the people behind the opportunity.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const networkLineProps = {
+  stroke: "url(#forsaNetLine)",
+  strokeWidth: 0.35,
+  strokeLinecap: "round",
+  fill: "none",
+};
+
+function NetworkComposition({ posts }) {
+  const reduce = useReducedMotion();
+  const post = posts && posts[0];
+  const skills = getPostSkills(posts);
+  const skillList = skills.length
+    ? skills
+    : ["Design", "React", "Data Entry", "Social Media"];
+
+  const chrome = (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-1.5">
+        <i className="h-2 w-2 rounded-full bg-[#5B3DF5]" />
+        <i className="h-2 w-2 rounded-full bg-[#d9d9df]" />
+        <i className="h-2 w-2 rounded-full bg-[#d9d9df]" />
+        <span className="ml-2 font-mono text-[10px] font-semibold text-[#777681]">
+          forsa / network
+        </span>
+      </div>
+      <span className="rounded-full bg-[#5B3DF5]/8 px-2 py-1 text-[9px] font-bold text-[#5B3DF5]">
+        LIVE
+      </span>
+    </div>
+  );
+
+  return (
+    <div>
+      {chrome}
+
+      <div className="mt-3 hidden lg:block">
+        <div className="relative h-[460px]">
+          <svg
+            className="absolute inset-0 h-full w-full"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="forsaNetLine" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#5B3DF5" stopOpacity="0.45" />
+                <stop offset="1" stopColor="#5B3DF5" stopOpacity="0.1" />
+              </linearGradient>
+            </defs>
+
+            {!reduce && (
+              <motion.g
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6 }}
+              >
+                <motion.line
+                  {...networkLineProps}
+                  x1="16"
+                  y1="20"
+                  x2="50"
+                  y2="52"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.1, ease: "easeInOut" }}
+                />
+                <motion.line
+                  {...networkLineProps}
+                  x1="50"
+                  y1="52"
+                  x2="84"
+                  y2="80"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.1, delay: 0.15, ease: "easeInOut" }}
+                />
+                <motion.line
+                  {...networkLineProps}
+                  x1="16"
+                  y1="20"
+                  x2="84"
+                  y2="80"
+                  strokeOpacity="0.4"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.1, delay: 0.3, ease: "easeInOut" }}
+                />
+              </motion.g>
+            )}
+          </svg>
+
+          <div className="absolute left-[16%] top-[20%] w-[252px] -translate-x-1/2 -translate-y-1/2 -rotate-2">
+            <MiniTalentCard skills={skillList} />
+          </div>
+
+          <div className="absolute left-1/2 top-1/2 z-10 w-[268px] -translate-x-1/2 -translate-y-1/2">
+            <MiniOpportunityCard post={post} />
+          </div>
+
+          <div className="absolute left-[84%] top-[80%] w-[252px] -translate-x-1/2 -translate-y-1/2 rotate-2">
+            <MiniCompanyCard post={post} />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 pb-2 lg:hidden">
+        <MiniTalentCard skills={skillList} />
+
+        <div className="mx-auto flex h-10 w-px items-start justify-center bg-gradient-to-b from-[#5B3DF5]/40 to-[#5B3DF5]/10">
+          <span className="mt-9 h-1.5 w-1.5 rounded-full bg-[#5B3DF5]" />
+        </div>
+
+        <MiniOpportunityCard post={post} />
+
+        <div className="mx-auto flex h-10 w-px items-start justify-center bg-gradient-to-b from-[#5B3DF5]/40 to-[#5B3DF5]/10">
+          <span className="mt-9 h-1.5 w-1.5 rounded-full bg-[#5B3DF5]" />
+        </div>
+
+        <MiniCompanyCard post={post} />
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const navigate = useNavigate();
+  const reduce = useReducedMotion();
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
   const [livePosts, setLivePosts] = useState([]);
   const [livePostsLoading, setLivePostsLoading] = useState(true);
-
-  const goToLogin = () => {
-  console.log("🔥 LOGIN HANDLER FIRED");
-  window.location.href = "/auth?mode=login";
-};
-
-const goToSignup = () => {
-  console.log("🔥 SIGNUP HANDLER FIRED");
-  window.location.href = "/auth?mode=signup";
-};
 
   useEffect(() => {
     let active = true;
@@ -157,27 +422,143 @@ const goToSignup = () => {
           </div>
         </section>
 
-        <WhyForsa />
-        <TalentCompanySection />
+        <section className="relative overflow-hidden bg-white py-16 sm:py-20 lg:py-28">
+          <div
+            className="absolute inset-0 pointer-events-none opacity-60"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(91,61,245,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(91,61,245,.04) 1px,transparent 1px)",
+              backgroundSize: "52px 52px",
+              maskImage:
+                "linear-gradient(to bottom,transparent,black 12%,black 88%,transparent)",
+            }}
+          />
 
-        <section className="relative overflow-hidden border-y border-[#ececf1] bg-[#f6f4ff] py-16 sm:py-20">
-          <div className="absolute inset-0 opacity-40" style={{backgroundImage:"radial-gradient(rgba(91,61,245,.16) 1px,transparent 1px)",backgroundSize:"22px 22px"}}/>
-          <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-8 lg:grid-cols-[.8fr_1.2fr]">
-            <DotLottieReact src={ctaHero} loop autoplay className="mx-auto h-48 w-full max-w-xs sm:h-60"/>
-            <div className="text-center lg:text-left">
-              <span className="text-[11px] font-bold uppercase tracking-[.15em] text-[#5B3DF5]">Build your next move</span>
-              <h2 className="mt-2 font-['Sora',sans-serif] text-3xl font-bold tracking-[-.04em] sm:text-4xl">Your next opportunity is closer than you think.</h2>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-[#696773]">Join Forsa to discover opportunities or connect with the people building the next generation of Lebanese companies.</p>
+          <div className="relative mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-3xl text-center">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#dedbeF] bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[.12em] text-[#696773] shadow-sm">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#5B3DF5] shadow-[0_0_0_4px_rgba(91,61,245,.10)]" />
+                Lebanese career community
+              </span>
+
+              <h2 className="mt-5 font-['Sora',sans-serif] text-[clamp(2.25rem,6vw,3.5rem)] font-bold leading-[1.03] tracking-[-.05em] sm:text-6xl">
+                More than <span className="text-[#5B3DF5]">finding a job.</span>
+              </h2>
+
+              <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-[#696773] sm:text-base">
+                Forsa brings opportunities, people, and companies into one place
+                — giving ambitious people in Lebanon a clearer way to discover
+                what they can do next.
+              </p>
+            </div>
+
+            <div className="mt-14 grid items-start gap-12 lg:mt-20 lg:grid-cols-[.9fr_1.1fr] lg:gap-14">
+              <div>
+                {STAGES.map((stage, i) => {
+                  const Icon = stage.Icon;
+
+                  return (
+                    <motion.div
+                      key={stage.number}
+                      initial={reduce ? false : { opacity: 0, y: 12 }}
+                      whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.1 }}
+                      className={`group py-6 lg:py-7 ${
+                        i === 0 ? "" : "border-t border-[#e7e6ec]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] text-[#9998a2]">
+                          {stage.number}
+                        </span>
+                        <div className="flex gap-1.5">
+                          {stage.chips.map((chip) => (
+                            <span
+                              key={chip}
+                              className="rounded-full border border-[#e5e4ea] bg-[#fafafd] px-2 py-0.5 text-[9px] font-semibold text-[#777681]"
+                            >
+                              {chip}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-2.5">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f1efff] text-[#5B3DF5]">
+                          <Icon className="text-xs" />
+                        </span>
+                        <h3 className="font-['Sora',sans-serif] text-xl font-semibold tracking-[-.03em]">
+                          {stage.title}
+                        </h3>
+                      </div>
+
+                      <p className="mt-2 text-sm font-medium text-[#111113]">
+                        {stage.copy}
+                      </p>
+
+                      <p className="mt-1 max-w-md text-xs leading-5 text-[#777681] sm:text-sm">
+                        {stage.detail}
+                      </p>
+
+                      <Link
+                        to={stage.to}
+                        className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#5B3DF5] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B3DF5] focus-visible:ring-offset-2"
+                      >
+                        {stage.cta}
+                        <FaArrowRight className="text-[10px] transition group-hover:translate-x-0.5" />
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              <div>
+                <NetworkComposition posts={livePosts} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="relative overflow-hidden border-t border-[#ececf1] bg-[#fbfbfd] py-16 sm:py-20">
+          <div
+            className="absolute inset-0 pointer-events-none opacity-40"
+            style={{
+              backgroundImage:
+                "radial-gradient(rgba(91,61,245,.14) 1px,transparent 1px)",
+              backgroundSize: "22px 22px",
+            }}
+          />
+
+          <div className="relative mx-auto max-w-3xl px-4 text-center sm:px-8">
+            <span className="text-[11px] font-bold uppercase tracking-[.15em] text-[#5B3DF5]">
+              Your next move
+            </span>
+
+            <h2 className="mt-3 font-['Sora',sans-serif] text-3xl font-bold leading-tight tracking-[-.04em] sm:text-4xl">
+              There&apos;s more to your next move.
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#696773] sm:text-base">
+              Discover opportunities, meet companies, and build your place in
+              the Lebanese career community.
+            </p>
+
+            <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 to="/jobs-in-lebanon"
-                className="mt-5 inline-flex font-semibold text-[#5B3DF5] hover:underline"
+                className="inline-flex items-center gap-2 rounded-full bg-[#5B3DF5] px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[#4930D4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B3DF5] focus-visible:ring-offset-2"
               >
-                Find jobs in Lebanon →
+                Explore opportunities
+                <FaArrowRight className="text-[10px]" />
               </Link>
-              <div className="mt-7 grid gap-3 sm:flex sm:flex-row lg:justify-start">
-                <button type="button" onClick={goToSignup} className="rounded-full bg-[#5B3DF5] px-6 py-3 text-sm font-bold text-white shadow-lg hover:bg-[#4930D4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B3DF5] focus-visible:ring-offset-2">Get Started <FaArrowRight className="ml-2 inline text-[9px]"/></button>
-                <button type="button" onClick={goToLogin} className="rounded-full border border-[#dedde5] bg-white px-6 py-3 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B3DF5] focus-visible:ring-offset-2">Login</button>
-              </div>
+
+              <Link
+                to="/auth?mode=signup"
+                className="inline-flex items-center gap-2 rounded-full border border-[#dedde5] bg-white px-6 py-3 text-sm font-semibold text-[#111113] transition hover:border-[#5B3DF5]/30 hover:bg-[#f7f5ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B3DF5] focus-visible:ring-offset-2"
+              >
+                Join Forsa
+              </Link>
             </div>
           </div>
         </section>
