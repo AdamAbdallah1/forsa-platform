@@ -9,9 +9,9 @@ import {
   FaArrowLeft,
   FaAt,
   FaBriefcase,
+  FaClock,
   FaExternalLinkAlt,
   FaFileAlt,
-  FaGraduationCap,
   FaLink,
   FaMapMarkerAlt,
   FaUser,
@@ -94,8 +94,38 @@ function cleanText(value, fallback = "") {
   return fallback;
 }
 
+function parseExperience(value) {
+  if (!value) return [];
+
+  const items = Array.isArray(value) ? value : [value];
+
+  return items
+    .map((item) => {
+      if (typeof item === "string") return { title: item };
+      if (item && typeof item === "object") return item;
+      return null;
+    })
+    .filter(Boolean);
+}
+
+function parseEducation(value) {
+  if (!value) return [];
+
+  const items = Array.isArray(value) ? value : [value];
+
+  return items
+    .map((item) => {
+      if (typeof item === "string") {
+        return { institution: item };
+      }
+      if (item && typeof item === "object") return item;
+      return null;
+    })
+    .filter(Boolean);
+}
+
 function getCvData(user) {
-  const raw = user?.cv || user?.publicCv;
+  const raw = user?.publicCv || user?.cv;
 
   if (!raw) return null;
 
@@ -320,26 +350,36 @@ export default function PublicSeekerProfile() {
   const username = cleanText(user.username, "");
 
   const bio = cleanText(
-    user.bio || user.about,
+    user.bio || user.about || user.summary,
     "No public summary has been added yet."
   );
 
+  const headline = cleanText(user.headline, "");
+  const availability = cleanText(user.availability, "");
+
   const skills = cleanList(
-    user.skills || user.publicSkills
+    user.publicSkills ?? user.skills
   );
 
   const lookingFor = cleanList(
-    user.lookingFor || user.publicLookingFor
+    user.publicLookingFor ?? user.lookingFor
   );
 
-  const experience = cleanList(user.experience);
-  const education = cleanList(user.education);
+  const experience = parseExperience(user.experience);
+  const education = parseEducation(user.education);
 
   const portfolioLinks = cleanList(
     user.portfolioLinks || user.portfolio
   );
 
   const cv = getCvData(user);
+
+  const careerPrefs = [
+    { label: "Desired role", value: cleanText(user.desiredRole) },
+    { label: "Opportunity type", value: cleanText(user.opportunityType) },
+    { label: "Preferred location", value: cleanText(user.preferredLocation) },
+    { label: "Work preference", value: cleanText(user.workPreference) },
+  ].filter((item) => item.value);
 
   const initials = name
     .split(" ")
@@ -407,6 +447,12 @@ export default function PublicSeekerProfile() {
                       </span>
                     )}
                   </div>
+
+                  {headline && (
+                    <p className="mt-2 text-sm font-medium text-neutral-700">
+                      {headline}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -428,7 +474,7 @@ export default function PublicSeekerProfile() {
 
           {/* Quick facts */}
 
-          <div className="grid border-t border-[var(--forsa-border)] sm:grid-cols-3">
+          <div className="grid border-t border-[var(--forsa-border)] sm:grid-cols-4">
             <QuickFact
               icon={<FaBriefcase />}
               label="Looking for"
@@ -447,6 +493,12 @@ export default function PublicSeekerProfile() {
                   ? `${skills.length} listed`
                   : "Not specified"
               }
+            />
+
+            <QuickFact
+              icon={<FaClock />}
+              label="Availability"
+              value={availability || "Not specified"}
             />
 
             <QuickFact
@@ -504,18 +556,14 @@ export default function PublicSeekerProfile() {
 
             {/* Experience */}
 
-            <TimelineCard
-              icon={<FaBriefcase />}
-              title="Experience"
+            <ExperienceCard
               items={experience}
               empty="No experience added yet."
             />
 
             {/* Education */}
 
-            <TimelineCard
-              icon={<FaGraduationCap />}
-              title="Education"
+            <EducationCard
               items={education}
               empty="No education added yet."
             />
@@ -544,9 +592,33 @@ export default function PublicSeekerProfile() {
                   ))}
                 </div>
               ) : (
-                <EmptyText text="No preferences added yet." />
-              )}
+<EmptyText text="No preferences added yet." />
+                )}
             </Card>
+
+            {/* Career preferences */}
+
+            {careerPrefs.length > 0 && (
+              <Card>
+                <SectionTitle
+                  icon={<FaBriefcase />}
+                  title="Career preferences"
+                />
+
+                <div className="mt-4 space-y-3">
+                  {careerPrefs.map((pref) => (
+                    <div key={pref.label}>
+                      <p className="text-xs font-medium text-neutral-400">
+                        {pref.label}
+                      </p>
+                      <p className="mt-0.5 text-sm font-medium text-neutral-800">
+                        {pref.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             {/* CV */}
 
@@ -695,29 +767,100 @@ function EmptyText({ text }) {
   );
 }
 
-function TimelineCard({
-  icon,
-  title,
-  items,
-  empty,
-}) {
+function ExperienceCard({ items, empty }) {
   return (
     <Card>
       <SectionTitle
-        icon={icon}
-        title={title}
+        icon={<FaBriefcase />}
+        title="Experience"
       />
 
       {items.length ? (
-        <div className="mt-4 space-y-2">
-          {items.map((item, index) => (
-            <div
-              key={`${item}-${index}`}
-              className="rounded-2xl border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4 text-sm leading-6 text-neutral-700"
-            >
-              {item}
-            </div>
-          ))}
+        <div className="mt-4 space-y-4">
+          {items.map((item, index) => {
+            const title = cleanText(item.title, "Untitled position");
+            const company = cleanText(item.company, "");
+            const period = [item.startDate, item.endDate]
+              .filter(Boolean)
+              .join(" – ");
+            const location = cleanText(item.location, "");
+            const description = cleanText(item.description, "");
+
+            return (
+              <div
+                key={`${title}-${index}`}
+                className="rounded-2xl border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4"
+              >
+                <h3 className="text-sm font-semibold text-neutral-900">
+                  {title}
+                </h3>
+
+                {(company || period || location) && (
+                  <p className="mt-1 text-sm text-neutral-600">
+                    {[company, period, location].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+
+                {description && (
+                  <p className="mt-2 text-sm leading-6 text-neutral-600">
+                    {description}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <EmptyText text={empty} />
+      )}
+    </Card>
+  );
+}
+
+function EducationCard({ items, empty }) {
+  return (
+    <Card>
+      <SectionTitle
+        icon={<FaBriefcase />}
+        title="Education"
+      />
+
+      {items.length ? (
+        <div className="mt-4 space-y-4">
+          {items.map((item, index) => {
+            const institution = cleanText(
+              item.institution || item.school || item.name,
+              "Institution"
+            );
+            const degree = cleanText(item.degree, "");
+            const field = cleanText(item.field || item.fieldOfStudy || item.major, "");
+            const graduationYear = cleanText(item.graduationYear, "");
+            const location = cleanText(item.location, "");
+            const program = [degree, field].filter(Boolean).join(", ");
+
+            return (
+              <div
+                key={`${institution}-${index}`}
+                className="rounded-2xl border border-[var(--forsa-border)] bg-[var(--forsa-bg)] p-4"
+              >
+                <h3 className="text-sm font-semibold text-neutral-900">
+                  {institution}
+                </h3>
+
+                {program && (
+                  <p className="mt-1 text-sm text-neutral-600">
+                    {program}
+                  </p>
+                )}
+
+                {[graduationYear, location].filter(Boolean).length > 0 && (
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {[graduationYear, location].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <EmptyText text={empty} />

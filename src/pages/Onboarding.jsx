@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import Footer from "../components/Footer";
 import {
   FaArrowRight,
@@ -192,7 +192,7 @@ export default function Onboarding() {
         {
           cv: nextCv,
           publicCv: nextCv,
-          updatedAt: new Date(),
+          updatedAt: serverTimestamp(),
         },
         { merge: true }
       );
@@ -295,11 +295,12 @@ export default function Onboarding() {
           {
             name: savedAccount.name || "",
             city: cityPreference.trim(),
+            availability,
             skills: selectedSkills,
             lookingFor: selectedLooking,
             cv: cv || null,
             portfolioLinks: portfolio.trim() || "",
-            updatedAt: new Date(),
+            updatedAt: serverTimestamp(),
           },
           { merge: true }
         );
@@ -406,7 +407,7 @@ export default function Onboarding() {
                     }}
                     className={`shrink-0 rounded-xl border px-4 py-2.5 text-xs font-bold tracking-tight transition-all duration-200 active:scale-[0.97] ${
                       step === index
-                        ? "border-[#6025C0] bg-[#6025C0] text-white shadow-sm"
+                        ? "border-[var(--forsa-primary)] bg-[var(--forsa-primary)] text-white shadow-sm"
                         : index < step
                         ? "border-neutral-200 bg-neutral-100 text-neutral-800"
                         : "border-neutral-200/80 bg-white text-neutral-400 hover:border-neutral-300"
@@ -650,7 +651,7 @@ function OptionSection({
             <button
               type="button"
               onClick={addCustomSkill}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#7333DE] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-neutral-900 transition-all duration-200"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--forsa-primary)] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-neutral-900 transition-all duration-200"
             >
               <FaPlus className="text-[9px]" />
               Add

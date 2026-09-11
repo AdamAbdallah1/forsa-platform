@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
 import AppHeader from "../components/AppHeader";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -27,7 +27,6 @@ import {
   getPostsByOwner,
   updatePost,
 } from "../lib/postService.js";
-import { loadDemoActivity, clearDemoActivity } from "../lib/demoData";
 
 import { createVerificationRequest } from "../lib/verificationService";
 import { calculateApplicantScore } from "../lib/applicantScore";
@@ -52,7 +51,6 @@ import {
   FaEye,
   FaArrowRight,
   FaExternalLinkAlt,
-  FaLink,
   FaShieldAlt,
   FaGlobe,
   FaInstagram,
@@ -63,42 +61,6 @@ import {
   FaFlag,
   FaBullseye,
 } from "react-icons/fa";
-
-const skillOptions = [
-  "React",
-  "JavaScript",
-  "Frontend",
-  "Backend",
-  "WordPress",
-  "Shopify",
-  "Design",
-  "UI/UX",
-  "Marketing",
-  "Video editing",
-  "Photography",
-  "Writing",
-  "Sales",
-  "Customer service",
-  "Barista",
-  "Waiter",
-  "Cashier",
-  "Delivery",
-  "Data entry",
-];
-
-const lookingOptions = [
-  "Internship",
-  "Freelance",
-  "Freelance work",
-  "Part-time",
-  "Part-time job",
-  "Full-time",
-  "Remote",
-  "Remote work",
-  "Project",
-  "Startup project",
-  "Collaboration",
-];
 
 const safeJson = (key, fallback) => {
   try {
@@ -220,6 +182,34 @@ const buildPostAnalytics = (posts, messages) => {
     bestPost,
   };
 };
+
+function normalizePersistedExperience(value) {
+  const items = Array.isArray(value) ? value : value ? [value] : [];
+
+  return items
+    .map((item) => {
+      if (!item) return null;
+      if (typeof item === "string") return { title: item };
+      return item;
+    })
+    .filter(Boolean);
+}
+
+function normalizePersistedEducation(value) {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    return { institution: value };
+  }
+
+  if (Array.isArray(value)) {
+    const first = value[0];
+    if (!first) return null;
+    return typeof first === "string" ? { institution: first } : first;
+  }
+
+  return value;
+}
 
 function FollowedCompaniesTab({ companies, onUnfollow }) {
   return (
@@ -381,7 +371,10 @@ if (!Array.isArray(savedProfile.skills)) {
     proof: "",
   });
   const [verificationLoading, setVerificationLoading] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [postSaving, setPostSaving] = useState(false);
+  const [deletingPostCandidate, setDeletingPostCandidate] = useState(null);
+  const [deletingPost, setDeletingPost] = useState(false);
 
   useEffect(() => {
     if (!savedAccount || savedAccount.accountType !== "hiring") return;
@@ -588,20 +581,7 @@ const displayEmail =
     setAccount((prev) => ({ ...prev, [field]: value }));
   };
 
-  const toggleProfileItem = (key, item) => {
-    setProfile((prev) => {
-      const current = prev[key] || [];
-
-      return {
-        ...prev,
-        [key]: current.includes(item)
-          ? current.filter((value) => value !== item)
-          : [...current, item],
-      };
-    });
-  };
-
-const deleteApiErrorMessage = (error) => {
+  const deleteApiErrorMessage = (error) => {
     const code = error?.code || "";
 
     if (code === "NETWORK") {
@@ -679,7 +659,7 @@ const handleDeleteAccount = async () => {
         {
           cv: nextCv,
           publicCv: nextCv,
-          updatedAt: new Date(),
+          updatedAt: serverTimestamp(),
         },
         { merge: true }
       );
@@ -744,58 +724,77 @@ const handleDeleteAccount = async () => {
   };
 
 const saveChanges = async () => {
-  const cleanSkills = Array.isArray(profile.skills)
-    ? profile.skills
-        .map((skill) => String(skill).trim())
-        .filter(Boolean)
-    : [];
+  if (savingProfile) return;
 
-  const cleanProfile = {
-    ...profile,
-    skills: cleanSkills,
-    lookingFor: Array.isArray(profile.lookingFor)
-      ? profile.lookingFor
-      : [],
-    cv: profile.cv || null,
-  };
-
-  const nextAccount = {
-    ...account,
-    bio: account.bio || "",
-    experience: experiences,
-    education: account.education || "",
-    portfolioLinks: account.portfolioLinks || "",
-  };
-
-  const publicProfileData = {
-    name: nextAccount.name || "",
-    city: nextAccount.city || "",
-    bio: nextAccount.bio || "",
-    experience: nextAccount.experience || "",
-    education: nextAccount.education || "",
-    portfolioLinks: nextAccount.portfolioLinks || "",
-
-    desiredRole: nextAccount.desiredRole || "",
-    opportunityType: nextAccount.opportunityType || "",
-    preferredLocation: nextAccount.preferredLocation || "",
-    workPreference: nextAccount.workPreference || "",
-
-    skills: cleanProfile.skills,
-    lookingFor: cleanProfile.lookingFor,
-    cv: cleanProfile.cv,
-
-    publicSkills: cleanProfile.skills,
-    publicLookingFor: cleanProfile.lookingFor,
-    publicCv: cleanProfile.cv,
-
-    updatedAt: new Date(),
-  };
+  setSavingProfile(true);
 
   try {
+    const cleanSkills = Array.isArray(profile.skills)
+      ? profile.skills
+          .map((skill) => String(skill).trim())
+          .filter(Boolean)
+      : [];
+
+    const cleanProfile = {
+      ...profile,
+      skills: cleanSkills,
+      lookingFor: Array.isArray(profile.lookingFor)
+        ? profile.lookingFor
+        : [],
+      cv: profile.cv || null,
+    };
+
+    const nextAccount = {
+      ...account,
+      bio: account.summary || account.bio || "",
+      experience: experiences,
+      education: account.education || null,
+      portfolioLinks: account.portfolioLinks || "",
+    };
+
+    const profileData = {
+      name: nextAccount.name || "",
+      city: nextAccount.city || "",
+      updatedAt: serverTimestamp(),
+    };
+
+    if (isHiring) {
+      profileData.companyName =
+        nextAccount.companyName || nextAccount.name || "";
+      profileData.companyEmail = nextAccount.companyEmail || "";
+      profileData.contactPerson = nextAccount.contactPerson || "";
+      profileData.companyBio = nextAccount.companyBio || "";
+      profileData.website = nextAccount.website || "";
+      profileData.instagram = nextAccount.instagram || "";
+      profileData.phone = nextAccount.phone || "";
+    } else {
+      profileData.bio = nextAccount.bio || "";
+      profileData.headline = nextAccount.headline || "";
+      profileData.availability = nextAccount.availability || "";
+      profileData.experience = normalizePersistedExperience(experiences);
+      profileData.education = normalizePersistedEducation(
+        nextAccount.education
+      );
+      profileData.portfolioLinks = nextAccount.portfolioLinks || "";
+
+      profileData.desiredRole = nextAccount.desiredRole || "";
+      profileData.opportunityType = nextAccount.opportunityType || "";
+      profileData.preferredLocation = nextAccount.preferredLocation || "";
+      profileData.workPreference = nextAccount.workPreference || "";
+
+      profileData.skills = cleanProfile.skills;
+      profileData.lookingFor = cleanProfile.lookingFor;
+      profileData.cv = cleanProfile.cv;
+
+      profileData.publicSkills = cleanProfile.skills;
+      profileData.publicLookingFor = cleanProfile.lookingFor;
+      profileData.publicCv = cleanProfile.cv;
+    }
+
     if (account?.uid) {
       await setDoc(
         doc(db, "users", account.uid),
-        publicProfileData,
+        profileData,
         { merge: true }
       );
 
@@ -823,6 +822,8 @@ const saveChanges = async () => {
   } catch (error) {
     console.error("Profile save error:", error);
     showToast("Could not save profile.", "error");
+  } finally {
+    setSavingProfile(false);
   }
 };
 
@@ -839,31 +840,30 @@ const saveChanges = async () => {
     showToast("Saved job removed");
   };
 
-  const deletePost = async (postId) => {
-  const confirmed = window.confirm("Delete this opportunity?");
-  if (!confirmed) return;
+  const requestDeletePost = (post) => {
+    setDeletingPostCandidate(post);
+  };
 
-  const post = posts.find((item) => item.id === postId);
+  const confirmDeletePost = async () => {
+    if (!deletingPostCandidate || deletingPost) return;
 
-  console.log("DELETE POST DEBUG:", {
-    postId,
-    postOwnerUid: post?.ownerUid,
-    accountUid: account?.uid,
-    authUid: auth.currentUser?.uid,
-    postOwnerEmail: post?.ownerEmail,
-    accountEmail: account?.email,
-  });
+    setDeletingPost(true);
 
-  try {
-    await deletePostFromFirestore(postId);
+    try {
+      await deletePostFromFirestore(deletingPostCandidate.id);
 
-      const updatedPosts = posts.filter((post) => post.id !== postId);
+      const updatedPosts = posts.filter(
+        (post) => post.id !== deletingPostCandidate.id
+      );
       persistOwnPosts(updatedPosts);
 
+      setDeletingPostCandidate(null);
       showToast("Post deleted");
     } catch (error) {
       console.error("Delete post error:", error);
       showToast("Could not delete post. Try again.", "error");
+    } finally {
+      setDeletingPost(false);
     }
   };
 
@@ -898,6 +898,7 @@ const saveChanges = async () => {
 
     const savePostEdit = async () => {
       if (!editingPostId || !editingPost) return;
+      if (postSaving) return;
             if (editingPost.applicationMethod === "external") {
         const isEmailType =
           editingPost.externalApplicationType === "email";
@@ -964,6 +965,7 @@ const saveChanges = async () => {
       };
 
       try {
+      setPostSaving(true);
       await updatePost(editingPostId, updatePayload);
 
       const updatedPosts = posts.map((post) =>
@@ -979,6 +981,8 @@ const saveChanges = async () => {
     } catch (error) {
       console.error("Edit post error:", error);
       showToast("Could not update post. Try again.", "error");
+    } finally {
+      setPostSaving(false);
     }
   };
 
@@ -1001,58 +1005,6 @@ const saveChanges = async () => {
       setLoggingOut(false);
     }
   };
-
-  const loadDemo = () => {
-    const result = loadDemoActivity(account, profile);
-    const allPosts = safeJson("forsaPosts", []);
-    const allMessages = safeJson("forsaMessages", []);
-
-    if (isHiring) {
-      setPosts(
-        allPosts.filter(
-          (post) =>
-            post.ownerEmail === account.email ||
-            (!post.ownerEmail && post.ownerName === account.name) ||
-            (!post.ownerEmail && !post.ownerName)
-        )
-      );
-    } else {
-      setPosts(allPosts);
-    }
-
-    setMessages(allMessages);
-
-    showToast(
-      `Demo activity loaded: ${result.postsAdded} posts, ${result.messagesAdded} application, ${result.notificationsAdded} notifications.`
-    );
-  };
-
-  const clearDemo = () => {
-    const confirmed = window.confirm("Remove only the demo activity?");
-    if (!confirmed) return;
-
-    clearDemoActivity();
-
-    const allPosts = safeJson("forsaPosts", []);
-    const allMessages = safeJson("forsaMessages", []);
-    showToast("Demo activity removed");
-
-    if (isHiring) {
-      setPosts(
-        allPosts.filter(
-          (post) =>
-            post.ownerEmail === account.email ||
-            (!post.ownerEmail && post.ownerName === account.name) ||
-            (!post.ownerEmail && !post.ownerName)
-        )
-      );
-    } else {
-      setPosts(allPosts);
-    }
-
-    setMessages(allMessages);
-  };
-
 
   const requestVerification = () => {
     if (!isHiring) return;
@@ -1179,16 +1131,18 @@ const saveChanges = async () => {
               <div className="grid grid-cols-2 gap-2 sm:flex">
                 <button
                   onClick={cancelEdit}
-                  className="forsa-click rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-neutral-500"
+                  disabled={savingProfile}
+                  className="forsa-click rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium transition hover:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel
                 </button>
 
                 <button
                   onClick={saveChanges}
-                  className="forsa-click rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
+                  disabled={savingProfile}
+                  className="forsa-click rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Save changes
+                  {savingProfile ? "Saving..." : "Save changes"}
                 </button>
               </div>
             )}
@@ -1240,7 +1194,6 @@ const saveChanges = async () => {
   setProfile={setProfile}
   isHiring={isHiring}
   updateAccount={updateAccount}
-  toggleProfileItem={toggleProfileItem}
               handleCvUpload={handleCvUploadPersist}
               handleCvView={handleCvView}
               experiences={experiences}
@@ -1270,7 +1223,7 @@ const saveChanges = async () => {
                 <PostsTab
                   posts={posts}
                   postsLoading={postsLoading}
-                  deletePost={deletePost}
+                  deletePost={requestDeletePost}
                   togglePostStatus={togglePostStatus}
                   startEditPost={startEditPost}
                   editingPostId={editingPostId}
@@ -1278,6 +1231,7 @@ const saveChanges = async () => {
                   updateEditingPost={updateEditingPost}
                   savePostEdit={savePostEdit}
                   cancelPostEdit={cancelPostEdit}
+                  postSaving={postSaving}
                   getApplicantsCount={getApplicantsCount}
                   openApplicants={setSelectedApplicantsPost}
                 />
@@ -1321,8 +1275,6 @@ const saveChanges = async () => {
                 <SettingsTab
   logout={handleLogout}
   loggingOut={loggingOut}
-  loadDemo={loadDemo}
-  clearDemo={clearDemo}
   isHiring={isHiring}
   account={account}
   onRequestVerification={requestVerification}
@@ -1413,6 +1365,40 @@ const saveChanges = async () => {
               className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               {deletingAccount ? "Deleting..." : "Delete forever"}
+            </button>
+          </div>
+        </Modal>
+        <Modal
+          open={Boolean(deletingPostCandidate)}
+          title="Delete opportunity?"
+          onClose={() => {
+            if (!deletingPost) {
+              setDeletingPostCandidate(null);
+            }
+          }}
+        >
+          <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4">
+            <p className="text-sm leading-6 text-red-700">
+              "{deletingPostCandidate?.title || "This opportunity"}" will be
+              permanently deleted from Forsa. This action cannot be undone.
+            </p>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-2">
+            <button
+              disabled={deletingPost}
+              onClick={() => setDeletingPostCandidate(null)}
+              className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              disabled={deletingPost}
+              onClick={confirmDeletePost}
+              className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {deletingPost ? "Deleting..." : "Delete"}
             </button>
           </div>
         </Modal>
@@ -2074,6 +2060,7 @@ function PostsTab({
   updateEditingPost,
   savePostEdit,
   cancelPostEdit,
+  postSaving,
   getApplicantsCount,
   openApplicants,
 }) {
@@ -2120,6 +2107,7 @@ function PostsTab({
                 updateEditingPost={updateEditingPost}
                 savePostEdit={savePostEdit}
                 cancelPostEdit={cancelPostEdit}
+                saving={postSaving}
               />
             ) : (
               <PostCard
@@ -2145,6 +2133,7 @@ function EditPostCard({
   updateEditingPost,
   savePostEdit,
   cancelPostEdit,
+  saving,
 }) {
   return (
     <div className="forsa-card rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
@@ -2275,11 +2264,11 @@ function EditPostCard({
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-2">
-        <button onClick={cancelPostEdit} className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium">
+        <button onClick={cancelPostEdit} disabled={saving} className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60">
           Cancel
         </button>
-        <button onClick={savePostEdit} className="forsa-click rounded-full forsa-button px-4 py-2 text-sm font-medium text-white">
-          Save
+        <button onClick={savePostEdit} disabled={saving} className="forsa-click rounded-full forsa-button px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60">
+          {saving ? "Saving..." : "Save"}
         </button>
       </div>
     </div>
@@ -2386,7 +2375,7 @@ function PostCard({
         </button>
 
         <button
-          onClick={() => deletePost(post.id)}
+          onClick={() => deletePost(post)}
           className="col-span-2 inline-flex items-center justify-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 sm:col-span-1"
         >
           <FaTrash className="text-xs" />
@@ -2759,7 +2748,6 @@ function ProfileEdit({
   setProfile,
   isHiring,
   updateAccount,
-  toggleProfileItem,
   handleCvUpload,
   handleCvView,
   removeCv,
@@ -3154,6 +3142,18 @@ function ProfileEdit({
           })
         }
         placeholder="e.g. 2026"
+      />
+
+      <Field
+        label="Location"
+        value={account.education?.location || ""}
+        onChange={(value) =>
+          updateAccount("education", {
+            ...account.education,
+            location: value,
+          })
+        }
+        placeholder="e.g. Beirut, Lebanon"
       />
     </div>
   </div>
@@ -3760,127 +3760,6 @@ function ProfileEdit({
   );
 }
 
-function SmartCvAutofill({ profile, toggleProfileItem }) {
-  const [cvText, setCvText] = useState("");
-  const [suggestedSkills, setSuggestedSkills] = useState([]);
-  const [suggestedLooking, setSuggestedLooking] = useState([]);
-
-  const analyzeCv = () => {
-    const text = cvText.toLowerCase();
-
-    const skills = skillOptions.filter((skill) =>
-      text.includes(skill.toLowerCase())
-    );
-
-    const looking = lookingOptions.filter((item) => {
-      const value = item.toLowerCase();
-
-      return (
-        text.includes(value) ||
-        (value.includes("internship") && text.includes("intern")) ||
-        (value.includes("freelance") && text.includes("freelancer")) ||
-        (value.includes("remote") && text.includes("remote")) ||
-        (value.includes("part-time") && text.includes("part time"))
-      );
-    });
-
-    setSuggestedSkills(skills);
-    setSuggestedLooking(looking);
-  };
-
-  const applySuggestions = () => {
-    suggestedSkills.forEach((skill) => {
-      if (!profile.skills.includes(skill)) {
-        toggleProfileItem("skills", skill);
-      }
-    });
-
-    suggestedLooking.forEach((item) => {
-      if (!profile.lookingFor.includes(item)) {
-        toggleProfileItem("lookingFor", item);
-      }
-    });
-  };
-
-  const hasSuggestions = suggestedSkills.length > 0 || suggestedLooking.length > 0;
-
-  return (
-    <div className="mt-6 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4 shadow-sm sm:rounded-[26px] sm:p-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="font-medium">Smart CV Autofill</p>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600">
-            Paste CV text and Forsa will suggest skills and opportunity interests.
-          </p>
-        </div>
-
-        <span className="w-fit rounded-full forsa-button px-3 py-1 text-xs font-medium text-white">
-          Beta
-        </span>
-      </div>
-
-      <textarea
-        value={cvText}
-        onChange={(e) => setCvText(e.target.value)}
-        placeholder="Paste CV text here..."
-        className="mt-4 min-h-32 w-full resize-none rounded-2xl border border-[var(--forsa-border)] bg-[var(--forsa-bg)] px-4 py-3 text-sm outline-none transition focus:border-[var(--forsa-green)]"
-      />
-
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <button
-          type="button"
-          onClick={analyzeCv}
-          disabled={!cvText.trim()}
-          className={`rounded-full px-5 py-3 text-sm font-medium ${
-            cvText.trim()
-              ? "forsa-button text-white"
-              : "cursor-not-allowed bg-neutral-200 text-neutral-400"
-          }`}
-        >
-          Analyze CV
-        </button>
-
-        {hasSuggestions && (
-          <button
-            type="button"
-            onClick={applySuggestions}
-            className="rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-medium"
-          >
-            Apply suggestions
-          </button>
-        )}
-      </div>
-
-      {hasSuggestions && (
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <SuggestionBox title="Suggested skills" items={suggestedSkills} />
-          <SuggestionBox title="Suggested interests" items={suggestedLooking} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SuggestionBox({ title, items }) {
-  return (
-    <div className="rounded-2xl bg-[var(--forsa-bg)] p-4">
-      <p className="text-sm font-medium">{title}</p>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        {items.length > 0 ? (
-          items.map((item) => (
-            <span key={item} className="rounded-full bg-white px-3 py-1.5 text-xs">
-              {item}
-            </span>
-          ))
-        ) : (
-          <p className="text-sm text-neutral-500">No matches found.</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function RecentlyViewedPreview({ jobs }) {
   return (
     <div className="mt-5 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:mt-6 sm:rounded-[26px] sm:p-5">
@@ -4185,8 +4064,6 @@ function InterviewSummary({ interview }) {
 function SettingsTab({
   logout,
   loggingOut,
-  loadDemo,
-  clearDemo,
   isHiring,
   account,
   onRequestVerification,
@@ -4228,7 +4105,7 @@ function SettingsTab({
       <div className="rounded-[24px] bg-[#fff5f5] p-4 sm:rounded-[26px] sm:p-5 md:col-span-2">
         <p className="font-medium text-red-700">Danger zone</p>
         <p className="mt-2 text-sm leading-6 text-red-600">
-          Reset this demo account and remove saved local data.
+          Permanently deletes your account, your posted opportunities, and your saved local data. This action cannot be undone.
         </p>
 
         <button
@@ -4290,78 +4167,6 @@ function CvBox({ cv }) {
     </div>
   );
 }
-
-function CvLinkEditor({ cv, onSave, onRemove }) {
-  const [url, setUrl] = useState(cv?.url || "");
-
-  return (
-    <div className="mt-6 rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full forsa-button text-white">
-          <FaLink />
-        </div>
-
-        <div>
-          <p className="font-medium">CV / Resume link</p>
-          <p className="mt-2 text-sm leading-6 text-neutral-600">
-            Paste a public Google Drive, Dropbox, OneDrive, Notion, or portfolio CV link.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 rounded-2xl bg-white p-4">
-        <label className="text-sm font-medium">Public CV link</label>
-
-        <input
-          value={url}
-          onChange={(event) => setUrl(event.target.value)}
-          placeholder="https://drive.google.com/..."
-          className="mt-2 w-full rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--forsa-green)]"
-        />
-
-        <p className="mt-2 text-xs leading-5 text-neutral-500">
-          Make sure the link is public or anyone with the link can view it.
-        </p>
-
-        {cv?.url && (
-          <a
-            href={cv.url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-sm font-medium text-[var(--forsa-green)]"
-          >
-            <FaExternalLinkAlt className="text-xs" />
-            Open current CV
-          </a>
-        )}
-
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => onSave(url)}
-            className="forsa-click rounded-full forsa-button px-5 py-3 text-sm font-medium text-white transition hover:bg-[var(--forsa-green-light)]"
-          >
-            Save CV link
-          </button>
-
-          {cv && (
-            <button
-              type="button"
-              onClick={() => {
-                setUrl("");
-                onRemove();
-              }}
-              className="rounded-full border border-red-200 bg-white px-5 py-3 text-sm font-medium text-red-600"
-            >
-              Remove CV
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 function ApplicantsModal({ post, applicants, onClose, onStatusChange, onOpenMessage }) {
   return (
@@ -4534,39 +4339,16 @@ function StatCard({ label, value }) {
   );
 }
 
-function Field({ label, value, onChange }) {
+function Field({ label, value, onChange, placeholder }) {
   return (
     <div>
       <label className="text-sm font-medium">{label}</label>
       <input
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
         className="mt-2 w-full rounded-2xl border border-[var(--forsa-border)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--forsa-green)]"
       />
-    </div>
-  );
-}
-
-function EditBox({ title, options, selected, onToggle }) {
-  return (
-    <div className="rounded-[24px] bg-[var(--forsa-bg)] p-4 sm:rounded-[26px] sm:p-5">
-      <p className="text-sm font-medium">{title}</p>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {options.map((item) => (
-          <button
-            key={item}
-            onClick={() => onToggle(item)}
-            className={`rounded-full border px-3 py-1.5 text-sm transition ${
-              selected.includes(item)
-                ? "border-black forsa-button text-white"
-                : "border-neutral-300 bg-white"
-            }`}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

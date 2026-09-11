@@ -1,5 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  where,
+} from "firebase/firestore";
 import {
   FaArrowRight,
   FaBell,
@@ -7,14 +16,16 @@ import {
   FaCheckCircle,
   FaEnvelope,
   FaFlag,
+  FaGlobe,
+  FaInstagram,
   FaMapMarkerAlt,
   FaRegBell,
   FaShieldAlt,
   FaUserTie,
-  FaUsers,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
+import { db } from "../lib/firebase";
 
 function safeJson(key, fallback) {
   try {
@@ -28,34 +39,127 @@ function writeJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function withProtocol(value) {
+  const url = String(value || "").trim();
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  return `https://${url}`;
+}
+
+function instagramHref(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  if (raw.includes("/") || raw.includes("instagram.com")) {
+    return withProtocol(raw);
+  }
+
+  return `https://instagram.com/${raw.replace(/^@/, "")}`;
+}
+
 export default function CompanyProfile() {
   const { email } = useParams();
 
   const decodedEmail = decodeURIComponent(email || "");
   const account = safeJson("forsaAccount", null);
-  const users = safeJson("forsaUsers", []);
-  const posts = safeJson("forsaPosts", []);
+  const localUsers = safeJson("forsaUsers", []);
+  const localPosts = safeJson("forsaPosts", []);
   const trustedPosters = safeJson("forsaTrustedPosters", []);
   const [followedCompanies, setFollowedCompanies] = useState(
     safeJson("forsaFollowedCompanies", [])
   );
 
-  const companyUser = users.find(
+  const [remoteCompany, setRemoteCompany] = useState(null);
+  const [remotePosts, setRemotePosts] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+
+    const load = async () => {
+      let ownerUid = null;
+
+      try {
+        const byOwner = await getDocs(
+          query(
+            collection(db, "posts"),
+            where("ownerEmail", "==", decodedEmail),
+            limit(1)
+          )
+        );
+        ownerUid = byOwner.docs[0]?.data()?.ownerUid || null;
+
+        if (!ownerUid) {
+          const byContact = await getDocs(
+            query(
+              collection(db, "posts"),
+              where("contact", "==", decodedEmail),
+              limit(1)
+            )
+          );
+          ownerUid = byContact.docs[0]?.data()?.ownerUid || null;
+        }
+      } catch (error) {
+        console.error("Company lookup error:", error);
+      }
+
+      if (!ownerUid) return;
+
+      try {
+        const userSnap = await getDoc(doc(db, "users", ownerUid));
+
+        if (active && userSnap.exists()) {
+          setRemoteCompany({ uid: userSnap.id, ...userSnap.data() });
+        }
+      } catch {
+        // Signed-out visitors cannot read users/{uid} (rules require sign-in);
+        // the company posts remain the public source of truth.
+      }
+
+      try {
+        const postsSnap = await getDocs(
+          query(collection(db, "posts"), where("ownerUid", "==", ownerUid))
+        );
+
+        if (active) {
+          setRemotePosts(
+            postsSnap.docs
+              .map((item) => ({ id: item.id, ...item.data() }))
+              .filter((post) => post.status !== "closed")
+          );
+        }
+      } catch (error) {
+        console.error("Company posts load error:", error);
+      }
+    };
+
+    load();
+
+    return () => {
+      active = false;
+    };
+  }, [decodedEmail]);
+
+  const localCompanyUser = localUsers.find(
     (user) =>
       user.accountType === "hiring" &&
       (user.email === decodedEmail || user.companyEmail === decodedEmail)
   );
 
-  const companyPosts = posts.filter(
+  const localCompanyPosts = localPosts.filter(
     (post) =>
       post.status !== "closed" &&
       (post.ownerEmail === decodedEmail ||
         post.contact === decodedEmail ||
-        post.company === companyUser?.companyName ||
-        post.company === companyUser?.name)
+        post.company === localCompanyUser?.companyName ||
+        post.company === localCompanyUser?.name)
   );
 
+  const companyPosts = remotePosts.length > 0 ? remotePosts : localCompanyPosts;
   const fallbackPost = companyPosts[0];
+
+  const companyUser = remoteCompany || localCompanyUser;
 
   const companyName =
     companyUser?.companyName ||
@@ -64,20 +168,19 @@ export default function CompanyProfile() {
     "Company";
 
   const companyCity = companyUser?.city || fallbackPost?.location || "Lebanon";
-  const isTrusted = trustedPosters.includes(decodedEmail) || companyUser?.trusted;
+  const isTrusted =
+    trustedPosters.includes(decodedEmail) || Boolean(companyUser?.trusted);
   const isVerified = Boolean(companyUser?.verified);
+
+  const companyBio = companyUser?.companyBio || "";
+  const website = companyUser?.website || "";
+  const instagram = companyUser?.instagram || "";
 
   const companyKey = decodedEmail || companyName;
 
   const isFollowing = followedCompanies.some(
     (item) => item.email === companyKey || item.name === companyName
   );
-
-  const followersCount = useMemo(() => {
-    return followedCompanies.filter(
-      (item) => item.email === companyKey || item.name === companyName
-    ).length;
-  }, [followedCompanies, companyKey, companyName]);
 
   const toggleFollow = () => {
     if (!account) {
@@ -185,13 +288,52 @@ export default function CompanyProfile() {
             </div>
           </div>
 
-          <div className="relative mt-7 grid gap-3 sm:grid-cols-4">
+          <div className="relative mt-7 grid gap-3 sm:grid-cols-3">
             <Stat label="Active posts" value={companyPosts.length} />
             <Stat label="Location" value={companyCity} />
             <Stat label="Trust" value={isVerified ? "Verified" : isTrusted ? "Trusted" : "New poster"} />
-            <Stat label="Followers" value={followersCount + (isFollowing ? 1 : 0)} />
           </div>
         </div>
+
+        {(companyBio || website || instagram) && (
+          <div className="relative mt-5 rounded-[28px] border border-[var(--forsa-border)] bg-white p-5 shadow-sm sm:p-6">
+            <p className="text-sm font-medium text-neutral-500">About</p>
+
+            {companyBio && (
+              <p className="mt-3 max-w-3xl whitespace-pre-line text-sm leading-7 text-neutral-700 sm:text-base">
+                {companyBio}
+              </p>
+            )}
+
+            {(website || instagram) && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {website && (
+                  <a
+                    href={withProtocol(website)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-sm font-medium text-[var(--forsa-primary)] transition hover:border-[var(--forsa-primary)]"
+                  >
+                    <FaGlobe className="text-xs" />
+                    Website
+                  </a>
+                )}
+
+                {instagramHref(instagram) && (
+                  <a
+                    href={instagramHref(instagram)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-sm font-medium text-[var(--forsa-primary)] transition hover:border-[var(--forsa-primary)]"
+                  >
+                    <FaInstagram className="text-xs" />
+                    Instagram
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-7 flex items-end justify-between gap-4">
           <div>
