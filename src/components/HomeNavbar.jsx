@@ -1,12 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowRight, FaBars, FaTimes } from "react-icons/fa";
+import {
+  FaArrowRight,
+  FaBars,
+  FaBriefcase,
+  FaPlus,
+  FaTimes,
+  FaUser,
+} from "react-icons/fa";
 import BrandLogo from "./BrandLogo";
+import AccountMenu from "./AccountMenu";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function HomeNavbar() {
-  
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { account, loading } = useAuth();
 
   const goTo = (path) => {
     setMobileOpen(false);
@@ -64,27 +73,31 @@ export default function HomeNavbar() {
 
         {/* Desktop Actions */}
         <div className="hidden items-center gap-2 sm:flex">
+          {loading ? null : account ? (
+            <AccountMenu containerClassName="hidden sm:block" />
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => goTo("/auth?mode=login")}
+                className="rounded-full px-4 py-2.5 text-[13px] font-semibold text-neutral-600 transition-all duration-200 hover:bg-purple-50 hover:text-[var(--forsa-primary)]"
+              >
+                Log in
+              </button>
 
-          <button
-            type="button"
-            onClick={() => goTo("/auth?mode=login")}
-            className="rounded-full px-4 py-2.5 text-[13px] font-semibold text-neutral-600 transition-all duration-200 hover:bg-purple-50 hover:text-[var(--forsa-primary)]"
-          >
-            Log in
-          </button>
+              <button
+                type="button"
+                onClick={() => goTo("/auth?mode=signup")}
+                className="group inline-flex items-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_6px_18px_rgba(82,39,255,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--forsa-primary-dark)] hover:shadow-[0_8px_22px_rgba(82,39,255,0.22)]"
+              >
+                Get started
 
-          <button
-            type="button"
-            onClick={() => goTo("/auth?mode=signup")}
-            className="group inline-flex items-center gap-2 rounded-full bg-[var(--forsa-primary)] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_6px_18px_rgba(82,39,255,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--forsa-primary-dark)] hover:shadow-[0_8px_22px_rgba(82,39,255,0.22)]"
-          >
-            Get started
-
-            <FaArrowRight
-              className="text-[10px] transition-transform duration-200 group-hover:translate-x-0.5"
-            />
-          </button>
-
+                <FaArrowRight
+                  className="text-[10px] transition-transform duration-200 group-hover:translate-x-0.5"
+                />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Mobile Toggle */}
@@ -148,7 +161,37 @@ export default function HomeNavbar() {
               <FaArrowRight className="text-[10px] text-neutral-400" />
             </button>
 
-            <div className="grid grid-cols-2 gap-2 pt-4 pb-2">
+            {loading ? null : account ? (
+              <div className="grid grid-cols-1 gap-2 pt-4 pb-2">
+                <button
+                  type="button"
+                  onClick={() => goTo("/applications")}
+                  className="flex items-center gap-2 rounded-full border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-700 transition-all duration-200 hover:border-purple-200 hover:bg-purple-50 hover:text-[var(--forsa-primary)]"
+                >
+                  <FaBriefcase className="text-xs text-neutral-400" />
+                  My applications
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => goTo("/post")}
+                  className="flex items-center gap-2 rounded-full border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-700 transition-all duration-200 hover:border-purple-200 hover:bg-purple-50 hover:text-[var(--forsa-primary)]"
+                >
+                  <FaPlus className="text-xs text-neutral-400" />
+                  Post an opportunity
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => goTo("/profile")}
+                  className="flex items-center gap-2 rounded-full border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-700 transition-all duration-200 hover:border-purple-200 hover:bg-purple-50 hover:text-[var(--forsa-primary)]"
+                >
+                  <FaUser className="text-xs text-neutral-400" />
+                  Profile
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 pt-4 pb-2">
 
               <button
                 type="button"
@@ -166,8 +209,9 @@ export default function HomeNavbar() {
                 Get started
               </button>
 
-            </div>
-          </nav>
+              </div>
+              )}
+            </nav>
         </div>
       )}
     </header>
