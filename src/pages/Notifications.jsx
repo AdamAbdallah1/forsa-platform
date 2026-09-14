@@ -16,6 +16,7 @@ import {
   deleteNotification,
   getUserNotifications,
   markNotificationRead,
+  notificationMatchesUser,
 } from "../lib/notificationService";
 import {
   acceptConnection,
@@ -37,24 +38,26 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState(() =>
     safeJson(CACHE_KEY, [])
   );
-  const [loading, setLoading] = useState(true);
+
+  const hasAccountIdentifiers = Boolean(account?.email || account?.uid);
+
+  const [loading, setLoading] = useState(!hasAccountIdentifiers);
+
   const [loadError, setLoadError] = useState("");
   const [batchActionLoading, setBatchActionLoading] = useState(false);
 
   useEffect(() => {
-    if (!account?.email) {
-      setLoading(false);
-      return;
-    }
+    if (!account?.email && !account?.uid) return;
 
     let isMounted = true;
 
     const loadNotifications = async () => {
       setLoadError("");
       try {
-        const data = await getUserNotifications(
-          String(account.email || "").trim().toLowerCase()
-        );
+        const data = await getUserNotifications({
+          email: String(account.email || "").trim().toLowerCase(),
+          uid: account.uid,
+        });
 
         if (isMounted) {
           setNotifications(data);
@@ -74,19 +77,20 @@ export default function Notifications() {
     return () => {
       isMounted = false;
     };
-  }, [account?.email]);
+  }, [account?.email, account?.uid]);
 
   const filteredNotifications = useMemo(() => {
-    if (!account?.email) return [];
+    if (!account?.email && !account?.uid) return [];
 
     return notifications
-      .filter((item) => {
-        const target = String(item.targetEmail || "").trim().toLowerCase();
-        const email = String(account.email || "").trim().toLowerCase();
-        return !target || target === email;
-      })
+      .filter((item) =>
+        notificationMatchesUser(item, {
+          email: account?.email,
+          uid: account?.uid,
+        })
+      )
       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-  }, [notifications, account?.email]);
+  }, [notifications, account?.email, account?.uid]);
 
   const stats = useMemo(() => {
     const total = filteredNotifications.length;
@@ -124,11 +128,14 @@ export default function Notifications() {
     const originalState = [...notifications];
     setBatchActionLoading(true);
 
-    const updated = notifications.map((item) => {
-      const target = String(item.targetEmail || "").trim().toLowerCase();
-      const email = String(account.email || "").trim().toLowerCase();
-      return !target || target === email ? { ...item, read: true } : item;
-    });
+    const updated = notifications.map((item) =>
+      notificationMatchesUser(item, {
+        email: account?.email,
+        uid: account?.uid,
+      })
+        ? { ...item, read: true }
+        : item
+    );
 
     syncNotifications(updated);
 

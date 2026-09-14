@@ -5,6 +5,7 @@ import SEO from "../components/SEO";
 import AppHeader from "../components/AppHeader";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
+import { syncPublicProfile } from "../lib/publicProfileService";
 import { useAuth } from "../contexts/AuthContext";
 import {
   requestCvUpload,
@@ -471,6 +472,12 @@ const handleDeleteAccount = async () => {
         { merge: true }
       );
 
+      try {
+        await syncPublicProfile(account, { cv: nextCv });
+      } catch (error) {
+        console.error("Public profile sync failed:", error);
+      }
+
       void requestProfileCompleteEmail();
       void requestProfileImprovementEmail();
     }
@@ -604,6 +611,25 @@ const saveChanges = async () => {
         profileData,
         { merge: true }
       );
+
+      if (isHiring) {
+        await syncPublicProfile(nextAccount).catch((error) => {
+          console.error("Public profile sync failed:", error);
+        });
+      } else {
+        await syncPublicProfile(nextAccount, {
+          bio:
+            nextAccount.bio ||
+            nextAccount.summary ||
+            nextAccount.about ||
+            "",
+          skills: cleanProfile.skills,
+          lookingFor: cleanProfile.lookingFor,
+          cv: cleanProfile.cv,
+        }).catch((error) => {
+          console.error("Public profile sync failed:", error);
+        });
+      }
 
       void requestProfileCompleteEmail();
       void requestProfileImprovementEmail();

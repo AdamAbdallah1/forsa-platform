@@ -27,6 +27,7 @@ import {
 } from "firebase/firestore";
 
 import { auth, db } from "./firebase";
+import { syncPublicProfile } from "./publicProfileService";
 
 /*
  * Production destination for Firebase's password-reset action links.
@@ -67,6 +68,17 @@ export function getAccount() {
 
 export function setSession(account) {
   localStorage.setItem("forsaAccount", JSON.stringify(account));
+}
+
+/*
+ * Refresh the public profile projection from a resolved account, best
+ * effort and non-blocking. A projection failure must never interrupt
+ * login, registration, or profile saves.
+ */
+function bestEffortPublicProfileSync(user) {
+  syncPublicProfile(user).catch((error) => {
+    console.error("Public profile sync failed:", error);
+  });
 }
 
 /* =========================================================
@@ -134,6 +146,8 @@ export async function changeUsername(newUsername) {
     };
 
     setSession(next);
+
+    bestEffortPublicProfileSync(next);
 
     return next;
   };
@@ -409,6 +423,8 @@ export async function registerUser(accountData) {
    *
    * The user must verify the email first.
    */
+  bestEffortPublicProfileSync(cleanAccount);
+
   return {
     ...safeAccountData,
     uid,
@@ -500,6 +516,8 @@ export async function loginUser(identifier, password) {
 
   setSession(account);
 
+  bestEffortPublicProfileSync(account);
+
   return account;
 }
 
@@ -579,6 +597,14 @@ export async function syncEmailVerification() {
   await updateDoc(userRef, {
     emailVerified: true,
     updatedAt: serverTimestamp(),
+  });
+
+  /*
+   * Publish the public projection once the account is verified.
+   */
+  bestEffortPublicProfileSync({
+    ...snap.data(),
+    uid: user.uid,
   });
 
   return true;
@@ -693,6 +719,8 @@ export async function completeEmailVerification() {
 
   setSession(account);
 
+  bestEffortPublicProfileSync(account);
+
   return true;
 }
 
@@ -717,6 +745,8 @@ export async function updateUserAccount(uid, data) {
   };
 
   setSession(next);
+
+  bestEffortPublicProfileSync(next);
 
   return next;
 }
@@ -752,6 +782,8 @@ export async function loginWithGoogle() {
     };
 
     setSession(account);
+
+    bestEffortPublicProfileSync(account);
 
     return {
       account,
@@ -792,6 +824,8 @@ export async function loginWithGoogle() {
   };
 
   setSession(sessionAccount);
+
+  bestEffortPublicProfileSync(sessionAccount);
 
   return {
     account: sessionAccount,

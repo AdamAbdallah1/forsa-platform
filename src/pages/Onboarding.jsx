@@ -17,6 +17,7 @@ import {
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
 import { db } from "../lib/firebase";
+import { syncPublicProfile } from "../lib/publicProfileService";
 import { useAuth } from "../contexts/AuthContext";
 import { requestWelcomeEmail } from "../lib/welcomeEmail";
 import { requestProfileCompleteEmail } from "../lib/profileCompleteEmail";
@@ -197,6 +198,12 @@ export default function Onboarding() {
         { merge: true }
       );
     }
+
+    try {
+      await syncPublicProfile(savedAccount, { cv: nextCv });
+    } catch (error) {
+      console.error("Public profile sync failed:", error);
+    }
   };
 
   const handleCvFileSelect = async (event) => {
@@ -306,6 +313,19 @@ export default function Onboarding() {
         );
       } catch (error) {
         console.error("Onboarding Firestore sync failed:", error);
+      }
+
+      try {
+        await syncPublicProfile(savedAccount, {
+          city: cityPreference.trim(),
+          availability,
+          skills: selectedSkills,
+          lookingFor: selectedLooking,
+          cv: cv || null,
+          portfolioLinks: portfolio.trim() || "",
+        });
+      } catch (error) {
+        console.error("Public profile sync failed:", error);
       }
     }
 

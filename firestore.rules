@@ -42,8 +42,44 @@ service cloud.firestore {
           );
     }
 
-    match /users/{userId} {
-  allow read: if signedIn();
+    // Public profile projection: an explicitly whitelisted, intentionally
+  // public mirror of a user's profile. Maintained by syncPublicProfile()
+  // on login/profile-save from the user's OWN private document. The
+  // document may never carry sensitive fields, and seeker documents may
+  // never carry email/company fields.
+  function publicProfileSafe(data) {
+    return !data.keys().hasAny([
+      "phone",
+      "cv",
+      "publicCv",
+      "emailVerified",
+      "role",
+      "trusted",
+      "verified",
+      "isNewRegistration",
+      "welcomeEmailSentAt",
+      "profileCompleteEmailSentAt",
+      "profileImprovementEmailSentAt",
+      "onboardingCompletedAt"
+    ]);
+  }
+
+  function seekerProfileSafe(data) {
+    return data.accountType != "finder" ||
+      !data.keys().hasAny([
+        "email",
+        "companyEmail"
+      ]);
+  }
+
+  match /users/{userId} {
+  // Users may only read their own private document. Admins retain full
+  // read access. All other-user reads go through the intentionally-public
+  // publicProfiles/{uid} projection below, which never carries private
+  // fields (email, phone, CV URLs, administrative data).
+  allow read: if signedIn() && request.auth.uid == userId;
+
+  allow read: if isAdmin();
 
   allow create: if signedIn() &&
     request.auth.uid == userId &&
@@ -129,6 +165,20 @@ service cloud.firestore {
   allow delete: if signedIn() &&
     request.auth.uid == userId;
 }
+
+    match /publicProfiles/{uid} {
+      allow read: if true;
+
+      allow create, update: if signedIn() &&
+        request.auth.uid == uid &&
+        publicProfileSafe(request.resource.data) &&
+        seekerProfileSafe(request.resource.data);
+
+      allow delete: if signedIn() &&
+        request.auth.uid == uid;
+
+      allow create, update, delete: if isAdmin();
+    }
 
     // Unique username mapping: one document per lowercased username.
     // Created atomically with the user profile during registration.
@@ -278,8 +328,14 @@ service cloud.firestore {
       // Admins may create system notifications.
       allow create: if isAdmin();
 
+      // Notifications are recipient-only. Recipients are matched either by
+      // their verified token email (legacy/new_application/new_message docs)
+      // or by their UID (connection notifications, which never carry a
+      // recipient email). targetUid is always bound to the true recipient by
+      // the create rules above, so a UID match can never be forged.
       allow read, update, delete: if signedIn() &&
         (
+          resource.data.targetUid == request.auth.uid ||
           resource.data.targetEmail == request.auth.token.email ||
           isAdmin()
         );
@@ -337,11 +393,70 @@ service cloud.firestore {
     match /posts/{postId} {
       allow read: if true;
 
+      // Post creation. Normal owners may create a post, but moderation,
+      // trust, and counter fields must start in the application's safe
+      // defaults and can never be chosen by the client.
       allow create: if signedIn() &&
         request.resource.data.ownerUid == request.auth.uid &&
-        hasValidExternalApplication(request.resource.data);
+        hasValidExternalApplication(request.resource.data) &&
+
+        // Moderation/trust fields are only ever set by an admin later;
+        // clients may only create a post with the safe defaults (featured
+        // defaults to false, no approved/suspicious flags yet).
+        (
+          !request.resource.data.keys().hasAny(["approved"]) ||
+          request.resource.data.approved == false
+        ) &&
+        (
+          !request.resource.data.keys().hasAny(["suspicious"]) ||
+          request.resource.data.suspicious == false
+        ) &&
+        (
+          !request.resource.data.keys().hasAny(["featured"]) ||
+          request.resource.data.featured == false
+        ) &&
+        request.resource.data.qualityScore is number &&
+        request.resource.data.qualityScore >= 0 &&
+        request.resource.data.qualityScore <= 100 &&
+
+        // Trust signals must mirror the owner's admin-controlled user doc;
+        // a client cannot self-certify a post.
+        request.resource.data.verified ==
+          (
+            get(
+              /databases/$(database)/documents/users/$(request.resource.data.ownerUid)
+            ).data.verified == true
+          ) &&
+        request.resource.data.trusted ==
+          (
+            get(
+              /databases/$(database)/documents/users/$(request.resource.data.ownerUid)
+            ).data.trusted == true
+          ) &&
+
+        // Moderation/status state must start in the safe values the
+        // application uses on publish (agency/abroad posts are created
+        // closed + pending review by createPost).
+        request.resource.data.status in ["active", "closed"] &&
+        request.resource.data.reviewStatus in ["approved", "pending"] &&
+        request.resource.data.moderationStatus in ["approved", "pending"] &&
+        request.resource.data.safetyStatus == "clear" &&
+
+        // Counters must start at zero. applyClicks is created on the first
+        // recorded click, so its absence is also valid.
+        request.resource.data.views == 0 &&
+        request.resource.data.shares == 0 &&
+        request.resource.data.saves == 0 &&
+        request.resource.data.reports == 0 &&
+        request.resource.data.applications == 0 &&
+        (
+          !request.resource.data.keys().hasAny(["applyClicks"]) ||
+          request.resource.data.applyClicks == 0
+        );
 
       allow update: if signedIn() &&
+        // Apply-click increments remain limited to non-hiring (seeker)
+        // accounts so hiring accounts cannot inflate their own counters.
         (
           !request.resource.data.diff(resource.data)
             .affectedKeys()
@@ -351,10 +466,39 @@ service cloud.firestore {
           ).data.accountType != "hiring"
         ) &&
         (
+          // Admins retain full moderation, verification, trusting,
+          // featuring, and quality-score control.
+          isAdmin() ||
+
+          // Post owners may edit legitimate content and application fields,
+          // but never moderation/trust/featured fields or any counter.
           (
+            resource.data.ownerUid == request.auth.uid &&
+            !request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasAny([
+                "approved",
+                "verified",
+                "trusted",
+                "featured",
+                "suspicious",
+                "qualityScore",
+                "reviewStatus",
+                "moderationStatus",
+                "safetyStatus",
+                "views",
+                "shares",
+                "applications",
+                "saves",
+                "reports",
+                "applyClicks"
+              ]) &&
+            // Owners may still open/close their own listing.
             (
-              resource.data.ownerUid == request.auth.uid ||
-              isAdmin()
+              !request.resource.data.diff(resource.data)
+                .affectedKeys()
+                .hasAny(["status"]) ||
+              request.resource.data.status in ["active", "closed"]
             ) &&
             (
               !request.resource.data.diff(resource.data)
@@ -371,34 +515,54 @@ service cloud.firestore {
             )
           ) ||
 
-          request.resource.data.diff(resource.data)
-            .affectedKeys()
-            .hasOnly(["views", "updatedAt"]) ||
-
-          request.resource.data.diff(resource.data)
-            .affectedKeys()
-            .hasOnly(["shares", "updatedAt"]) ||
-
-          request.resource.data.diff(resource.data)
-            .affectedKeys()
-            .hasOnly(["applications", "updatedAt"]) ||
-
-          request.resource.data.diff(resource.data)
-            .affectedKeys()
-            .hasOnly(["saves", "updatedAt"]) ||
-
-          request.resource.data.diff(resource.data)
-            .affectedKeys()
-            .hasOnly(["reports", "updatedAt"]) ||
-
-          // Apply click increments are limited to non-hiring (seeker)
-          // accounts so hiring accounts cannot inflate their own counters.
-          request.resource.data.diff(resource.data)
-            .affectedKeys()
-            .hasOnly(["applyClicks", "updatedAt"]) &&
-          get(
-            /databases/$(database)/documents/users/$(request.auth.uid)
-          ).data.accountType != "hiring"
+          // Single-counter, single-step increments. Preserves the exact
+          // operations the application performs today and blocks arbitrary
+          // inflation or reset. The value must move by exactly one step,
+          // sharing the write with only updatedAt.
+          (
+            request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasOnly(["views", "updatedAt"]) &&
+            request.resource.data.views == resource.data.views + 1
+          ) ||
+          (
+            request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasOnly(["shares", "updatedAt"]) &&
+            request.resource.data.shares == resource.data.shares + 1
+          ) ||
+          (
+            request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasOnly(["applications", "updatedAt"]) &&
+            request.resource.data.applications == resource.data.applications + 1
+          ) ||
+          // saves is the only counter the application also decrements
+          // (removeSavedJob passes delta -1).
+          (
+            request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasOnly(["saves", "updatedAt"]) &&
+            (
+              request.resource.data.saves == resource.data.saves + 1 ||
+              request.resource.data.saves == resource.data.saves - 1
+            )
+          ) ||
+          (
+            request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasOnly(["reports", "updatedAt"]) &&
+            request.resource.data.reports == resource.data.reports + 1
+          ) ||
+          (
+            request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasOnly(["applyClicks", "updatedAt"]) &&
+            request.resource.data.applyClicks ==
+              (resource.data.keys().hasAny(["applyClicks"])
+                ? resource.data.applyClicks
+                : 0) + 1
+          )
         );
 
       allow delete: if signedIn() &&

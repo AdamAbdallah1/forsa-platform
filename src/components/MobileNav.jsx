@@ -12,6 +12,7 @@ import {
 } from "react-icons/fa";
 import { BsFillPeopleFill } from "react-icons/bs";
 import AccountMenu from "./AccountMenu";
+import { notificationMatchesUser } from "../lib/notificationService";
 import { useAuth } from "../contexts/AuthContext";
 
 function safeJson(key, fallback) {
@@ -100,7 +101,10 @@ export default function MobileNav() {
   const unreadNotifications = notifications.filter(
     (item) =>
       !item.read &&
-      (!item.targetEmail || item.targetEmail === account?.email)
+      notificationMatchesUser(item, {
+        email: account?.email,
+        uid: account?.uid,
+      })
   );
 
   const unreadNotificationsCount = unreadNotifications.length;

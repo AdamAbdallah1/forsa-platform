@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   collection,
-  doc,
-  getDoc,
   getDocs,
   limit,
   query,
@@ -25,6 +23,7 @@ import {
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import { showToast } from "../lib/Toast";
+import { getPublicProfile } from "../lib/publicProfileService";
 import { db } from "../lib/firebase";
 
 function safeJson(key, fallback) {
@@ -107,14 +106,13 @@ export default function CompanyProfile() {
       if (!ownerUid) return;
 
       try {
-        const userSnap = await getDoc(doc(db, "users", ownerUid));
+        const publicProfile = await getPublicProfile(ownerUid);
 
-        if (active && userSnap.exists()) {
-          setRemoteCompany({ uid: userSnap.id, ...userSnap.data() });
+        if (active && publicProfile) {
+          setRemoteCompany(publicProfile);
         }
       } catch {
-        // Signed-out visitors cannot read users/{uid} (rules require sign-in);
-        // the company posts remain the public source of truth.
+        // The posts (ownerEmail/contact) remain the public source of truth.
       }
 
       try {

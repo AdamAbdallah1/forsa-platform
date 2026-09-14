@@ -19,8 +19,8 @@ export default defineConfig([
     },
   },
   {
-    // Server-side code (Vercel api functions + Vite dev plugin) runs in Node.
-    files: ['api/**/*.js', 'vite-plugin-vercel-functions.js', 'vite.config.js'],
+    // Server-side code (Vercel api functions, node scripts) runs in Node.
+    files: ['api/**/*.js', 'scripts/**/*.js', 'vite-plugin-vercel-functions.js', 'vite.config.js'],
     languageOptions: {
       globals: globals.node,
     },

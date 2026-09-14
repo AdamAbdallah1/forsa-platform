@@ -1,14 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
-import { db } from "../lib/firebase";
 import AppHeader from "../components/AppHeader";
 import SEO from "../components/SEO";
+import { getPublicProfiles } from "../lib/publicProfileService";
 import { showToast } from "../lib/Toast";
 import {
   followUser,
@@ -57,19 +51,12 @@ export default function People() {
     async function loadPeople() {
       setLoadError("");
       try {
-        const q = query(
-          collection(db, "users"),
-          where("accountType", "==", "finder")
-        );
-
-        const snap = await getDocs(q);
-
-        const users = snap.docs
-          .map((item) => ({
-            uid: item.id,
-            ...item.data(),
-          }))
-          .filter((user) => user.uid !== account?.uid);
+        const users = (await getPublicProfiles())
+          .filter(
+            (user) =>
+              user.accountType === "finder" &&
+              user.uid !== account?.uid
+          );
 
         setPeople(users);
 
@@ -118,7 +105,6 @@ export default function People() {
 
         const text = [
           person.name,
-          person.email,
           person.city,
           person.bio,
           person.experience,
@@ -311,7 +297,7 @@ function getProfileStrength(person) {
     Boolean(person.bio),
     Boolean(person.experience),
     Boolean(person.education),
-    Boolean(person.cv || person.publicCv),
+    Boolean(person.cvAvailable),
     skills.length > 0,
     lookingFor.length > 0,
   ];

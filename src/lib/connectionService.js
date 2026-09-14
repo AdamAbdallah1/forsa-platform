@@ -33,11 +33,17 @@ export async function followUser({ fromUser, toUser }) {
     updatedAt: serverTimestamp(),
   });
 
+  /*
+   * Notify the recipient by UID. Seeker profiles never publish an email,
+   * so targetEmail stays empty for them; the recipient is still matched
+   * (and rules-enforced) via targetUid, which is bound to
+   * connection.toUid at creation.
+   */
   await createNotification({
     type: "connection_request",
     title: "Connection request",
     text: `${fromUser.name || "Someone"} wants to connect with you.`,
-    targetEmail: String(toUser.email || "").toLowerCase(),
+    targetEmail: String(toUser?.email || "").toLowerCase(),
     targetUid: toUser.uid,
     actionUrl: `/seeker/${fromUser.uid}`,
     connectionId: id,

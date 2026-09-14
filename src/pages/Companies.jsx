@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import SEO from "../components/SEO";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { getPublicProfiles } from "../lib/publicProfileService";
 import { getActivePosts } from "../lib/postService.js";
 import {
   FaBriefcase,
@@ -15,23 +14,18 @@ import {
 } from "react-icons/fa";
 
 async function getHiringCompanies() {
-  const snapshot = await getDocs(collection(db, "users"));
+  const profiles = await getPublicProfiles();
 
-  return snapshot.docs
-    .map((item) => ({
-      uid: item.id,
-      ...item.data(),
-    }))
-    .filter((user) => {
-      const type = String(user.accountType || "").toLowerCase();
+  return profiles.filter((user) => {
+    const type = String(user.accountType || "").toLowerCase();
 
-      return (
-        type === "hiring" ||
-        type === "company" ||
-        user.companyName ||
-        user.companyEmail
-      );
-    });
+    return (
+      type === "hiring" ||
+      type === "company" ||
+      user.companyName ||
+      user.companyEmail
+    );
+  });
 }
 
 export default function Companies() {

@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
 import AppHeader from "../components/AppHeader";
 import SEO from "../components/SEO";
+import { getPublicProfile } from "../lib/publicProfileService";
 
 import {
   FaArrowLeft,
@@ -200,22 +199,16 @@ export default function PublicSeekerProfile() {
           throw new Error("Missing seeker UID.");
         }
 
-        const userRef = doc(db, "users", uid);
-        const snapshot = await getDoc(userRef);
+        const publicProfile = await getPublicProfile(uid);
 
         if (!mounted) return;
 
-        if (!snapshot.exists()) {
+        if (!publicProfile) {
           setUser(null);
           return;
         }
 
-        const data = snapshot.data() || {};
-
-        setUser({
-          uid: snapshot.id,
-          ...data,
-        });
+        setUser(publicProfile);
       } catch (error) {
         console.error("Public seeker profile error:", error);
 
