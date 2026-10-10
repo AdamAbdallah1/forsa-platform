@@ -6,6 +6,9 @@ import './index.css'
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider } from "./contexts/AuthContext";
 import App from './App.jsx'
+import { initPostHog } from "./lib/posthog";
+
+initPostHog();
 
 createRoot(document.getElementById('root')).render(
     <ErrorBoundary>

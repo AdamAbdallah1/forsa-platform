@@ -4,6 +4,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 import { setSession } from "../lib/auth";
+import { identifyUser, resetUser } from "../lib/posthog";
 
 const AuthContext = createContext(null);
 
@@ -61,6 +62,7 @@ export function AuthProvider({ children }) {
       stopListening();
 
       if (!firebaseUser) {
+        resetUser();
         setUser(null);
         setAccount(null);
         setLoading(false);
@@ -68,6 +70,9 @@ export function AuthProvider({ children }) {
         localStorage.removeItem("forsaAccount");
         return;
       }
+
+      // Identified by Firebase UID only — no email or profile data.
+      identifyUser(firebaseUser.uid);
 
       // A signed-in user is never resolved instantly: the single auth
       // state gate drives guard redirects, so it must not expose an

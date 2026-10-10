@@ -26,6 +26,7 @@ import { createReport } from "../lib/reportService";
 import { getUserSavedJobs, saveJob, unsaveJob } from "../lib/savedJobsService";
 import { createExternalApplication } from "../lib/applicationService";
 import { showToast } from "../lib/Toast";
+import { captureJobViewed } from "../lib/posthog";
 
 const getWorkCountry = (item) => item?.workCountry || "Lebanon";
 
@@ -143,6 +144,7 @@ export default function JobDetails() {
         }
 
         setJob(result);
+        captureJobViewed(result);
 
         try {
           await incrementPostMetric(result.id, "views");

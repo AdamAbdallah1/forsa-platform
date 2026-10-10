@@ -39,6 +39,7 @@ import ForgotPasswordRoute from "./components/ForgotPasswordRoute";
 import Toast from "./components/Toast";
 
 import { useEffect } from "react";
+import { capturePageView } from "./lib/posthog";
 
 const INDEXABLE_EXACT_PATHS = new Set([
   "/",
@@ -77,10 +78,21 @@ function RobotsController() {
   return null;
 }
 
+function PostHogPageViews() {
+  const location = useLocation();
+
+  useEffect(() => {
+    capturePageView(location.pathname);
+  }, [location.pathname]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <RobotsController />
+      <PostHogPageViews />
       <main className="min-h-screen overflow-x-hidden bg-[var(--forsa-bg)] pb-24 text-[#111111] md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
