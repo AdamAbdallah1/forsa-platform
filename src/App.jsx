@@ -36,6 +36,7 @@ import AdminRoute from "./components/AdminRoute";
 import AuthRoute from "./components/AuthRoute";
 import VerifyEmailRoute from "./components/VerifyEmailRoute";
 import ForgotPasswordRoute from "./components/ForgotPasswordRoute";
+import AppHostGuard from "./components/AppHostGuard";
 import Toast from "./components/Toast";
 
 import { useEffect } from "react";
@@ -94,6 +95,7 @@ export default function App() {
       <RobotsController />
       <PostHogPageViews />
       <main className="min-h-screen overflow-x-hidden bg-[var(--forsa-bg)] pb-24 text-[#111111] md:pb-0">
+        <AppHostGuard>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
@@ -125,6 +127,7 @@ export default function App() {
           <Route path="/post" element={<HiringRoute><PostOpportunity /></HiringRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </AppHostGuard>
         <MobileNav />
         <Toast />
       </main>
