@@ -37,6 +37,7 @@ import AuthRoute from "./components/AuthRoute";
 import VerifyEmailRoute from "./components/VerifyEmailRoute";
 import ForgotPasswordRoute from "./components/ForgotPasswordRoute";
 import AppHostGuard from "./components/AppHostGuard";
+import ApexAppRedirect from "./components/ApexAppRedirect";
 import Toast from "./components/Toast";
 
 import { useEffect } from "react";
@@ -94,6 +95,7 @@ export default function App() {
     <BrowserRouter>
       <RobotsController />
       <PostHogPageViews />
+      <ApexAppRedirect />
       <main className="min-h-screen overflow-x-hidden bg-[var(--forsa-bg)] pb-24 text-[#111111] md:pb-0">
         <AppHostGuard>
         <Routes>
