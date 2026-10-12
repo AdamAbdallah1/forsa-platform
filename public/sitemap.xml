@@ -18,4 +18,64 @@
     <loc>https://forsa.digital/jobs-in-lebanon</loc>
     <priority>1.0</priority>
   </url>
+
+  <url>
+    <loc>https://forsa.digital/guides</loc>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://forsa.digital/guides/build-cv-no-experience</loc>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://forsa.digital/guides/professional-application-message</loc>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://forsa.digital/guides/first-job-interview</loc>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://forsa.digital/guides/build-portfolio</loc>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://forsa.digital/guides/find-first-internship</loc>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://forsa.digital/guides/describe-projects-honestly</loc>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://forsa.digital/guides/evaluate-job-opportunity</loc>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://forsa.digital/guides/learning-roadmap</loc>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://forsa.digital/guides/first-tech-job</loc>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://forsa.digital/guides/first-weeks-new-job</loc>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://forsa.digital/guides/organize-job-search</loc>
+    <priority>0.7</priority>
+  </url>
 </urlset>

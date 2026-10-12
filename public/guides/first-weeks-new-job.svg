@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#FAF7F2"/>
+  <ellipse cx="975" cy="105" rx="430" ry="290" fill="#F5F3FF"/>
+  <ellipse cx="170" cy="570" rx="370" ry="235" fill="#F5F3FF" opacity="0.65"/>
+  <circle cx="838" cy="168" r="72" fill="#E8C56A"/>
+  <path d="M470 512 V312 A130 130 0 0 1 730 312 V512" fill="none" stroke="#241A33" stroke-width="13"/>
+  <path d="M512 512 V330 A88 88 0 0 1 688 330 V512" fill="none" stroke="#DDD6FE" stroke-width="9"/>
+  <rect x="180" y="468" width="200" height="44" rx="14" fill="#DDD6FE"/>
+  <rect x="180" y="410" width="150" height="44" rx="14" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="3"/>
+  <rect x="180" y="352" width="100" height="44" rx="14" fill="#6D28D9"/>
+  <filter id="grain" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.045 0"/>
+  </filter>
+  <rect width="1200" height="630" filter="url(#grain)"/>
+</svg>

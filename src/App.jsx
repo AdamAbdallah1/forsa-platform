@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import JobsInLebanon from "./pages/JobsInLebanon";
+import Guides from "./pages/Guides";
+import GuideArticle from "./pages/GuideArticle";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Onboarding from "./pages/Onboarding";
@@ -53,10 +55,12 @@ const INDEXABLE_EXACT_PATHS = new Set([
   "/companies",
   "/privacy",
   "/terms",
+  "/guides",
 ]);
 
 const isIndexablePath = (pathname) => {
   if (INDEXABLE_EXACT_PATHS.has(pathname)) return true;
+  if (pathname.startsWith("/guides/")) return true;
   return pathname.startsWith("/jobs/");
 };
 
@@ -105,6 +109,8 @@ export default function App() {
           <Route path="/about" element={<About />} />
           <Route path="/ai" element={<ProtectedRoute><Ai /></ProtectedRoute>} />
           <Route path="/jobs-in-lebanon" element={<JobsInLebanon />} />
+          <Route path="/guides" element={<Guides />} />
+          <Route path="/guides/:slug" element={<GuideArticle />} />
           <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
           <Route path="/verify-email" element={<VerifyEmailRoute><VerifyEmail /></VerifyEmailRoute>} />
           <Route path="/reset-password" element={<ResetPassword />} />

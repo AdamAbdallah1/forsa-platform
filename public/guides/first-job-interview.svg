@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#FAF7F2"/>
+  <ellipse cx="975" cy="105" rx="430" ry="290" fill="#F5F3FF"/>
+  <ellipse cx="170" cy="570" rx="370" ry="235" fill="#F5F3FF" opacity="0.65"/>
+  <rect x="372" y="158" width="336" height="176" rx="42" fill="#FFFFFF" stroke="#E9E2F5" stroke-width="3"/>
+  <circle cx="448" cy="246" r="17" fill="#6D28D9"/>
+  <circle cx="498" cy="246" r="17" fill="#DDD6FE"/>
+  <circle cx="548" cy="246" r="17" fill="#DDD6FE"/>
+  <rect x="548" y="336" width="280" height="142" rx="38" fill="#6D28D9"/>
+  <circle cx="676" cy="407" r="15" fill="#FFFFFF"/>
+  <circle cx="720" cy="407" r="15" fill="#FFFFFF" opacity="0.65"/>
+  <circle cx="764" cy="407" r="15" fill="#FFFFFF" opacity="0.65"/>
+  <circle cx="872" cy="180" r="26" fill="#E8C56A"/>
+  <circle cx="330" cy="440" r="14" fill="#DDD6FE"/>
+  <filter id="grain" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.045 0"/>
+  </filter>
+  <rect width="1200" height="630" filter="url(#grain)"/>
+</svg>

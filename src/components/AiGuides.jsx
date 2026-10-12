@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { FaArrowLeft, FaBookOpen, FaClock } from "react-icons/fa";
+import { Link } from "react-router-dom";
+import { FaArrowLeft, FaArrowRight, FaBookOpen, FaClock } from "react-icons/fa";
 import { FORSA_AI_GUIDES, getGuide } from "../data/forsaAiGuides";
 
 /*
@@ -53,11 +54,12 @@ export default function AiGuides({ compact = false }) {
   }
 
   return (
-    <div
-      className={`grid gap-2.5 ${
-        compact ? "grid-cols-1" : "sm:grid-cols-2 lg:grid-cols-3"
-      }`}
-    >
+    <div>
+      <div
+        className={`grid gap-2.5 ${
+          compact ? "grid-cols-1" : "sm:grid-cols-2 lg:grid-cols-3"
+        }`}
+      >
       {FORSA_AI_GUIDES.map((guide) => (
         <button
           key={guide.id}
@@ -85,6 +87,15 @@ export default function AiGuides({ compact = false }) {
           </span>
         </button>
       ))}
+      </div>
+
+      <Link
+        to="/guides"
+        className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--forsa-border)] bg-white px-4 py-2 text-xs font-semibold text-neutral-600 transition hover:border-[var(--forsa-primary)] hover:text-[var(--forsa-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forsa-primary)] focus-visible:ring-offset-2"
+      >
+        Browse all career guides
+        <FaArrowRight aria-hidden="true" className="text-[10px]" />
+      </Link>
     </div>
   );
 }

@@ -39,6 +39,7 @@ export default function Footer() {
             title="Platform"
             links={[
               { label: "Explore", href: "/explore" },
+              { label: "Career Guides", href: "/guides" },
               { label: "Post Opportunity", href: "/post" },
               { label: "Messages", href: "/messages" },
               { label: "Saved Jobs", href: "/saved" },
