@@ -8,6 +8,7 @@ import SEO from "../components/SEO"
 import Modal from "../components/ui/Modal";
 import Button from "../components/ui/Button";
 import { getActivePosts, incrementPostMetric, recordApplyClick } from "../lib/postService.js";
+import { calculateMatchScore, getMatchMeta, isExpired } from "../lib/exploreUtils.js";
 import Footer from "../components/Footer";
 import { createNotification } from "../lib/notificationService";
 import { createApplicationThread, createExternalApplication } from "../lib/applicationService";
@@ -105,54 +106,6 @@ const getProfileStrength = (account, profile) => {
     score: Math.round((completed / checks.length) * 100),
     missing,
   };
-};
-
-const calculateMatchScore = (post, profile, account) => {
-  const skills = (profile?.skills || []).map(normalize);
-  const lookingFor = (profile?.lookingFor || []).map(normalize);
-  const tags = (post?.tags || []).map(normalize);
-  const postType = normalize(post?.type);
-  const postLocation = normalize(post?.location);
-  const accountCity = normalize(account?.city);
-
-  if (!skills.length && !lookingFor.length && !accountCity) return 0;
-
-  let score = 35;
-
-  const matchedTags = tags.filter((tag) => skills.includes(tag));
-  if (tags.length > 0) {
-    score += Math.min(35, Math.round((matchedTags.length / tags.length) * 35));
-  }
-
-  const goalMatch = lookingFor.some((item) => {
-    return (
-      item === postType ||
-      item === `${postType} work` ||
-      item === `${postType} job` ||
-      item.includes(postType) ||
-      postType.includes(item)
-    );
-  });
-
-  if (goalMatch) score += 18;
-  if (accountCity && postLocation.includes(accountCity)) score += 10;
-  if (post?.featured) score += 4;
-  if (post?.urgent) score += 3;
-
-  return Math.min(98, Math.max(0, score));
-};
-
-const getMatchMeta = (post, profile) => {
-  const skills = (profile?.skills || []).map(normalize);
-  const matchingSkills = (post.tags || []).filter((tag) => skills.includes(normalize(tag)));
-  const lookingFor = profile?.lookingFor || [];
-  const matchingType = lookingFor.some((item) => {
-    const value = normalize(item);
-    const type = normalize(post.type);
-    return value === type || value === `${type} work` || value === `${type} job` || value.includes(type);
-  });
-
-  return { matchingSkills, matchingType };
 };
 
 const updatePostAnalytics = async (postId, field) => {
@@ -582,13 +535,9 @@ export default function Explore() {
   writeJson("forsaRecentlyViewed", viewed);
 
     if (shouldApply && canInteract) {
-    if (found.deadline) {
-      const deadline = new Date(`${found.deadline}T23:59:59`);
-
-      if (new Date() > deadline) {
-        showToast("Applications for this job are closed.", "error");
-        return;
-      }
+    if (isExpired(found)) {
+      showToast("Applications for this job are closed.", "error");
+      return;
     }
 
     setApplyOpportunity(found);
@@ -776,14 +725,10 @@ export default function Explore() {
 
   return;
 }
-    if (item.deadline) {
-    const deadline = new Date(`${item.deadline}T23:59:59`);
-
-    if (new Date() > deadline) {
+    if (isExpired(item)) {
       showToast("Applications for this job are closed.", "error");
       return;
     }
-  }
   if (!requireSeekerAccount("contact")) return;
 
   const hasProfile =
@@ -873,13 +818,9 @@ export default function Explore() {
   };
 
   const submitApplication = async ({ item, message, attachCv, answers }) => {
-        if (item.deadline) {
-      const deadline = new Date(`${item.deadline}T23:59:59`);
-
-      if (new Date() > deadline) {
-        showToast("Applications for this job are closed.", "error");
-        return;
-      }
+        if (isExpired(item)) {
+      showToast("Applications for this job are closed.", "error");
+      return;
     }
     const messages = safeJson("forsaMessages", []);
     const existing = messages.find(

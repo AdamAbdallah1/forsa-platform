@@ -68,50 +68,8 @@ export const getProfileStrength = (account, profile) => {
   };
 };
 
-export const calculateMatchScore = (post, profile, account) => {
-  const skills = (profile?.skills || []).map(normalize);
-  const lookingFor = (profile?.lookingFor || []).map(normalize);
-  const tags = (post?.tags || []).map(normalize);
-  const postType = normalize(post?.type);
-  const postLocation = normalize(post?.location);
-  const accountCity = normalize(account?.city);
-
-  if (!skills.length && !lookingFor.length && !accountCity) {
-    return 0;
-  }
-
-  let score = 35;
-
-  const matchedTags = tags.filter((tag) => skills.includes(tag));
-
-  if (tags.length > 0) {
-    score += Math.min(
-      35,
-      Math.round((matchedTags.length / tags.length) * 35)
-    );
-  }
-
-  const goalMatch = lookingFor.some((item) => {
-    return (
-      item === postType ||
-      item === `${postType} work` ||
-      item === `${postType} job` ||
-      item.includes(postType) ||
-      postType.includes(item)
-    );
-  });
-
-  if (goalMatch) score += 18;
-
-  if (accountCity && postLocation.includes(accountCity)) {
-    score += 10;
-  }
-
-  if (post?.featured) score += 4;
-  if (post?.urgent) score += 3;
-
-  return Math.min(98, Math.max(0, score));
-};
+export const calculateMatchScore = (post, profile, account) =>
+  getMatchBreakdown(post, profile, account).score;
 
 export const getMatchMeta = (post, profile) => {
   const skills = (profile?.skills || []).map(normalize);
@@ -137,6 +95,359 @@ export const getMatchMeta = (post, profile) => {
   return {
     matchingSkills,
     matchingType,
+  };
+};
+
+/*
+ * Opportunity matching: single source of truth.
+ *
+ * The weights below reproduce the historical Explore ranking exactly —
+ * `calculateMatchScore` delegates to `getMatchBreakdown`, and the totals are
+ * locked by deterministic tests. Do not tune these numbers here; future
+ * ranking changes belong in a versioned adjustment layer (see
+ * `getFreshnessAdjustment`).
+ *
+ * Known quirk, preserved deliberately: `calculateMatchScore` counts a goal
+ * match when the post type contains the interest string
+ * (`postType.includes(item)`), while `getMatchMeta` does not. Changing
+ * either side would alter displayed scores or reasons, so both stay as-is
+ * until a product decision says otherwise.
+ */
+export const MATCH_WEIGHTS = {
+  BASE: 35,
+  SKILLS: 35,
+  GOALS: 18,
+  LOCATION: 10,
+  FEATURED: 4,
+  URGENT: 3,
+  MIN: 0,
+  MAX: 98,
+};
+
+export const getMatchBreakdown = (post, profile, account) => {
+  const skills = (profile?.skills || []).map(normalize);
+  const lookingFor = (profile?.lookingFor || []).map(normalize);
+  const tags = (post?.tags || []).map(normalize);
+  const postType = normalize(post?.type);
+  const postLocation = normalize(post?.location);
+  const accountCity = normalize(account?.city);
+
+  if (!skills.length && !lookingFor.length && !accountCity) {
+    return {
+      score: 0,
+      hasProfile: false,
+      base: 0,
+      skillPoints: 0,
+      matchedTags: [],
+      tagCount: tags.length,
+      goalMatched: false,
+      goalPoints: 0,
+      locationMatched: false,
+      locationPoints: 0,
+      featuredApplied: false,
+      urgentApplied: false,
+      reasons: [
+        {
+          key: "no-profile",
+          label: "Add skills, interests, or a city to get matches.",
+          points: 0,
+        },
+      ],
+    };
+  }
+
+  const matchedTags = tags.filter((tag) => skills.includes(tag));
+
+  const skillPoints =
+    tags.length > 0
+      ? Math.min(
+          MATCH_WEIGHTS.SKILLS,
+          Math.round((matchedTags.length / tags.length) * MATCH_WEIGHTS.SKILLS)
+        )
+      : 0;
+
+  const goalMatched = lookingFor.some((item) => {
+    return (
+      item === postType ||
+      item === `${postType} work` ||
+      item === `${postType} job` ||
+      item.includes(postType) ||
+      postType.includes(item)
+    );
+  });
+
+  const goalPoints = goalMatched ? MATCH_WEIGHTS.GOALS : 0;
+
+  const locationMatched = Boolean(
+    accountCity && postLocation.includes(accountCity)
+  );
+
+  const locationPoints = locationMatched ? MATCH_WEIGHTS.LOCATION : 0;
+
+  const featuredApplied = Boolean(post?.featured);
+  const urgentApplied = Boolean(post?.urgent);
+
+  const score = Math.min(
+    MATCH_WEIGHTS.MAX,
+    Math.max(
+      MATCH_WEIGHTS.MIN,
+      MATCH_WEIGHTS.BASE +
+        skillPoints +
+        goalPoints +
+        locationPoints +
+        (featuredApplied ? MATCH_WEIGHTS.FEATURED : 0) +
+        (urgentApplied ? MATCH_WEIGHTS.URGENT : 0)
+    )
+  );
+
+  const reasons = [
+    { key: "base", label: "Base match", points: MATCH_WEIGHTS.BASE },
+  ];
+
+  if (skillPoints > 0) {
+    reasons.push({
+      key: "skills",
+      label: `${matchedTags.length} of ${tags.length} skills match`,
+      points: skillPoints,
+    });
+  }
+
+  if (goalMatched) {
+    reasons.push({
+      key: "goals",
+      label: "Matches your work interests",
+      points: goalPoints,
+    });
+  }
+
+  if (locationMatched) {
+    reasons.push({
+      key: "location",
+      label: "In your city",
+      points: locationPoints,
+    });
+  }
+
+  if (featuredApplied) {
+    reasons.push({
+      key: "featured",
+      label: "Featured opportunity",
+      points: MATCH_WEIGHTS.FEATURED,
+    });
+  }
+
+  if (urgentApplied) {
+    reasons.push({
+      key: "urgent",
+      label: "Hiring urgently",
+      points: MATCH_WEIGHTS.URGENT,
+    });
+  }
+
+  return {
+    score,
+    hasProfile: true,
+    base: MATCH_WEIGHTS.BASE,
+    skillPoints,
+    matchedTags,
+    tagCount: tags.length,
+    goalMatched,
+    goalPoints,
+    locationMatched,
+    locationPoints,
+    featuredApplied,
+    urgentApplied,
+    reasons,
+  };
+};
+
+/*
+ * Extension point for Opportunity Radar freshness adjustments.
+ *
+ * Currently a pinned no-op: ranking today applies no time-based penalty, and
+ * deterministic tests lock that behavior. The Radar phase will implement
+ * decay here (e.g. points lost per day past a freshness window) without
+ * touching the base weights above. Callers should add `adjustment.points`
+ * to the breakdown score and surface `adjustment.reasons` alongside it.
+ */
+export const getFreshnessAdjustment = (post, now = new Date()) => {
+  void post;
+  void now;
+
+  return { points: 0, active: false, reasons: [] };
+};
+
+const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/*
+ * Resolve a deadline value to an expiry instant (milliseconds), or NaN when
+ * the value carries no usable date. Never throws, never mutates its input.
+ */
+const toExpiryInstant = (value) => {
+  if (value === null || value === undefined) return NaN;
+
+  if (value instanceof Date) return value.getTime();
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : NaN;
+  }
+
+  if (value && typeof value.toDate === "function") {
+    try {
+      const date = value.toDate();
+      return date instanceof Date ? date.getTime() : NaN;
+    } catch {
+      return NaN;
+    }
+  }
+
+  if (typeof value !== "string") return NaN;
+
+  const trimmed = value.trim();
+
+  if (!trimmed) return NaN;
+
+  const dateOnly = trimmed.match(DATE_ONLY_RE);
+
+  if (dateOnly) {
+    const year = Number(dateOnly[1]);
+    const month = Number(dateOnly[2]);
+    const day = Number(dateOnly[3]);
+
+    if (month < 1 || month > 12 || day < 1 || day > 31) return NaN;
+
+    // End of the deadline day: applications close AFTER this date, using
+    // the same local end-of-day convention as the existing listing UI.
+    // The round-trip guard rejects impossible dates (e.g. February 30th)
+    // instead of letting the Date constructor roll them into March.
+    const end = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+    if (end.getMonth() !== month - 1 || end.getDate() !== day) return NaN;
+
+    return end.getTime();
+  }
+
+  return new Date(trimmed).getTime();
+};
+
+/*
+ * Deadline semantics (verified against PostOpportunity + Explore): the
+ * deadline form field is a calendar DATE (`YYYY-MM-DD` string); a listing
+ * expires after 23:59:59 local time on that date. Missing, empty, or
+ * unparseable deadlines never expire a listing — and an absent deadline
+ * never makes an otherwise ineligible (closed/rejected/pending) listing
+ * eligible. Use alongside the status gates in getActivePosts, not instead
+ * of them. Pure: reads only, injectable `now` for deterministic tests.
+ */
+export const isExpired = (post, now = new Date()) => {
+  const end = toExpiryInstant(post?.deadline);
+
+  if (!Number.isFinite(end)) return false;
+
+  const at = now instanceof Date ? now.getTime() : new Date(now).getTime();
+
+  if (!Number.isFinite(at)) return false;
+
+  return at > end;
+};
+
+export const VERIFIED_REASONS = {
+  EMPLOYER_NOT_VERIFIED: "employer-not-verified",
+  REVIEW_PENDING: "review-pending",
+  REVIEW_REJECTED: "review-rejected",
+  SAFETY_FLAGGED: "safety-flagged",
+  EXPIRED: "expired",
+  NOT_ACTIVE: "not-active",
+};
+
+/*
+ * Trustworthy verification signal for Opportunity Radar / Verified Standard.
+ *
+ * What each flag actually proves (verified against AdminReview,
+ * postService, and firestore.rules — see comments inline):
+ *
+ * - employerVerified: post.verified === true. The rules force this field to
+ *   mirror users/{ownerUid}.verified at creation, and only an admin can set
+ *   that user flag (via an approved verificationRequests review). This is
+ *   genuine proof of an admin identity check. `companyVerified` is
+ *   deliberately NOT accepted: nothing in the codebase writes it, so it can
+ *   only come from legacy or seed data.
+ * - reviewPassed: reviewStatus/moderationStatus are "approved" (absent
+ *   treated as approved, mirroring the visibility gate). LIMITATION,
+ *   documented here on purpose: ordinary posts auto-approve on creation
+ *   with values identical to an admin approval, and reviewedBy/reviewedAt
+ *   are written only to verificationRequests — never to posts. So this flag
+ *   means "in the fully-approved moderation state", NOT "a human reviewed
+ *   this listing". If true human-review proof is ever required, posts need
+ *   an explicit reviewer stamp (a later phase; no admin-action changes here).
+ * - fresh: the deadline has not passed (see isExpired).
+ * - eligible: the listing passes the same visibility gate as getActivePosts
+ *   (not closed, no pending/rejected review state) plus an explicit safety
+ *   requirement. Stricter than getActivePosts on purpose: that gate does not
+ *   check safetyStatus, but a suspicious listing must never qualify here.
+ * - verified: all four hold. `trusted`, `featured`, `urgent`, completeness,
+ *   and ownership are never sufficient on their own.
+ *
+ * Pure and side-effect free. `reasons` is empty exactly when verified.
+ */
+export const getVerifiedOpportunitySignal = (post, now = new Date()) => {
+  const reviewStatus = post?.reviewStatus || "approved";
+  const moderationStatus = post?.moderationStatus || "approved";
+  const reasons = [];
+
+  const employerVerified = post?.verified === true;
+
+  if (!employerVerified) {
+    reasons.push(VERIFIED_REASONS.EMPLOYER_NOT_VERIFIED);
+  }
+
+  let reviewPassed = true;
+
+  if (reviewStatus === "pending" || moderationStatus === "pending") {
+    reviewPassed = false;
+    reasons.push(VERIFIED_REASONS.REVIEW_PENDING);
+  } else if (reviewStatus === "rejected" || moderationStatus === "rejected") {
+    reviewPassed = false;
+    reasons.push(VERIFIED_REASONS.REVIEW_REJECTED);
+  }
+
+  const safetyOk =
+    post?.safetyStatus === "clear" &&
+    post?.suspicious !== true;
+
+  if (!safetyOk) {
+    reviewPassed = false;
+    reasons.push(VERIFIED_REASONS.SAFETY_FLAGGED);
+  }
+
+  const fresh = !isExpired(post, now);
+
+  if (!fresh) {
+    reasons.push(VERIFIED_REASONS.EXPIRED);
+  }
+
+  const eligible =
+    post?.status !== "closed" &&
+    reviewStatus !== "pending" &&
+    reviewStatus !== "rejected" &&
+    moderationStatus !== "pending" &&
+    moderationStatus !== "rejected" &&
+    safetyOk;
+
+  if (!eligible) {
+    reasons.push(VERIFIED_REASONS.NOT_ACTIVE);
+  }
+
+  const verified =
+    employerVerified && reviewPassed && fresh && eligible;
+
+  return {
+    employerVerified,
+    reviewPassed,
+    fresh,
+    eligible,
+    verified,
+    reasons,
   };
 };
 

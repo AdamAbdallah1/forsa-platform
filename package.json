@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "test:guides": "node scripts/tests/career-guides.test.mjs && node scripts/tests/career-guides-ssr.test.mjs",
+    "test:matching": "node scripts/tests/opportunity-matching.test.mjs",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
