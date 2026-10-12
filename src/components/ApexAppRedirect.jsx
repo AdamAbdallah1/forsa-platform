@@ -47,6 +47,7 @@ const APPLICATION_PATHS = new Set([
   "/notifications",
   "/post",
   "/applicants",
+  "/ai",
 ]);
 
 const APPLICATION_PREFIXES = ["/jobs", "/seeker", "/admin"];

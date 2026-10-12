@@ -700,5 +700,25 @@ service cloud.firestore {
     match /outreachLeads/{leadId} {
       allow read, create, update, delete: if isAdmin();
     }
+
+    // Mira AI usage counters — one document per user per UTC day
+    // ({uid}_{YYYY-MM-DD}), written only by the Admin SDK from the
+    // server-side quota helper, which bypasses rules. Denying all client
+    // writes means a user can neither top up their own allowance nor reset
+    // anyone else's; reading your own counter is allowed so the UI can show
+    // remaining usage.
+    match /miraUsage/{usageId} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // Forsa AI shared daily budget — one document per UTC day, written only
+    // by the Admin SDK alongside the personal counter in a single atomic
+    // transaction. Fully server-side: clients can neither read aggregate
+    // usage nor write it, so the budget cannot be inspected for gaming or
+    // modified by any user.
+    match /miraUsageGlobal/{day} {
+      allow read, write: if false;
+    }
   }
 }

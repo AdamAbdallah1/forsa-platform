@@ -20,6 +20,7 @@ import AdminEmail from "./pages/AdminEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import Text from "./pages/Text";
 import Notifications from "./pages/Notifications";
+import Ai from "./pages/Ai";
 import SavedJobs from "./pages/SavedJobs";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -38,6 +39,7 @@ import VerifyEmailRoute from "./components/VerifyEmailRoute";
 import ForgotPasswordRoute from "./components/ForgotPasswordRoute";
 import AppHostGuard from "./components/AppHostGuard";
 import ApexAppRedirect from "./components/ApexAppRedirect";
+import AiChatWidget from "./components/AiChatWidget";
 import Toast from "./components/Toast";
 
 import { useEffect } from "react";
@@ -101,6 +103,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
+          <Route path="/ai" element={<ProtectedRoute><Ai /></ProtectedRoute>} />
           <Route path="/jobs-in-lebanon" element={<JobsInLebanon />} />
           <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
           <Route path="/verify-email" element={<VerifyEmailRoute><VerifyEmail /></VerifyEmailRoute>} />
@@ -130,6 +133,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
         </AppHostGuard>
+        <AiChatWidget />
         <MobileNav />
         <Toast />
       </main>
