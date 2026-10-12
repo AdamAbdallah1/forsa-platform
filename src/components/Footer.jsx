@@ -50,6 +50,7 @@ export default function Footer() {
             title="Company"
             links={[
               { label: "About", href: "/about" },
+              { label: "What's New", href: "/whats-new" },
               { label: "Privacy Policy", href: "/privacy" },
               { label: "Terms of Service", href: "/terms" },
             ]}

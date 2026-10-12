@@ -26,6 +26,7 @@ import Ai from "./pages/Ai";
 import SavedJobs from "./pages/SavedJobs";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import WhatsNew from "./pages/WhatsNew";
 import Applicants from "./pages/Applicants";
 import Messages from "./pages/Messages";
 import MobileNav from "./components/MobileNav";
@@ -53,6 +54,7 @@ const INDEXABLE_EXACT_PATHS = new Set([
   "/jobs-in-lebanon",
   "/explore",
   "/companies",
+  "/whats-new",
   "/privacy",
   "/terms",
   "/guides",
@@ -124,6 +126,7 @@ export default function App() {
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/seeker/:uid" element={<ProtectedRoute><PublicSeekerProfile /></ProtectedRoute>} />
           <Route path="/companies" element={<Companies />} />
+          <Route path="/whats-new" element={<WhatsNew />} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/forgot-password" element={<ForgotPasswordRoute><ForgotPassword /></ForgotPasswordRoute>} />
           <Route path="/people"element={<SeekerRoute><People /></SeekerRoute>}/>
