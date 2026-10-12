@@ -13,6 +13,7 @@ import {
   FaCheckCircle,
   FaFlag,
   FaTimes,
+  FaBookOpen,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -22,6 +23,7 @@ import {
   updatePost,
   deletePost as deletePostFromFirestore,
 } from "../lib/postService";
+import EmployerGuides from "../components/EmployerGuides";
 
 const formatNumber = (value) => Number(value || 0).toLocaleString();
 
@@ -810,6 +812,8 @@ export default function Dashboard() {
   const [editingError, setEditingError] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
+  const [activeTab, setActiveTab] = useState("opportunities");
+
   const refreshDashboard = async (user, acc) => {
     if (!user || !acc?.uid) return;
 
@@ -1165,6 +1169,44 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <div className="mt-6 flex gap-2 border-b border-[var(--forsa-border)] pb-4">
+          <button
+            onClick={() => setActiveTab("opportunities")}
+            className={`forsa-click inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+              activeTab === "opportunities"
+                ? "forsa-button text-white"
+                : "bg-[var(--forsa-bg)] text-neutral-600 hover:bg-white"
+            }`}
+          >
+            <FaBriefcase className="text-xs" />
+            Manage Opportunities
+          </button>
+
+          <button
+            onClick={() => setActiveTab("analytics")}
+            className={`forsa-click inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+              activeTab === "analytics"
+                ? "forsa-button text-white"
+                : "bg-[var(--forsa-bg)] text-neutral-600 hover:bg-white"
+            }`}
+          >
+            <FaPercent className="text-xs" />
+            Analytics
+          </button>
+
+          <button
+            onClick={() => setActiveTab("guides")}
+            className={`forsa-click inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+              activeTab === "guides"
+                ? "forsa-button text-white"
+                : "bg-[var(--forsa-bg)] text-neutral-600 hover:bg-white"
+            }`}
+          >
+            <FaBookOpen className="text-xs" />
+            Employer Guide
+          </button>
+        </div>
+
         {analyticsError ? (
           <div className="mt-8 rounded-2xl border border-red-100 bg-white p-8 text-center shadow-sm">
             <h2 className="text-base font-semibold text-neutral-900">
@@ -1189,21 +1231,29 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            <ManageOpportunities
-              posts={posts}
-              loading={postsLoading}
-              onView={handleViewPost}
-              onEdit={handleEditPost}
-              onApplicants={handleApplicants}
-              onToggleStatus={handleToggleStatus}
-              onDelete={handleDeletePost}
-            />
+            {activeTab === "opportunities" && (
+              <ManageOpportunities
+                posts={posts}
+                loading={postsLoading}
+                onView={handleViewPost}
+                onEdit={handleEditPost}
+                onApplicants={handleApplicants}
+                onToggleStatus={handleToggleStatus}
+                onDelete={handleDeletePost}
+              />
+            )}
 
-            <AnalyticsTab
-              analytics={analytics}
-              onNewPost={() => navigate("/post")}
-              onOpenApplicants={() => navigate("/applicants")}
-            />
+            {activeTab === "analytics" && (
+              <AnalyticsTab
+                analytics={analytics}
+                onNewPost={() => navigate("/post")}
+                onOpenApplicants={() => navigate("/applicants")}
+              />
+            )}
+
+            {activeTab === "guides" && (
+              <EmployerGuides />
+            )}
           </>
         )}
       </div>
