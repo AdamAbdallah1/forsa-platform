@@ -194,39 +194,51 @@ export async function updatePost(postId, data) {
   });
 }
 
-export async function approvePost(postId) {
+
+
+export async function deletePost(postId) {
+  await deleteDoc(doc(db, "posts", postId));
+}
+export async function approvePost(postId, adminUid) {
   await updatePost(postId, {
     status: "active",
     reviewStatus: "approved",
     moderationStatus: "approved",
     safetyStatus: "clear",
     suspicious: false,
+    approvedAt: adminUid ? new Date().toISOString() : null,
+    reviewedBy: adminUid || null,
   });
 }
 
-export async function rejectPost(postId) {
+export async function rejectPost(postId, adminUid) {
   await updatePost(postId, {
     status: "closed",
     reviewStatus: "rejected",
     moderationStatus: "rejected",
     featured: false,
+    rejectedAt: adminUid ? new Date().toISOString() : null,
+    reviewedBy: adminUid || null,
   });
 }
 
-export async function markPostSuspicious(postId) {
+export async function markPostSuspicious(postId, adminUid) {
   await updatePost(postId, {
     safetyStatus: "suspicious",
     suspicious: true,
     featured: false,
+    suspiciousAt: adminUid ? new Date().toISOString() : null,
   });
 }
 
-export async function featurePost(postId, featured = true) {
+export async function reReviewPost(postId, adminUid) {
   await updatePost(postId, {
-    featured,
+    reviewStatus: "pending",
+    moderationStatus: "pending",
+    safetyStatus: "clear",
+    suspicious: false,
+    approvedAt: adminUid ? new Date().toISOString() : null,
+    rejectedAt: null,
+    reviewedBy: adminUid || null,
   });
-}
-
-export async function deletePost(postId) {
-  await deleteDoc(doc(db, "posts", postId));
 }

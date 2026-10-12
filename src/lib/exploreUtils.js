@@ -409,8 +409,20 @@ export const getVerifiedOpportunitySignal = (post, now = new Date()) => {
   } else if (reviewStatus === "rejected" || moderationStatus === "rejected") {
     reviewPassed = false;
     reasons.push(VERIFIED_REASONS.REVIEW_REJECTED);
+  } else if (
+    reviewStatus === "approved" &&
+    moderationStatus === "approved" &&
+    !(post?.reviewedBy && post?.approvedAt)
+  ) {
+    // Genuine administrator review evidence required: when a post is
+    // employer-verified and in the fully-approved moderation state, it
+    // must have recorded review evidence (reviewedBy or approvedAt) to
+    // prove the approval was not merely an auto-default from post
+    // creation.  This prevents listing owners from claiming verified
+    // status without human review.
+    reviewPassed = false;
+    reasons.push(VERIFIED_REASONS.REVIEW_PENDING);
   }
-
   const safetyOk =
     post?.safetyStatus === "clear" &&
     post?.suspicious !== true;

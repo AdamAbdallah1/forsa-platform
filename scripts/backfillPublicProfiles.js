@@ -17,6 +17,8 @@
  *   node scripts/backfillPublicProfiles.js                # dry run (default)
  *   node scripts/backfillPublicProfiles.js --apply        # write
  *   node scripts/backfillPublicProfiles.js --apply --limit=50
+ *   node scripts/backfillPublicProfiles.js --apply --uid=<UID>  # target specific user
+ *   node scripts/backfillPublicProfiles.js --uid=<UID>        # dry run for specific user
  *
  * Requires the Firebase service account on the path used by the API layer:
  *   FIREBASE_SERVICE_ACCOUNT_JSON  or  FIREBASE_SERVICE_ACCOUNT_PATH
@@ -30,6 +32,9 @@ const APPLY = process.argv.includes("--apply");
 
 const LIMIT_ARG = process.argv.find((arg) => arg.startsWith("--limit="));
 const LIMIT = LIMIT_ARG ? Number(LIMIT_ARG.split("=")[1]) || 0 : 0;
+
+const UID_ARG = process.argv.find((arg) => arg.startsWith("--uid="));
+const TARGET_UID = UID_ARG ? UID_ARG.split("=")[1] : null;
 
 const PEOPLE_KEY_ORDER = [
   "uid",
@@ -124,9 +129,24 @@ const pack = (op) => {
 };
 
 async function run() {
-  const stream = usersRef.stream();
+  let userDocs = [];
 
-  for await (const userDoc of stream) {
+  if (TARGET_UID) {
+    const userDoc = await usersRef.doc(TARGET_UID).get();
+    if (!userDoc.exists) {
+      console.error(`User ${TARGET_UID} not found`);
+      process.exitCode = 1;
+      return;
+    }
+    userDocs = [userDoc];
+  } else {
+    const stream = usersRef.stream();
+    for await (const userDoc of stream) {
+      userDocs.push(userDoc);
+    }
+  }
+
+  for (const userDoc of userDocs) {
     if (LIMIT > 0 && scanned >= LIMIT) break;
 
     scanned += 1;

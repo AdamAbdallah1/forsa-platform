@@ -8,7 +8,7 @@ import SEO from "../components/SEO"
 import Modal from "../components/ui/Modal";
 import Button from "../components/ui/Button";
 import { getActivePosts, incrementPostMetric, recordApplyClick } from "../lib/postService.js";
-import { calculateMatchScore, getMatchMeta, isExpired } from "../lib/exploreUtils.js";
+import { calculateMatchScore, getMatchMeta, getMatchBreakdown, isExpired } from "../lib/exploreUtils.js";
 import Footer from "../components/Footer";
 import { createNotification } from "../lib/notificationService";
 import { createApplicationThread, createExternalApplication } from "../lib/applicationService";
@@ -403,6 +403,7 @@ export default function Explore() {
     const scored = filtered.map((item) => {
       const matchScore = calculateMatchScore(item, savedProfile, account);
       const { matchingSkills, matchingType } = getMatchMeta(item, savedProfile);
+      const breakdown = getMatchBreakdown(item, savedProfile, account);
       const recencyScore = item.createdAt ? Math.min(15, new Date(item.createdAt).getTime() / 100000000000) : 0;
       const rankScore =
         matchScore +
@@ -418,6 +419,21 @@ export default function Explore() {
         score: Math.max(0, Math.round((matchScore - 35) / 16)),
         matchingSkills,
         matchingType,
+        // Breakdown data for "Why this matches" explanations
+        breakdown: {
+          hasProfile: breakdown.hasProfile,
+          base: breakdown.base,
+          skillPoints: breakdown.skillPoints,
+          matchedTags: breakdown.matchedTags,
+          tagCount: breakdown.tagCount,
+          goalMatched: breakdown.goalMatched,
+          goalPoints: breakdown.goalPoints,
+          locationMatched: breakdown.locationMatched,
+          locationPoints: breakdown.locationPoints,
+          featuredApplied: breakdown.featuredApplied,
+          urgentApplied: breakdown.urgentApplied,
+          reasons: breakdown.reasons,
+        },
         rankScore,
       };
     });
@@ -1767,6 +1783,23 @@ function OpportunityCard({
             />
           </div>
         </div>
+
+        {/* ───────────────── WHY THIS MATCHES ───────────────── */}
+        {item.breakdown.hasProfile && item.breakdown.reasons.some((r) => r.key !== "base" && r.points > 0) && (
+          <div className="mt-3 text-sm font-semibold text-neutral-700">
+            <span className="flex items-center gap-1.5">
+              <span className="text-[10px] font-medium text-neutral-500">Why this matches:</span>
+            </span>
+            {item.breakdown.reasons.map((reason) => {
+              if (reason.key === "base" || reason.points <= 0) return null;
+              return (
+                <span className="flex items-center gap-0.5" key={reason.key}>
+                  {reason.label}
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         {/* ───────────────── TAGS ───────────────── */}
         {tags.length > 0 && (

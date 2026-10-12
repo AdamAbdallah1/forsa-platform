@@ -365,6 +365,8 @@ export default function PublicSeekerProfile() {
     user.portfolioLinks || user.portfolio
   );
 
+const projects = user.projects || [];
+
   const cv = getCvData(user);
 
   const careerPrefs = [
@@ -699,6 +701,24 @@ export default function PublicSeekerProfile() {
             </div>
           ) : (
             <EmptyText text="No portfolio links added yet." />
+          )}
+        </Card>
+
+        <Card className="mt-5">
+          <h3 className="text-lg font-semibold text-neutral-900">Projects</h3>
+          {projects.length ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project) => (
+                <div key={project.id} className="rounded-2xl border border-[var(--forsa-border)] bg-white p-4">
+                  <h4>{project.name || "Project"}</h4>
+                  <p>{project.description || ""}</p>
+                  <p>Role: {project.role || ""}</p>
+                  <p>Technologies: {project.technologies?.join(", ") || ""}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>No projects added yet.</p>
           )}
         </Card>
       </main>

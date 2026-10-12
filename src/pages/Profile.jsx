@@ -236,6 +236,7 @@ export default function Profile() {
   skills: [],
   lookingFor: [],
   cv: null,
+  projects: [],
 });
 
 if (!Array.isArray(savedProfile.skills)) {
@@ -252,6 +253,7 @@ if (!Array.isArray(savedProfile.skills)) {
     ? savedAccount.experience
     : []
 );
+  const [projects, setProjects] = useState(profile.projects || []);
   const [posts, setPosts] = useState(() => {
     const allPosts = safeJson("forsaPosts", []);
     if (!savedAccount || savedAccount.accountType !== "hiring") return allPosts;
@@ -600,6 +602,17 @@ const saveChanges = async () => {
       profileData.lookingFor = cleanProfile.lookingFor;
       profileData.cv = cleanProfile.cv;
 
+      profileData.projects = projects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        role: project.role,
+        technologies: project.technologies || [],
+        liveDemoUrl: project.liveDemoUrl,
+        sourceCodeUrl: project.sourceCodeUrl,
+        coverImage: project.coverImage,
+      }));
+
       profileData.publicSkills = cleanProfile.skills;
       profileData.publicLookingFor = cleanProfile.lookingFor;
       profileData.publicCv = cleanProfile.cv;
@@ -626,6 +639,7 @@ const saveChanges = async () => {
           skills: cleanProfile.skills,
           lookingFor: cleanProfile.lookingFor,
           cv: cleanProfile.cv,
+          projects: projects,
         }).catch((error) => {
           console.error("Public profile sync failed:", error);
         });
@@ -844,6 +858,8 @@ const saveChanges = async () => {
               handleCvView={handleCvView}
               experiences={experiences}
               setExperiences={setExperiences}
+              projects={projects}
+              setProjects={setProjects}
               removeCv={removeCv}
             />
           ) : (
@@ -1550,6 +1566,8 @@ function ProfileEdit({
   removeCv,
   experiences,
   setExperiences,
+  projects,
+  setProjects,
 }) {
   const [cvUploading, setCvUploading] = useState(false);
   const [cvUploadError, setCvUploadError] = useState("");

@@ -288,6 +288,8 @@ const qualifiedPost = () => ({
   moderationStatus: "approved",
   safetyStatus: "clear",
   status: "active",
+  reviewedBy: "admin@test.com",
+  approvedAt: "2030-01-01T10:00:00Z",
   deadline: "2030-01-01",
 });
 
@@ -325,6 +327,8 @@ check("badges alone never verify: trusted/featured/urgent/ownership", () => {
       urgent: true,
       ownerUid: "someone",
       status: "active",
+      reviewedBy: "admin@test.com",
+      approvedAt: "2030-01-01T10:00:00Z",
       reviewStatus: "approved",
       moderationStatus: "approved",
       safetyStatus: "clear",

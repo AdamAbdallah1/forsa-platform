@@ -47,6 +47,34 @@ function withProtocol(value) {
   return `https://${url}`;
 }
 
+/**
+ * Client-side sanitization for company bio to prevent rendering of
+ * accidentally leaked Firebase Auth user directory data.
+ * Mirrors the server-side sanitization in publicProfileProjection.js.
+ */
+function sanitizeCompanyBioClient(value) {
+  const cleaned = typeof value === "string" ? value.trim() : "";
+  if (!cleaned) return "";
+
+  const directoryHeaders = [
+    "Identifier",
+    "Providers",
+    "Created",
+    "Signed In",
+    "User UID",
+    "Actions",
+  ];
+
+  const headerCount = directoryHeaders.filter((h) => cleaned.includes(h)).length;
+
+  if (headerCount >= 3) {
+    console.warn("Detected likely Firebase Auth user directory data in companyBio; suppressing render");
+    return "";
+  }
+
+  return cleaned;
+}
+
 function instagramHref(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
@@ -124,7 +152,7 @@ export default function CompanyProfile() {
           setRemotePosts(
             postsSnap.docs
               .map((item) => ({ id: item.id, ...item.data() }))
-              .filter((post) => post.status !== "closed")
+              .filter((post) => post.status === "active")
           );
         }
       } catch (error) {
@@ -147,7 +175,7 @@ export default function CompanyProfile() {
 
   const localCompanyPosts = localPosts.filter(
     (post) =>
-      post.status !== "closed" &&
+      post.status === "active" &&
       (post.ownerEmail === decodedEmail ||
         post.contact === decodedEmail ||
         post.company === localCompanyUser?.companyName ||
@@ -170,7 +198,8 @@ export default function CompanyProfile() {
     trustedPosters.includes(decodedEmail) || Boolean(companyUser?.trusted);
   const isVerified = Boolean(companyUser?.verified);
 
-  const companyBio = companyUser?.companyBio || "";
+  const rawCompanyBio = companyUser?.companyBio || "";
+  const companyBio = sanitizeCompanyBioClient(rawCompanyBio);
   const website = companyUser?.website || "";
   const instagram = companyUser?.instagram || "";
 
