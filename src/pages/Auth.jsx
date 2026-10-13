@@ -7,6 +7,7 @@ import {
 } from "../lib/auth";
 import { showToast } from "../lib/Toast";
 import SEO from "../components/SEO";
+import { SignupSource } from "../components/SignupSource";
 import {
   validatePassword,
   getPasswordRequirements,
@@ -184,6 +185,8 @@ export default function Auth() {
     companyName: "",
     companyEmail: "",
     contactPerson: "",
+    signupSource: "",
+    signupSourceOther: "",
   });
 
   const isSignup = mode === "signup";
@@ -202,6 +205,8 @@ export default function Auth() {
     !form.confirmPassword ||
     form.password === form.confirmPassword;
 
+  const hasSignupSource = form.signupSource && (form.signupSource !== "other" || form.signupSourceOther.trim());
+
   const canContinue = isSignup
     ? isHiring
       ? validateCompanyName(form.companyName) === "" &&
@@ -211,14 +216,16 @@ export default function Auth() {
         validateCity(form.city) === "" &&
         passwordIssue === "" &&
         form.confirmPassword.trim() !== "" &&
-        form.password === form.confirmPassword
+        form.password === form.confirmPassword &&
+        hasSignupSource
       : validateName(form.name, "Full name") === "" &&
         validateUsername(form.username) === "" &&
         emailRegex.test(form.email.trim()) &&
         validateCity(form.city) === "" &&
         passwordIssue === "" &&
         form.confirmPassword.trim() !== "" &&
-        form.password === form.confirmPassword
+        form.password === form.confirmPassword &&
+        hasSignupSource
     : (loginMethod === "username"
         ? validateUsername(form.email) === ""
         : emailRegex.test(form.email.trim())) &&
@@ -397,6 +404,8 @@ export default function Auth() {
             contactPerson: form.contactPerson.trim(),
             trusted: false,
             verified: false,
+            signupSource: form.signupSource,
+            signupSourceOther: form.signupSource === "other" ? form.signupSourceOther.trim() : "",
           }
         : {
             accountType: "finder",
@@ -405,6 +414,8 @@ export default function Auth() {
             usernameLower: form.username.trim().toLowerCase(),
             email: finalEmail,
             city: form.city.trim(),
+            signupSource: form.signupSource,
+            signupSourceOther: form.signupSource === "other" ? form.signupSourceOther.trim() : "",
           };
 
       await registerUser({
@@ -583,6 +594,7 @@ export default function Auth() {
                   onModeSwitch={handleModeSwitch}
                   loginMethod={loginMethod}
                   setLoginMethod={setLoginMethod}
+                  hasSignupSource={hasSignupSource}
                 />
               )}
             </div>
@@ -756,6 +768,7 @@ function FormStep({
   passwordsMatch,
   onModeSwitch,
   setLoginMethod,
+  hasSignupSource,
 }) {
   const isHiring = accountType === "hiring";
 
@@ -1021,6 +1034,17 @@ function FormStep({
               updateField("city", value)
             }
             autoComplete="address-level2"
+          />
+        )}
+
+        {isSignup && (
+          <SignupSource
+            value={form.signupSource}
+            onChange={(value) => updateField("signupSource", value)}
+            otherValue={form.signupSourceOther}
+            onOtherChange={(value) => updateField("signupSourceOther", value)}
+            error={hasSignupSource ? "" : "Please select how you heard about Forsa."}
+            required
           />
         )}
 

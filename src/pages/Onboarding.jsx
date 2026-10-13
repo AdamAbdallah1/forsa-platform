@@ -26,6 +26,7 @@ import {
   uploadCvToR2,
   CV_MAX_BYTES,
 } from "../lib/cvUpload";
+import { SignupSource } from "../components/SignupSource";
 
 const skillOptions = [
   "React",
@@ -99,6 +100,8 @@ export default function Onboarding() {
   const [cvUploadError, setCvUploadError] = useState("");
   const cvFileInputRef = useRef(null);
   const [customSkill, setCustomSkill] = useState("");
+  const [signupSource, setSignupSource] = useState(() => savedProfile.signupSource || savedAccount?.signupSource || "");
+  const [signupSourceOther, setSignupSourceOther] = useState(() => savedProfile.signupSourceOther || savedAccount?.signupSourceOther || "");
 
   const steps = [
     {
@@ -136,20 +139,25 @@ export default function Onboarding() {
   }, [cityPreference, availability, selectedSkills, selectedLooking, portfolio, cv]);
 
   const canMoveStep = () => {
-    if (step === 0) return cityPreference.trim() && availability;
+    if (step === 0) {
+      const hasSignupSource = signupSource && (signupSource !== "other" || signupSourceOther.trim());
+      return cityPreference.trim() && availability && hasSignupSource;
+    }
     if (step === 1) return selectedSkills.length > 0;
     if (step === 2) return selectedLooking.length > 0;
     return true;
   };
 
   const canFinish = useMemo(() => {
+    const hasSignupSource = signupSource && (signupSource !== "other" || signupSourceOther.trim());
     return (
       cityPreference.trim().length > 0 &&
       availability.length > 0 &&
       selectedSkills.length > 0 &&
-      selectedLooking.length > 0
+      selectedLooking.length > 0 &&
+      hasSignupSource
     );
-  }, [cityPreference, availability, selectedSkills, selectedLooking]);
+  }, [cityPreference, availability, selectedSkills, selectedLooking, signupSource, signupSourceOther]);
 
   const toggle = (item, state, setState) => {
     setState(
@@ -272,6 +280,12 @@ export default function Onboarding() {
       return;
     }
 
+    const hasSignupSource = signupSource && (signupSource !== "other" || signupSourceOther.trim());
+    if (!hasSignupSource) {
+      showToast("Please select how you heard about Forsa.", "info");
+      return;
+    }
+
     const nextProfile = {
       ...savedProfile,
       skills: selectedSkills,
@@ -280,6 +294,8 @@ export default function Onboarding() {
       availability,
       portfolio: portfolio.trim(),
       cv: cv || null,
+      signupSource,
+      signupSourceOther: signupSource === "other" ? signupSourceOther.trim() : "",
       completedAt: new Date().toISOString(),
     };
 
@@ -307,6 +323,8 @@ export default function Onboarding() {
             lookingFor: selectedLooking,
             cv: cv || null,
             portfolioLinks: portfolio.trim() || "",
+            signupSource,
+            signupSourceOther: signupSource === "other" ? signupSourceOther.trim() : "",
             updatedAt: serverTimestamp(),
           },
           { merge: true }
@@ -323,6 +341,8 @@ export default function Onboarding() {
           lookingFor: selectedLooking,
           cv: cv || null,
           portfolioLinks: portfolio.trim() || "",
+          signupSource,
+          signupSourceOther: signupSource === "other" ? signupSourceOther.trim() : "",
         });
       } catch (error) {
         console.error("Public profile sync failed:", error);
@@ -471,6 +491,15 @@ export default function Onboarding() {
                       ))}
                     </div>
                   </FieldBlock>
+
+                  <SignupSource
+                    value={signupSource}
+                    onChange={setSignupSource}
+                    otherValue={signupSourceOther}
+                    onOtherChange={setSignupSourceOther}
+                    error={signupSource && (signupSource !== "other" || signupSourceOther.trim()) ? "" : "Please select how you heard about Forsa."}
+                    required
+                  />
                 </div>
               )}
 
