@@ -14,14 +14,15 @@ import {
 import AppHeader from "../components/AppHeader";
 import {
   deleteNotification,
-  getUserNotifications,
   markNotificationRead,
   notificationMatchesUser,
+  listenUserNotifications,
 } from "../lib/notificationService";
 import {
   acceptConnection,
   rejectConnection,
 } from "../lib/connectionService";
+import { useAuth } from "../contexts/AuthContext";
 
 const CACHE_KEY = "forsaNotificationsCache";
 
@@ -34,7 +35,7 @@ const safeJson = (key, fallback) => {
 };
 
 export default function Notifications() {
-  const [account] = useState(() => safeJson("forsaAccount", null));
+  const { account } = useAuth();
   const [notifications, setNotifications] = useState(() =>
     safeJson(CACHE_KEY, [])
   );
@@ -46,37 +47,39 @@ export default function Notifications() {
   const [loadError, setLoadError] = useState("");
   const [batchActionLoading, setBatchActionLoading] = useState(false);
 
+  // Real-time notifications listener
   useEffect(() => {
-    if (!account?.email && !account?.uid) return;
+    if (!account?.email && !account?.uid) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
 
-    let isMounted = true;
+    // Load cached notifications immediately for fast first paint
+    const cached = safeJson(CACHE_KEY, []);
+    setNotifications(cached);
+    setLoading(false);
 
-    const loadNotifications = async () => {
-      setLoadError("");
-      try {
-        const data = await getUserNotifications({
-          email: String(account.email || "").trim().toLowerCase(),
-          uid: account.uid,
-        });
-
-        if (isMounted) {
-          setNotifications(data);
-          localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-        }
-      } catch (error) {
-        console.error("Load notifications error:", error);
-        setLoadError("We could not refresh your notifications.");
-        showToast("Could not load notifications.", "error");
-      } finally {
-        if (isMounted) setLoading(false);
+    const unsubscribe = listenUserNotifications(
+      { email: account?.email, uid: account?.uid },
+      (notifs) => {
+        setNotifications(notifs);
+        localStorage.setItem(CACHE_KEY, JSON.stringify(notifs));
+      },
+      (error) => {
+        console.error("Notifications listener error:", error);
+        // Show the actual Firebase error code/message for debugging
+        const errorMessage = error?.code
+          ? `Could not load notifications: ${error.code} - ${error.message}`
+          : error?.message
+          ? `Could not load notifications: ${error.message}`
+          : "Could not load notifications. Please try again.";
+        setLoadError(errorMessage);
+        showToast(errorMessage, "error");
       }
-    };
+    );
 
-    loadNotifications();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => unsubscribe();
   }, [account?.email, account?.uid]);
 
   const filteredNotifications = useMemo(() => {

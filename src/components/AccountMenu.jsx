@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   FaAngleDown,
   FaBell,
+  FaBookOpen,
   FaBriefcase,
   FaSignOutAlt,
   FaUser,
@@ -137,6 +138,13 @@ export default function AccountMenu({
       label: "Account",
       to: "/profile",
       active: location.pathname === "/profile",
+    },
+    {
+      key: "employer-guide",
+      icon: FaBookOpen,
+      label: "Employer Guide",
+      to: "/employer-guide",
+      active: location.pathname === "/employer-guide",
     },
     {
       key: "applications",

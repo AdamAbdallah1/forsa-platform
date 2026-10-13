@@ -412,6 +412,16 @@ const cancelInterview = async () => {
 
   const now = new Date().toISOString();
 
+  // Determine previous status from statusHistory (before "interview")
+  const history = interviewTarget.statusHistory || [];
+  let previousStatus = "pending";
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].status !== "interview") {
+      previousStatus = history[i].status;
+      break;
+    }
+  }
+
   const systemMessage = {
     id: Date.now(),
     from: "Forsa",
@@ -426,7 +436,7 @@ const cancelInterview = async () => {
     item.id === interviewTarget.id
       ? {
           ...item,
-          status: "pending",
+          status: previousStatus,
           interview: undefined,
           updatedAt: now,
           lastMessage: systemMessage.text,
@@ -437,7 +447,7 @@ const cancelInterview = async () => {
           statusHistory: [
             ...(item.statusHistory || []),
             {
-              status: "pending",
+              status: previousStatus,
               createdAt: now,
               by: account.email,
             },
@@ -455,6 +465,7 @@ const cancelInterview = async () => {
     await cancelThreadInterview(interviewTarget.id, {
       by: account.email,
       systemMessage,
+      status: previousStatus,
     });
 
     if (interviewTarget.seeker?.email) {

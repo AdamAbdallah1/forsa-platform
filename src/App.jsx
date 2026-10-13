@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import Companies from "./pages/Companies";
 import PostOpportunity from "./pages/PostOpportunity";
 import Dashboard from "./pages/Dashboard";
+import EmployerGuide from "./pages/EmployerGuide";
 import AdminOutreach from "./pages/AdminOutreach";
 import AdminEmail from "./pages/AdminEmail";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -120,6 +121,7 @@ export default function App() {
           <Route path="/explore" element={<Explore />} />
           <Route path="/jobs/:jobId" element={<JobDetails />} />
           <Route path="/dashboard" element={<HiringRoute><Dashboard /></HiringRoute>}/>
+          <Route path="/employer-guide" element={<HiringRoute><EmployerGuide /></HiringRoute>} />
           <Route path="/admin-review" element={<AdminRoute><AdminReview /></AdminRoute>} />
           <Route path="/saved" element={<ProtectedRoute><SavedJobs /></ProtectedRoute>} />
           <Route path="/applications" element={<SeekerRoute><MyApplications /></SeekerRoute>} />

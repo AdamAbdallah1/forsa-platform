@@ -13,7 +13,6 @@ import {
   FaCheckCircle,
   FaFlag,
   FaTimes,
-  FaBookOpen,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -23,7 +22,6 @@ import {
   updatePost,
   deletePost as deletePostFromFirestore,
 } from "../lib/postService";
-import EmployerGuides from "../components/EmployerGuides";
 
 const formatNumber = (value) => Number(value || 0).toLocaleString();
 
@@ -1193,18 +1191,6 @@ export default function Dashboard() {
             <FaPercent className="text-xs" />
             Analytics
           </button>
-
-          <button
-            onClick={() => setActiveTab("guides")}
-            className={`forsa-click inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
-              activeTab === "guides"
-                ? "forsa-button text-white"
-                : "bg-[var(--forsa-bg)] text-neutral-600 hover:bg-white"
-            }`}
-          >
-            <FaBookOpen className="text-xs" />
-            Employer Guide
-          </button>
         </div>
 
         {analyticsError ? (
@@ -1249,10 +1235,6 @@ export default function Dashboard() {
                 onNewPost={() => navigate("/post")}
                 onOpenApplicants={() => navigate("/applicants")}
               />
-            )}
-
-            {activeTab === "guides" && (
-              <EmployerGuides />
             )}
           </>
         )}

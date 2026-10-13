@@ -11,6 +11,7 @@ import {
   sendThreadReply,
   updateThreadStatus,
 } from "../lib/applicationService";
+import { markThreadNotificationsRead } from "../lib/notificationService";
 import {
   FaArrowLeft,
   FaBriefcase,
@@ -23,6 +24,7 @@ import {
   FaTimesCircle,
   FaClock,
   FaSearch,
+  FaCalendarAlt,
 } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 
@@ -41,11 +43,12 @@ const writeJson = (key, value) => {
 const statusOptions = [
   { value: "pending", label: "Pending", icon: FaClock },
   { value: "shortlisted", label: "Shortlisted", icon: FaCheckCircle },
+  { value: "interview", label: "Interview", icon: FaCalendarAlt },
   { value: "accepted", label: "Accepted", icon: FaCheckCircle },
   { value: "rejected", label: "Rejected", icon: FaTimesCircle },
 ];
 
-const timelineSteps = ["pending", "shortlisted", "accepted"];
+const timelineSteps = ["pending", "shortlisted", "interview", "accepted", "rejected"];
 
 const formatDateTime = (value) => {
   if (!value) return "Recently";
@@ -100,6 +103,7 @@ export default function Messages() {
   const [messagesError, setMessagesError] = useState("");
   const [sending, setSending] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [statusConfirm, setStatusConfirm] = useState(null);
 
   useEffect(() => {
     if (!account?.email) return;
@@ -220,6 +224,16 @@ export default function Messages() {
   const openThread = (id) => {
     setActiveId(id);
     setMobileThreadOpen(true);
+
+    // Mark thread notifications as read when opening conversation
+    const thread = sortedMessages.find((t) => t.id === id);
+    if (thread && account) {
+      markThreadNotificationsRead({
+        applicationId: thread.id,
+        email: account.email,
+        uid: account.uid,
+      });
+    }
   };
 
   const notifyStatusChange = async (thread, status) => {
@@ -239,10 +253,20 @@ export default function Messages() {
     }
   };
 
-  const updateStatus = async (status) => {
+  const updateStatus = (status) => {
     if (!activeThread) return;
     if ((activeThread.status || "pending") === status) return;
 
+    setStatusConfirm({
+      thread: activeThread,
+      status,
+    });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!statusConfirm) return;
+
+    const { thread, status } = statusConfirm;
     const now = new Date().toISOString();
 
     const systemMessage = {
@@ -253,16 +277,16 @@ export default function Messages() {
       createdAt: now,
     };
 
-    const optimisticMessages = messages.map((thread) =>
-      thread.id === activeThread.id
+    const optimisticMessages = messages.map((t) =>
+      t.id === thread.id
         ? {
-            ...thread,
+            ...t,
             status,
             updatedAt: now,
             lastMessage: systemMessage.text,
-            conversation: [...(thread.conversation || []), systemMessage],
+            conversation: [...(t.conversation || []), systemMessage],
             statusHistory: [
-              ...(thread.statusHistory || []),
+              ...(t.statusHistory || []),
               {
                 status,
                 createdAt: now,
@@ -270,24 +294,26 @@ export default function Messages() {
               },
             ],
           }
-        : thread
+        : t
     );
 
     persistMessages(optimisticMessages);
 
     try {
-      await updateThreadStatus(activeThread.id, {
+      await updateThreadStatus(thread.id, {
         status,
         by: account?.email || "system",
         systemMessage,
       });
 
-      await notifyStatusChange(activeThread, status);
+      await notifyStatusChange(thread, status);
       showToast(`Application marked as ${getStatusLabel(status).toLowerCase()}`);
     } catch (error) {
       console.error("Update status error:", error);
       persistMessages(messages);
       showToast("Could not update status. Try again.", "error");
+    } finally {
+      setStatusConfirm(null);
     }
   };
 
@@ -494,6 +520,58 @@ export default function Messages() {
           </button>
         </div>
       </Modal>
+
+      <Modal
+        open={Boolean(statusConfirm)}
+        title="Update applicant status"
+        onClose={() => setStatusConfirm(null)}
+      >
+        {statusConfirm && (
+          <div>
+            <p className="text-sm leading-7 text-neutral-600">
+              Are you sure you want to mark{" "}
+              <span className="font-semibold text-black">
+                {statusConfirm.thread.seeker?.name || "this applicant"}
+              </span>{" "}
+              as{" "}
+              <span className="font-semibold text-[var(--forsa-primary)]">
+                {getStatusLabel(statusConfirm.status)}
+              </span>
+              ?
+            </p>
+
+            <div className="mt-5 rounded-2xl bg-[var(--forsa-bg)] p-4">
+              <p className="text-sm font-semibold">
+                {statusConfirm.thread.title}
+              </p>
+              <p className="mt-1 text-sm text-neutral-500">
+                {statusConfirm.thread.seeker?.name || "Applicant"}
+              </p>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setStatusConfirm(null)}
+                className="rounded-full border border-[var(--forsa-border)] bg-white px-5 py-3 text-sm font-semibold text-neutral-700"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={confirmStatusChange}
+                className={`rounded-full px-5 py-3 text-sm font-semibold text-white ${
+                  statusConfirm.status === "rejected"
+                    ? "bg-red-600"
+                    : "forsa-button"
+                }`}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <Footer />
     </section>
   );
@@ -504,6 +582,7 @@ function MessageToolbar({ search, setSearch, statusFilter, setStatusFilter }) {
     { value: "all", label: "All" },
     { value: "pending", label: "Pending" },
     { value: "shortlisted", label: "Shortlisted" },
+    { value: "interview", label: "Interview" },
     { value: "accepted", label: "Accepted" },
     { value: "rejected", label: "Rejected" },
   ];
@@ -806,18 +885,8 @@ function ThreadHeader({ thread, account, presence, onDelete, onBack }) {
 }
 
 function StatusTimeline({ status }) {
-  if (status === "rejected") {
-    return (
-      <div className="mb-4 rounded-[24px] border border-red-100 bg-red-50 p-4">
-        <div className="flex items-center gap-2 text-red-700">
-          <FaTimesCircle className="text-sm" />
-          <p className="text-sm font-medium">Application rejected</p>
-        </div>
-      </div>
-    );
-  }
-
   const currentIndex = Math.max(0, timelineSteps.indexOf(status || "pending"));
+  const totalSteps = timelineSteps.length;
 
   return (
     <div className="mb-4 rounded-[24px] border border-[var(--forsa-border)] bg-white p-4">
@@ -830,7 +899,7 @@ function StatusTimeline({ status }) {
         </div>
 
         <span className="rounded-full bg-[var(--forsa-bg)] px-3 py-1 text-xs text-neutral-600">
-          {currentIndex + 1}/3
+          {currentIndex + 1}/{totalSteps}
         </span>
       </div>
 
@@ -845,10 +914,12 @@ function StatusTimeline({ status }) {
         ))}
       </div>
 
-      <div className="mt-3 grid grid-cols-3 text-[11px] uppercase tracking-wide text-neutral-500">
+      <div className="mt-3 grid grid-cols-5 text-[11px] uppercase tracking-wide text-neutral-500">
         <span>Pending</span>
         <span className="text-center">Shortlisted</span>
-        <span className="text-right">Accepted</span>
+        <span className="text-center">Interview</span>
+        <span className="text-center">Accepted</span>
+        <span className="text-right">Rejected</span>
       </div>
     </div>
   );

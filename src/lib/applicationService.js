@@ -289,6 +289,11 @@ export async function sendThreadReply(
       ? ownerEmail
       : seekerEmail;
 
+  const targetUid =
+    senderEmail === seekerEmail
+      ? thread?.ownerUid
+      : thread?.seeker?.uid;
+
   if (
     targetEmail &&
     targetEmail !== senderEmail
@@ -300,6 +305,7 @@ export async function sendThreadReply(
         thread?.title || "an application"
       }.`,
       targetEmail,
+      targetUid,
       actionUrl: "/messages",
       applicationId: threadId,
     });
@@ -329,9 +335,8 @@ export async function updateThreadStatus(
     }),
   };
 
-  if (status === "rejected" || status === "accepted") {
-    updates.interview = deleteField();
-  }
+  // Preserve interview data for audit trail; do not delete on accept/reject
+  // The interview object remains on the document for reference
 
   await updateDoc(
     doc(db, "applications", threadId),

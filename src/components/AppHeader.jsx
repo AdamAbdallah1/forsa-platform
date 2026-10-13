@@ -14,7 +14,7 @@ import { BsFillPeopleFill } from "react-icons/bs";
 
 import BrandLogo from "./BrandLogo";
 import AccountMenu from "./AccountMenu";
-import { notificationMatchesUser } from "../lib/notificationService";
+import { notificationMatchesUser, listenUserNotifications } from "../lib/notificationService";
 import { useAuth } from "../contexts/AuthContext";
 
 function safeJson(key, fallback) {
@@ -38,22 +38,45 @@ export default function AppHeader() {
   const isHiring = account?.accountType === "hiring";
   const isAuthPage = location.pathname === "/auth";
 
+  // Real-time notifications listener
+  useEffect(() => {
+    if (!account?.email && !account?.uid) {
+      setNotifications([]);
+      return;
+    }
+
+    // Load cached notifications immediately for fast first paint
+    const cached = safeJson("forsaNotificationsCache", []);
+    setNotifications(cached);
+
+    const unsubscribe = listenUserNotifications(
+      { email: account?.email, uid: account?.uid },
+      (notifs) => {
+        setNotifications(notifs);
+        localStorage.setItem("forsaNotificationsCache", JSON.stringify(notifs));
+        // Dispatch event for other components (MobileNav, etc.)
+        window.dispatchEvent(new CustomEvent("forsa:notifications-updated"));
+      },
+      (error) => {
+        console.error("Notifications listener error:", error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [account?.email, account?.uid]);
+
+  // Keep storage event listener for cross-tab sync
   useEffect(() => {
     const refreshHeader = () => {
       setNotifications(safeJson("forsaNotificationsCache", []));
     };
-
-    refreshHeader();
 
     window.addEventListener("storage", refreshHeader);
     window.addEventListener("forsa:notifications-updated", refreshHeader);
 
     return () => {
       window.removeEventListener("storage", refreshHeader);
-      window.removeEventListener(
-        "forsa:notifications-updated",
-        refreshHeader
-      );
+      window.removeEventListener("forsa:notifications-updated", refreshHeader);
     };
   }, []);
 

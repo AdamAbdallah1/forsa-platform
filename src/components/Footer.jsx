@@ -40,6 +40,7 @@ export default function Footer() {
             links={[
               { label: "Explore", href: "/explore" },
               { label: "Career Guides", href: "/guides" },
+              { label: "Employer Guide", href: "/employer-guide" },
               { label: "Post Opportunity", href: "/post" },
               { label: "Messages", href: "/messages" },
               { label: "Saved Jobs", href: "/saved" },
